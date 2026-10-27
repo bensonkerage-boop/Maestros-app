@@ -1,0 +1,55 @@
+{
+  "name": "masms-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MASMS web host + REST API (Express, MongoDB, JWT auth)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node scripts/build.js",
+    "test": "jest --runInBand",
+    "standalone": "node scripts/standalone.js",
+    "build:android": "NATIVE_APP=1 node scripts/build.js && cap sync android",
+    "apk": "npm run build:android && cd android && ./gradlew assembleDebug"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "eslint": "^9.39.5",
+    "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
+    "qrcode": "^1.5.4",
+    "terser": "^5.51.2",
+    "xlsx": "^0.18.5"
+  },
+  "jest": {
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ],
+    "testTimeout": 30000
+  }
+}
