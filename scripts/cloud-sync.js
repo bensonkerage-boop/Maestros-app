@@ -1,5 +1,5 @@
 /* MASMS cloud sync: signs in to the API, loads saved data on start, autosaves changes.
-   Uses the app's own globals (collectBackupData, loadSchoolData, render). */
+   Uses the app's own globals (collectBackupData, applyPlatformData, loadSchoolData, render). */
 (function(){
   var TOKEN_KEY='masmsCloudToken', API=(window.MASMS_API_BASE||'')+'/api';
   var token=null, version=0, lastHash='', ready=false, busy=false, state='off';
@@ -14,6 +14,7 @@
     if(Array.isArray(data.schools)) schools=data.schools;
     if(data.schoolProfiles && typeof data.schoolProfiles==='object') schoolProfiles=data.schoolProfiles;
     schoolData=data.schoolData;
+    try{ applyPlatformData(data); }catch(e){ console.warn('platform data',e); }
     currentSchool=(typeof data.currentSchool==='string' && schools.indexOf(data.currentSchool)>-1)?data.currentSchool:schools[0];
     loadSchoolData(currentSchool);
     try{ render(); }catch(e){ console.warn('render after cloud load',e); }

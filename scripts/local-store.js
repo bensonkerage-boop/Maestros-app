@@ -1,7 +1,7 @@
 /* MASMS on-device storage: keeps a full snapshot of the app's data on the phone/browser itself
    (IndexedDB, falling back to localStorage), restores it on start, and keeps one older copy.
    Works with no internet or server. Cloud sync (cloud-sync.js) still runs on top when signed in.
-   Uses the app's own globals (collectBackupData, loadSchoolData, render). */
+   Uses the app's own globals (collectBackupData, applyPlatformData, loadSchoolData, render). */
 (function(){
   var DB='masmsLocal', STORE='kv', KEY='snapshot', PREV='snapshotPrev', SYNCED='masmsLocalSyncedHash';
   var PREV_EVERY=30*60*1000, TICK=5000;
@@ -47,6 +47,7 @@
     if(Array.isArray(data.schools)&&data.schools.length) schools=data.schools;
     if(data.schoolProfiles&&typeof data.schoolProfiles==='object') schoolProfiles=data.schoolProfiles;
     schoolData=data.schoolData;
+    try{ applyPlatformData(data); }catch(e){ console.warn('platform data',e); }
     currentSchool=(typeof data.currentSchool==='string'&&schools.indexOf(data.currentSchool)>-1)?data.currentSchool:schools[0];
     loadSchoolData(currentSchool);
     try{ render(); }catch(e){ console.warn('render after local restore',e); }

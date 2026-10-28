@@ -244,3 +244,45 @@ describe('teachers without an account can sign in with the welcome password', ()
     expect(run([], [{ name: 'Paul Kamau', phone: '0733333333', responsibility: 'Principal' }], '0733333333', 'welcome').role).toBe('Super Admin');
   });
 });
+
+describe('marks entry: numbers or AB only, over-max blocks saving', () => {
+  const ctx = {};
+  beforeAll(() => {
+    vm.runInNewContext([
+      'let marksEntryContext = { exam:"E", subject:"Math", paper:null }; let marksEntryDraft = {}; let marksEntryRemarkDraft = {}; let marksEntryTaskDraft = {};',
+      'const MAXV = 100;',
+      'function marksEntryMaxMarksFor(){ return MAXV; }',
+      'function marksEntryTasks(){ return []; }',
+      'function marksTaskOverMax(){ return undefined; }',
+      'function marksEntryStudentList(){ return [{ admissionNumber:"1", firstName:"Ann", lastName:"A" }, { admissionNumber:"2", firstName:"Bob", lastName:"B" }]; }',
+      ...['marksSanitizeScore', 'marksEntryProblems'].map(fnSrc),
+      'this.api = { s: marksSanitizeScore, set: (d, r) => { marksEntryDraft = d; marksEntryRemarkDraft = r || {}; }, problems: marksEntryProblems };',
+    ].join('\n'), ctx);
+  });
+  test('only digits, one dot, or exactly upper-case AB survive typing', () => {
+    expect(ctx.api.s('85')).toBe('85');
+    expect(ctx.api.s('8e5-')).toBe('85');
+    expect(ctx.api.s('7.5.2')).toBe('7.52');
+    expect(ctx.api.s('AB')).toBe('AB');
+    expect(ctx.api.s('A')).toBe('A');
+    expect(ctx.api.s('ab')).toBe('');          // lower case rejected
+    expect(ctx.api.s('Ab')).toBe('A');       // the lower-case b is dropped
+    expect(ctx.api.s('ABC')).toBe('AB');
+    expect(ctx.api.s('AX')).toBe('A');
+    expect(ctx.api.s('12AB')).toBe('12');
+    expect(ctx.api.s('AB7', true)).toBe('7');  // typing a number over AB replaces it
+  });
+  test('over max, lone "A" and junk are problems; AB, blanks and in-range are not', () => {
+    ctx.api.set({ 1: '101', 2: '100' });
+    let p = ctx.api.problems(); expect(p.over.map(x => x.adm)).toEqual(['1']); expect(p.bad).toEqual([]);
+    ctx.api.set({ 1: 'A', 2: '' }); p = ctx.api.problems(); expect(p.bad.map(x => x.adm)).toEqual(['1']);
+    ctx.api.set({ 1: '', 2: '' }, { 1: 'X' }); p = ctx.api.problems(); expect(p.over.length + p.bad.length).toBe(0);
+    ctx.api.set({ 1: '0', 2: '99.5' }); p = ctx.api.problems(); expect(p.over.length + p.bad.length).toBe(0);
+  });
+  test('saveMarksEntry refuses to save anything while there are problems', () => {
+    const fn = src.slice(src.indexOf('function saveMarksEntry'), src.indexOf('function toggleMarksRowEdit'));
+    const iCheck = fn.indexOf('marksEntryProblems()');
+    expect(iCheck).toBeGreaterThan(0);
+    expect(iCheck).toBeLessThan(fn.indexOf('Object.keys(marksEntryDraft).forEach'));
+  });
+});

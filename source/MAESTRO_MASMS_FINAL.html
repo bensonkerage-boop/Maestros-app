@@ -732,6 +732,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     font-size:13px;width:150px;
   }
   .search-cell input::placeholder{color:rgba(219,234,254,0.6);}
+  .marks-over{border-color:#dc2626 !important;background:#fef2f2 !important;color:#b91c1c !important;outline:1px solid #dc2626;}
+  .marks-warn{color:#b91c1c;font-size:11.5px;font-weight:700;line-height:1.3;}
   .login-cell{
     background:#fff;border:none;cursor:pointer;
     color:var(--navy-dark);font-weight:700;font-size:13px;
@@ -5065,6 +5067,9 @@ const ALL_MODULE_KEYS = [...NAV_ITEMS.filter(n => n.key !== "sysdev").map(n => n
 // System Developer is a platform-level account — it sees everything: every
 // school module plus the System Developer console itself.
 ROLE_MODULE_ACCESS["System Developer"] = [...ALL_MODULE_KEYS, "sysdev"];
+// Sales Agent is a platform-level login: it reaches only the registry console
+// (renderSystemDeveloperPage shows it a trimmed, own-schools-only view).
+ROLE_MODULE_ACCESS["Sales Agent"] = ["sysdev"];
 function allowedNavKeysForRole(role){
   if(role === "Teacher"){
     try{ return teacherModuleKeys().concat(["legal"]); }catch(e){ return ["dashboard", "legal"]; }
@@ -5372,6 +5377,9 @@ function submitResetPassword(){
 // checked here before falling through to the generic pattern below.
 const SYSDEV_USERNAME = "Oimeke";
 const SYSDEV_PASSWORD = "Aiden@2023"; // case-sensitive
+// The System Developer is also a sales agent: this name is the roster entry that is
+// credited automatically whenever the developer login registers a school.
+const SYSDEV_AGENT_NAME = "Benson Oimeke";
 
 // ---- Staff passwords: welcome password + forced change -----------------------
 // A staff account with no password of its own signs in with the WELCOME_PASSWORD
@@ -5447,6 +5455,10 @@ function passwordProblems(pw, user){
   return out;
 }
 function setUserPassword(u, pw){
+  if(u.role === "Sales Agent"){
+    const a = saAgents.find(x => x.id === u.agentId);
+    if(a){ const salt0 = pwNewSalt(); a.pw = { s: salt0, h: pwHashWithSalt(salt0, pw) }; a.mustChange = false; return saLoginUser(a); }
+  }
   const salt = pwNewSalt();
   const upd = Object.assign({}, u, { pw: { s: salt, h: pwHashWithSalt(salt, pw) }, mustChange: false });
   if(systemUsers.some(x => x.name === u.name && x.email === u.email)) systemUsers = systemUsers.map(x => (x.name === u.name && x.email === u.email) ? upd : x);
@@ -5484,6 +5496,8 @@ function completeStaffLogin(u){
   currentPortalStudentAdm = null;
   currentUserName = u.name;
   currentUserRole = u.role;
+  currentAgentId = u.role === "Sales Agent" ? u.agentId : null;
+  if(u.role === "Sales Agent") active = "sysdev";
   loginError = "";
   pwChangePending = false;
   document.getElementById('portalAppRoot').style.display = "none";
@@ -5789,6 +5803,23 @@ function submitLoginCore0(e){
     (userFirstName(u.name).toLowerCase() === username || (_phoneKey && loginPhoneKey(staffPhoneForUser(u)) === _phoneKey)) &&
     userPasswordOk(u, passwordRaw)
   );
+  // Sales agents (platform-level accounts kept on the Sales Agents roster). A phone
+  // number always identifies the agent; a first name only when no staff member
+  // with the welcome password already claims it (staff keep priority on names).
+  const matchedAgent = (saAgents || []).find(a => !a.isDeveloper && a.status !== "Inactive" &&
+    (userFirstName(a.name).toLowerCase() === username || (_phoneKey && loginPhoneKey(a.phone) === _phoneKey)) &&
+    userPasswordOk(saLoginUser(a), passwordRaw));
+  const agentByPhone = !!(matchedAgent && _phoneKey && loginPhoneKey(matchedAgent.phone) === _phoneKey);
+  if(!matchedUser && matchedAgent && (agentByPhone || !teacherWelcomeCandidate(usernameRaw, passwordRaw))){
+    const au = saLoginUser(matchedAgent);
+    if(userNeedsPasswordChange(au)){
+      loginError = "";
+      openForcedPasswordChange(au, usernameRaw);
+      return;
+    }
+    completeStaffLogin(au);
+    return;
+  }
   const newTeacher = matchedUser ? null : teacherWelcomeCandidate(usernameRaw, passwordRaw);
   if(newTeacher){
     loginError = "";
@@ -5833,6 +5864,7 @@ function submitLoginCore0(e){
 function logout(){
   try{ closeUserMenu(); }catch(_e){}
   isLoggedIn = false;
+  currentAgentId = null;
   isPortalSession = false;
   currentPortalStudentAdm = null;
   loginError = "";
@@ -9103,9 +9135,27 @@ function sdDaysUntil(iso){
   return Math.round((target - today) / 86400000);
 }
 
+// ---- Sales Agent access ----------------------------------------------------
+// A Sales Agent signs in with the login created from their Sales Agents roster
+// entry and only ever sees / acts on schools tagged with their own agent id.
+let currentAgentId = null;
+function isSalesAgentRole(){ return currentUserRole === "Sales Agent"; }
+// The developer's own agent record (no separate login; the developer signs in as usual).
+function saEnsureDeveloperAgent(){
+  let a = saAgents.find(x => x.isDeveloper);
+  if(!a){
+    a = { id: saNextId++, name: SYSDEV_AGENT_NAME, phone: "", email: "", region: Object.keys(SD_REGION_COUNTIES)[0], schoolsReferred: 0, commissionRate: 0, status: "Active", isDeveloper: true };
+    saAgents = [...saAgents, a];
+  }
+  return a;
+}
+function sdOwnsSchool(s){ return !isSalesAgentRole() || (!!s && s.agentId != null && s.agentId === currentAgentId); }
+function sdAgentLabel(s){ const a = s && s.agentId != null ? saAgents.find(x => x.id === s.agentId) : null; return a ? a.name : ""; }
+
 function sdFilteredSortedSchools(){
   const q = sdSearch.trim().toLowerCase();
   let rows = sdSchools.filter(s => {
+    if(!sdOwnsSchool(s)) return false;
     const matchesQ = !q || [s.name, s.region, s.county, s.subCounty].join(" ").toLowerCase().includes(q);
     const matchesRegion = !sdRegionFilter || s.region === sdRegionFilter;
     const matchesStatus = !sdStatusFilter || s.status === sdStatusFilter;
@@ -9134,6 +9184,7 @@ function sdSetRegionFilter(v){ sdRegionFilter = v; render(); }
 function sdSetStatusFilter(v){ sdStatusFilter = v; render(); }
 
 function sdChangeStatus(id, value){
+  if(isSalesAgentRole()) return;
   const s = sdSchools.find(x => x.id === id);
   if(!s) return;
   s.status = value;
@@ -9172,7 +9223,16 @@ function sdOnLevelPick(v){
   if(el) el.innerHTML = sdLevelSubjectsHtml(v);
 }
 
+// Values typed into the form survive the redraw that picking a Region/County triggers.
+let sdModalDraft = null;
+function sdSnapshotForm(){
+  const g = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
+  sdModalDraft = Object.assign(sdModalDraft || {}, { name:g('sd_name'), enrollment:g('sd_enrollment'), dor:g('sd_dor'), expiry:g('sd_expiry'), status:g('sd_status'), subCounty:g('sd_subCounty'), agent:g('sd_agent') });
+}
 function sdOpenModal(id){
+  if(id && !sdOwnsSchool(sdSchools.find(x => x.id === id))) return;
+  if(!id && isSalesAgentRole() && currentAgentId == null){ alert("Your agent account is not linked to the Sales Agents roster. Ask the System Developer."); return; }
+  sdModalDraft = null;
   sdEditingId = id || null;
   const s = sdEditingId ? sdSchools.find(x => x.id === sdEditingId) : null;
   sdModalFormRegion = s ? s.region : Object.keys(SD_REGION_COUNTIES)[0];
@@ -9183,6 +9243,7 @@ function sdOpenModal(id){
   render();
 }
 function sdCloseModal(){
+  sdModalDraft = null;
   sdShowModal = false;
   sdEditingId = null;
   sdModalFormRegion = null;
@@ -9206,11 +9267,13 @@ function sdRemoveLogo(){
   render();
 }
 function sdOnRegionPick(v){
+  sdSnapshotForm(); sdModalDraft.subCounty = undefined;   // sub-county list changes with the region
   sdModalFormRegion = v;
   sdModalFormCounty = SD_REGION_COUNTIES[v][0];
   render();
 }
 function sdOnCountyPick(v){
+  sdSnapshotForm(); sdModalDraft.subCounty = undefined;
   sdModalFormCounty = v;
   render();
 }
@@ -9239,12 +9302,17 @@ function sdSaveSchool(e){
     return;
   }
 
+  const agentSel = document.getElementById('sd_agent');
+  const pickedAgent = agentSel && agentSel.value !== "" ? Number(agentSel.value) : null;
   if(sdEditingId){
     const s = sdSchools.find(x => x.id === sdEditingId);
+    if(!sdOwnsSchool(s)) return;
     sdRenameInSwitcher(s.name, name);
     Object.assign(s, { name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo });
+    if(!isSalesAgentRole()) s.agentId = pickedAgent;
   } else {
-    sdSchools = [...sdSchools, { id:sdNextId++, name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo }];
+    const agentId = isSalesAgentRole() ? currentAgentId : pickedAgent;
+    sdSchools = [...sdSchools, { id:sdNextId++, name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo, agentId }];
   }
   sdEnsureSchoolsListed();
   sdSyncSchoolLocation(sdSchools.find(x => x.name === name));
@@ -9252,6 +9320,7 @@ function sdSaveSchool(e){
 }
 
 function sdRemoveSchool(id){
+  if(isSalesAgentRole()) return;
   const s = sdSchools.find(x => x.id === id);
   if(!s) return;
   if(!confirm(`Permanently remove ${s.name} from the registry, including its enrollment and licence history? This can't be undone.`)) return;
@@ -9381,6 +9450,7 @@ function renderSystemDeveloperModal(){
   const s = isEdit ? sdSchools.find(x => x.id === sdEditingId) : null;
   const region = sdModalFormRegion || Object.keys(SD_REGION_COUNTIES)[0];
   const county = sdModalFormCounty || SD_REGION_COUNTIES[region][0];
+  const dv = (k, base) => (sdModalDraft && sdModalDraft[k] !== undefined) ? sdModalDraft[k] : base;
   return `
   <div class="preview-overlay" onclick="if(event.target===this) sdCloseModal()">
     <div class="preview-modal" style="max-width:600px;">
@@ -9392,23 +9462,13 @@ function renderSystemDeveloperModal(){
         <button class="btn-ghost" style="width:32px;height:32px;padding:0;border:none;" onclick="sdCloseModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="sdSaveSchool(event)" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;">
+        <div style="padding:16px 22px 12px;border-bottom:1px solid var(--border);flex:0 0 auto;">
+          <label class="field" style="margin:0;"><span>School Name *</span>
+            <input id="sd_name" type="text" placeholder="School name" autocomplete="off" value="${String(dv('name', s ? s.name : '')).replace(/"/g,'&quot;')}">
+          </label>
+        </div>
         <div class="preview-modal-body" style="padding:20px 22px;flex:1;min-height:0;overflow:auto;">
           <div class="profile-form-grid">
-            <div class="field" style="grid-column:1 / -1;"><span>School Logo</span>
-              <div style="display:flex;align-items:center;gap:14px;">
-                ${sdModalFormLogo
-                  ? `<img src="${sdModalFormLogo}" style="width:56px;height:56px;border-radius:0;object-fit:cover;border:1px solid var(--border);">`
-                  : `<div class="photo-slot" style="width:56px;height:56px;padding:0;justify-content:center;border-radius:0;"><i class="fa-solid fa-school"></i></div>`
-                }
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                  <input type="file" accept="image/*" id="sd_logo" onchange="sdPickLogo(this)" style="font-size:12px;">
-                  ${sdModalFormLogo ? `<button type="button" class="link-btn danger" style="width:fit-content;" onclick="sdRemoveLogo()"><i class="fa-solid fa-trash"></i>&nbsp;Remove</button>` : ''}
-                </div>
-              </div>
-            </div>
-            <div class="field" style="grid-column:1 / -1;"><span>School Name *</span>
-              <input id="sd_name" type="text" placeholder="School name" value="${s ? s.name : ''}">
-            </div>
             <div class="field"><span>Region *</span>
               <select id="sd_region" onchange="sdOnRegionPick(this.value)">
                 ${Object.keys(SD_REGION_COUNTIES).map(r => `<option value="${r}" ${r===region?'selected':''}>${r}</option>`).join('')}
@@ -9421,7 +9481,7 @@ function renderSystemDeveloperModal(){
             </div>
             <div class="field"><span>Sub-County *</span>
               <select id="sd_subCounty">
-                ${(() => { const l = sdSubCountiesFor(county).slice(); if(s && s.county === county && s.subCounty && !l.includes(s.subCounty)) l.unshift(s.subCounty); return l; })().map(sc => `<option value="${sc}" ${s && sc===s.subCounty?'selected':''}>${sc}</option>`).join('')}
+                ${(() => { const l = sdSubCountiesFor(county).slice(); if(s && s.county === county && s.subCounty && !l.includes(s.subCounty)) l.unshift(s.subCounty); return l; })().map(sc => `<option value="${sc}" ${sc===dv('subCounty', s ? s.subCounty : '')?'selected':''}>${sc}</option>`).join('')}
               </select>
             </div>
             <div class="field"><span>Level *</span>
@@ -9434,18 +9494,24 @@ function renderSystemDeveloperModal(){
               <div id="sd_level_subjects">${sdLevelSubjectsHtml(sdModalFormLevel)}</div>
             </div>
             <div class="field"><span>Students Enrollment *</span>
-              <input id="sd_enrollment" type="number" min="0" placeholder="e.g. 640" value="${s ? s.enrollment : ''}">
+              <input id="sd_enrollment" type="number" min="0" placeholder="e.g. 640" value="${dv('enrollment', s ? s.enrollment : '')}">
             </div>
             <div class="field"><span>Date of Registration *</span>
-              <input id="sd_dor" type="date" value="${s ? s.dor : ''}">
+              <input id="sd_dor" type="date" value="${dv('dor', s ? s.dor : '')}">
             </div>
             <div class="field"><span>Expiry Date *</span>
-              <input id="sd_expiry" type="date" value="${s ? s.expiry : ''}">
+              <input id="sd_expiry" type="date" value="${dv('expiry', s ? s.expiry : '')}">
             </div>
+            ${isSalesAgentRole() ? '' : `<div class="field" style="grid-column:1 / -1;"><span>Sales Agent</span>
+              <select id="sd_agent">
+                <option value="">None</option>
+                ${saAgents.map(a => `<option value="${a.id}" ${String(dv('agent', s ? (s.agentId != null ? s.agentId : '') : saEnsureDeveloperAgent().id)) === String(a.id) ? 'selected' : ''}>${a.name}</option>`).join('')}
+              </select>
+            </div>`}
             <div class="field" style="grid-column:1 / -1;"><span>Status *</span>
               <select id="sd_status">
-                <option value="Active" ${!s || s.status==='Active' ? 'selected':''}>Active</option>
-                <option value="Inactive" ${s && s.status==='Inactive' ? 'selected':''}>Inactive</option>
+                <option value="Active" ${dv('status', s ? s.status : 'Active')==='Active' ? 'selected':''}>Active</option>
+                <option value="Inactive" ${dv('status', s ? s.status : 'Active')==='Inactive' ? 'selected':''}>Inactive</option>
               </select>
             </div>
           </div>
@@ -9516,6 +9582,21 @@ function saCloseModal(){
   saEditingId = null;
   render();
 }
+// ---- Sales Agent logins ----------------------------------------------------
+// Each roster entry doubles as a login (first name or phone + the welcome
+// password, then the agent picks their own). The credential lives on the
+// roster record, so it is platform-level and not tied to any one school.
+function saLoginUser(a){
+  return { name:a.name, email:a.email || "", phone:a.phone, role:"Sales Agent", status:a.status, agentId:a.id, pw:a.pw, mustChange:a.mustChange };
+}
+function saResetPassword(id){
+  const a = saAgents.find(x => x.id === id);
+  if(!a) return;
+  if(!confirm("Reset " + a.name + "'s password? They will sign in with the welcome password and must choose a new one.")) return;
+  delete a.pw; a.mustChange = true;
+  render();
+}
+
 function saSaveAgent(e){
   e.preventDefault();
   const name = document.getElementById('sa_name').value.trim();
@@ -9526,7 +9607,8 @@ function saSaveAgent(e){
   const commissionRate = document.getElementById('sa_commissionRate').value;
   const status = document.getElementById('sa_status').value;
 
-  if(!name || !phone || schoolsReferred === "" || commissionRate === ""){
+  const isDevRec = !!(saEditingId && (saAgents.find(x => x.id === saEditingId) || {}).isDeveloper);
+  if(!name || (!phone && !isDevRec) || schoolsReferred === "" || commissionRate === ""){
     document.getElementById('sa_name').focus();
     return;
   }
@@ -9542,7 +9624,8 @@ function saSaveAgent(e){
 
 function saRemoveAgent(id){
   const a = saAgents.find(x => x.id === id);
-  if(!a) return;
+  if(!a || a.isDeveloper) return;
+  sdSchools.forEach(s => { if(s.agentId === id) s.agentId = null; });   // their schools stay in the registry, unassigned
   if(!confirm(`Permanently remove ${a.name} from the sales agent registry? This can't be undone.`)) return;
   saAgents = saAgents.filter(x => x.id !== id);
   render();
@@ -9564,7 +9647,7 @@ function renderSalesAgentModal(){
       <div class="preview-modal-header">
         <div>
           <div class="preview-modal-title">${isEdit ? "Edit Sales Agent" : "Add Sales Agent"}</div>
-          <div class="preview-modal-sub">Track who brought a school onto MASMS and their commission.</div>
+          <div class="preview-modal-sub">Track who brought a school onto MASMS and their commission. Each agent signs in with their phone number (or first name) and the welcome password.</div>
         </div>
         <button class="btn-ghost" style="width:32px;height:32px;padding:0;border:none;" onclick="saCloseModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -9637,8 +9720,9 @@ function renderSalesAgentsCard(){
         </td>
         <td>
           <div class="row-actions" style="gap:2px;justify-content:flex-end;">
+            ${a.isDeveloper ? '' : `<button class="btn-ghost" style="width:32px;height:32px;padding:0;" onclick="saResetPassword(${a.id})" title="Reset login password to the welcome password"><i class="fa-solid fa-key"></i></button>`}
             <button class="btn-ghost" style="width:32px;height:32px;padding:0;" onclick="saOpenModal(${a.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-ghost" style="width:32px;height:32px;padding:0;color:var(--rose);" onclick="saRemoveAgent(${a.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
+            ${a.isDeveloper ? '' : `<button class="btn-ghost" style="width:32px;height:32px;padding:0;color:var(--rose);" onclick="saRemoveAgent(${a.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>`}
           </div>
         </td>
       </tr>`;
@@ -9981,7 +10065,7 @@ function sdSchoolFee(s){
 }
 function sdOpenInvoice(schoolId){
   const s = sdSchools.find(x => x.id === schoolId);
-  if(!s) return;
+  if(!s || !sdOwnsSchool(s)) return;
   const fee = sdSchoolFee(s), tier = fee.tier;
   const amount = fee.subtotal;
   const tax = Math.round(amount * MASMS_INVOICE_TAX_RATE);
@@ -10241,7 +10325,7 @@ function sdSetReceiptPaymentMethod(method){
 
 function sdOpenReceipt(schoolId){
   const s = sdSchools.find(x => x.id === schoolId);
-  if(!s) return;
+  if(!s || !sdOwnsSchool(s)) return;
   const fee = sdSchoolFee(s), tier = fee.tier;
   const amount = fee.subtotal;
   const tax = Math.round(amount * MASMS_INVOICE_TAX_RATE);
@@ -10776,6 +10860,128 @@ function renderSdQuick(){
       <div class="bsms-table-card"><div class="bsms-table-scroll"><table class="bsms-table" style="width:100%;"><thead><tr style="text-transform:uppercase;font-weight:700;"><th>ENROLLMENT</th><th>FIXED COST</th><th>OPTIONAL MODULES</th><th>AMOUNT PER MODULE</th><th>VARIABLE COST</th><th>TOTAL AMOUNT</th><th>ACTIONS</th></tr></thead><tbody>${rows}</tbody></table></div></div>
     </div>`;
 }
+// ---- Pricing > Agents total pay -------------------------------------------
+// Per agent: a basic pay typed into a cell + a commission % (drop-down) of what
+// each of their schools pays (the school's fixed + variable cost, before tax).
+// Total paid = basic pay + commission earned from every school.
+const SA_COMMISSION_OPTIONS = [1,2,3,4,5,6,7,8,9,10,12,15,20];
+function saPct(a){ return Number(a.commissionPct) > 0 ? Number(a.commissionPct) : 8; }
+function saBasic(a){ return Math.max(0, Number(a.basicPay) || 0); }
+function saPayRows(){
+  return (saAgents || []).map((a, i) => {
+    const pct = saPct(a), basic = saBasic(a);
+    const schools = sdSchools.filter(sc => sc.agentId === a.id).map(sc => { const paid = sdPricingTotal(sc); return { name: sc.name, paid, earned: paid * pct / 100 }; });
+    const auto = schools.reduce((t, x) => t + x.earned, 0);
+    const commission = a.variableCost !== undefined && a.variableCost !== null ? Math.max(0, Number(a.variableCost) || 0) : auto;
+    return { a, sno: i + 1, pct, basic, schools, auto, custom: commission !== auto, commission, total: basic + commission };
+  });
+}
+let saPayEditing = null;
+function saPayEdit(id){ saPayEditing = id; render(); }
+function saPayCalc(id){
+  const g = k => Number((document.getElementById("sap_" + k + "_" + id) || {}).value) || 0;
+  const el = document.getElementById("sap_tot_" + id); if(el) el.textContent = sdPricingMoney(g("basic") + g("var"));
+}
+function saPaySave(id){
+  const a = saAgents.find(x => x.id === id); if(!a) return;
+  const b = document.getElementById("sap_basic_" + id), v = document.getElementById("sap_var_" + id);
+  const basic = Number(b && b.value), vari = Number(v && v.value);
+  if(!b || b.value === "" || !isFinite(basic) || basic < 0){ if(b) b.focus(); return; }
+  if(!v || v.value === "" || !isFinite(vari) || vari < 0){ if(v) v.focus(); return; }
+  const auto = saPayRows().find(r => r.a.id === id).auto;
+  a.basicPay = basic;
+  if(Math.round(vari) === Math.round(auto)) delete a.variableCost; else a.variableCost = vari;   // matching the automatic figure keeps it automatic
+  saPayEditing = null; render();
+}
+// Header-row controls: one basic pay and one commission % applied to every agent at once.
+function saPayAllBasic(v){
+  const n = Number(v); if(v === "" || !isFinite(n) || n < 0) return;
+  saAgents.forEach(a => { a.basicPay = n; });
+  setTimeout(render, 0);
+}
+function saPayAllPct(v){
+  const n = Number(v); if(!n) return;
+  saAgents.forEach(a => { a.commissionPct = n; delete a.variableCost; });   // variable cost goes back to automatic at the new %
+  setTimeout(render, 0);
+}
+function saPayReset(id){ const a = saAgents.find(x => x.id === id); if(!a) return; delete a.variableCost; render(); }
+function renderSdAgentsPayCalc(){
+  const rows = saPayRows();
+  const inp = "width:130px;padding:8px 10px;border:1px solid var(--border,#cbd5e1);text-align:right;";
+  const btn = (fn, id, ic, label, off) => `<button type="button" class="btn-ghost" onclick="${fn}(${id})" ${off ? "disabled" : ""}><i class="fa-solid ${ic}"></i> ${label}</button>`;
+  const sameBasic = rows.length && rows.every(r => r.basic === rows[0].basic), samePct = rows.length && rows.every(r => r.pct === rows[0].pct);
+  const hdrRow = rows.length ? `<tr style="background:#f4f7fb;font-weight:400;text-transform:none;"><td colspan="2" style="text-align:right;color:var(--muted);font-size:12px;">Apply to all agents</td>
+      <td><input type="number" min="0" step="any" value="${sameBasic ? rows[0].basic : ""}" placeholder="${sameBasic ? "0" : "Mixed"}" onchange="saPayAllBasic(this.value)" title="Basic pay for every agent" style="${inp}"></td>
+      <td><select onchange="saPayAllPct(this.value)" title="Commission % for every agent" style="padding:8px 10px;border:1px solid var(--border,#cbd5e1);">${samePct ? "" : `<option value="" selected disabled>Mixed</option>`}${SA_COMMISSION_OPTIONS.map(o => `<option value="${o}" ${samePct && o === rows[0].pct ? "selected" : ""}>${o}%</option>`).join("")}</select></td>
+      <td colspan="2"></td></tr>` : "";
+  const body = rows.map(r => {
+    const ed = saPayEditing === r.a.id, id = r.a.id;
+    return `<tr><td style="color:var(--muted);">${r.sno}</td><td style="font-weight:600;">${lmEsc(r.a.name)}</td>
+      <td>${ed ? `<input type="number" min="0" step="any" id="sap_basic_${id}" value="${r.basic}" oninput="saPayCalc(${id})" style="${inp}">` : sdPricingMoney(r.basic)}</td>
+      <td>${ed ? `<input type="number" min="0" step="any" id="sap_var_${id}" value="${Math.round(r.commission)}" oninput="saPayCalc(${id})" style="${inp}">` : sdPricingMoney(r.commission)}<div style="font-size:11.5px;color:var(--muted);">${r.custom ? "Edited &middot; automatic is " + sdPricingMoney(r.auto) : r.pct + "% of what their schools pay"}</div></td>
+      <td id="sap_tot_${id}" style="font-weight:700;">${sdPricingMoney(r.total)}</td>
+      <td style="white-space:nowrap;">${btn("saPayEdit", id, "fa-pen", "Edit", ed)} ${btn("saPaySave", id, "fa-floppy-disk", "Save", !ed)}${r.custom && !ed ? " " + btn("saPayReset", id, "fa-rotate-left", "Auto", false) : ""}</td></tr>`;
+  }).join("");
+  return `<div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><h3><i class="fa-solid fa-calculator" style="color:var(--blue);"></i>&nbsp;Agents Payment Calculations <span style="font-weight:400;color:var(--muted);font-size:13px;">&nbsp;total amount = basic pay + variable cost</span></h3></div>
+      ${rows.length ? `<div class="bsms-table-card"><div class="bsms-table-scroll"><table class="bsms-table" style="width:100%;"><thead><tr style="text-transform:uppercase;font-weight:700;"><th>S/NO</th><th>NAME</th><th>BASIC PAY</th><th>VARIABLE COST</th><th>TOTAL AMOUNT</th><th>ACTION</th></tr>${hdrRow}</thead><tbody>${body}</tbody></table></div></div>`
+        : `<div style="padding:30px 20px;text-align:center;color:var(--muted);">No sales agents yet.</div>`}
+    </div>`;
+}
+function saSetBasicPay(id, v){ const a = saAgents.find(x => x.id === id); if(!a) return; const n = Number(v); a.basicPay = isFinite(n) && n > 0 ? n : 0; setTimeout(render, 0); }
+function saSetCommissionPct(id, v){ const a = saAgents.find(x => x.id === id); if(!a) return; a.commissionPct = Number(v) || 8; setTimeout(render, 0); }
+function renderSdAgentsPay(){
+  const rows = saPayRows();
+  const grand = rows.reduce((t, r) => t + r.total, 0);
+  const inp = "width:100px;padding:8px 10px;border:1px solid var(--border,#cbd5e1);text-align:right;";
+  const body = rows.map(r => {
+    const n = Math.max(1, r.schools.length), a = r.a;
+    const span = `rowspan="${n}" style="vertical-align:top;"`;
+    const first = r.schools[0];
+    const cells = x => x ? `<td>${r.schools.indexOf(x) + 1}. ${lmEsc(x.name)}</td><td>${sdPricingMoney(x.paid)}</td>` : `<td style="color:var(--muted);">No schools assigned</td><td>&mdash;</td>`;
+    const tail = x => `<td>${x ? sdPricingMoney(x.earned) : sdPricingMoney(0)}</td>`;
+    let html = `<tr><td ${span}>${r.sno}</td><td ${span} style="vertical-align:top;font-weight:600;">${lmEsc(a.name)}</td>${cells(first)}`
+      + `<td ${span}><input type="number" min="0" step="any" value="${r.basic || ""}" placeholder="0" onchange="saSetBasicPay(${a.id}, this.value)" style="${inp}"></td>`
+      + `<td ${span}><select onchange="saSetCommissionPct(${a.id}, this.value)" style="padding:8px 10px;border:1px solid var(--border,#cbd5e1);">${SA_COMMISSION_OPTIONS.map(o => `<option value="${o}" ${o === r.pct ? "selected" : ""}>${o}%</option>`).join("")}</select></td>`
+      + `${tail(first)}<td ${span} style="vertical-align:top;font-weight:700;">${sdPricingMoney(r.total)}</td></tr>`;
+    r.schools.slice(1).forEach(x => { html += `<tr>${cells(x)}${tail(x)}</tr>`; });
+    return html;
+  }).join("");
+  const head = ["S/NO","NAME","LIST OF SCHOOLS","AMOUNT PAID BY SCHOOL","BASIC PAY","COMMISSION %","COMMISSION EARNED","TOTAL PAID"];
+  return `<div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <h3><i class="fa-solid fa-user-tie" style="color:var(--blue);"></i>&nbsp;Agents total pay <span style="font-weight:400;color:var(--muted);font-size:13px;">&nbsp;basic pay + commission % of what each school pays</span></h3>
+        <button type="button" class="btn-ghost" onclick="saDownloadPayPdf()"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+      </div>
+      ${rows.length ? `<div class="bsms-table-card"><div class="bsms-table-scroll"><table class="bsms-table" style="width:100%;"><thead><tr style="text-transform:uppercase;font-weight:700;">${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${body}
+        <tr style="font-weight:800;background:#f4f7fb;"><td colspan="7" style="text-align:right;">TOTAL AMOUNT PAYABLE TO ALL AGENTS</td><td>${sdPricingMoney(grand)}</td></tr></tbody></table></div></div>`
+        : `<div style="padding:30px 20px;text-align:center;color:var(--muted);">No sales agents yet. Add them in Registered Schools &gt; Sales Agents.</div>`}
+    </div>`;
+}
+function saDownloadPayPdf(){
+  if(typeof window.jspdf === "undefined"){ alert("PDF export library unavailable"); return; }
+  const rows = saPayRows();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape" });
+  doc.setFontSize(14); doc.text("MASMS — Sales Agents Total Pay", 14, 16);
+  const money = n => "KSh " + Math.round(n).toLocaleString("en-KE");
+  const body = [];
+  rows.forEach(r => {
+    const n = Math.max(1, r.schools.length);
+    for(let i = 0; i < n; i++){
+      const x = r.schools[i], line = [];
+      if(i === 0) line.push({ content: String(r.sno), rowSpan: n }, { content: r.a.name, rowSpan: n });
+      line.push(x ? (i + 1) + ". " + x.name : "No schools assigned", x ? money(x.paid) : "-");
+      if(i === 0) line.push({ content: money(r.basic), rowSpan: n }, { content: r.pct + "%", rowSpan: n });
+      line.push(money(x ? x.earned : 0));
+      if(i === 0) line.push({ content: money(r.total), rowSpan: n, styles: { fontStyle: "bold" } });
+      body.push(line);
+    }
+  });
+  body.push([{ content: "TOTAL AMOUNT PAYABLE TO ALL AGENTS", colSpan: 7, styles: { halign: "right", fontStyle: "bold" } }, { content: money(rows.reduce((t, r) => t + r.total, 0)), styles: { fontStyle: "bold" } }]);
+  doc.autoTable({ startY: 22, head: [["S/NO","NAME","LIST OF SCHOOLS","AMOUNT PAID BY SCHOOL","BASIC PAY","COMMISSION %","COMMISSION EARNED","TOTAL PAID"]], body, theme: "grid", styles: { fontSize: 9, valign: "top" }, headStyles: { fillColor: [47,95,168] } });
+  doc.save("masms-agents-total-pay.pdf");
+}
 function renderSdPricing(){
   sdEnsureSchoolsListed();
   const q = sdPricingSearch.trim().toLowerCase();
@@ -10818,23 +11024,77 @@ function renderSdPricing(){
       <div class="panel-header"><h3><i class="fa-solid fa-calculator" style="color:var(--blue);"></i>&nbsp;Variable cost calculator <span style="font-weight:400;color:var(--muted);font-size:13px;">&nbsp;amount per module &times; modules</span></h3></div>
       ${table(["S/NO","NAME","OPTIONAL MODULES","AMOUNT PER MODULE","VARIABLE COST AMOUNT","ACTIONS"], mrows)}
     </div>
+    ${renderSdAgentsPay()}
+    ${renderSdAgentsPayCalc()}
     <div style="font-size:12px;color:var(--muted);padding:0 4px 8px;">Modules = only the optional modules ticked for the school in School Dashboard Management (compulsory modules are not charged). Fixed cost is picked automatically from the Payment Guide band for the school&rsquo;s enrollment (Edit lets you override it). Variable cost = amount per module (8,000 unless changed) &times; optional modules; Total = fixed cost + variable cost. Kept in this browser, like the other console data.</div>`;
 }
+// ---- System Developer > Account Information ---------------------------------
+// The platform owner's account details (e.g. where schools send payment). Kept in this browser,
+// like the other console data.
+const SD_ACCOUNT_FIELDS = [
+  ["accountName","Account name","text","e.g. Maestro Technologies Ltd"],
+  ["bank","Bank / payment provider","select","Select bank..."],
+  ["accountNumber","Account number / Paybill","text","e.g. 0123456789"],
+  ["branch","Branch / Account reference","text",""],
+  ["phone","Phone number","tel","e.g. 0700 000 000"],
+  ["email","Email","email","e.g. accounts@example.com"],
+];
+const SD_BANKS = ["Equity Bank","KCB Bank","Co-operative Bank of Kenya","Absa Bank Kenya","Standard Chartered Bank Kenya","NCBA Bank","Stanbic Bank Kenya","I&M Bank","Diamond Trust Bank","Family Bank","Housing Finance (HF Group)","Bank of Africa Kenya","Sidian Bank","Prime Bank","Gulf African Bank","Consolidated Bank","National Bank of Kenya","Postbank (Kenya)","M-Pesa Paybill","Other"];
+let sdAccountInfo = {};
+try{ sdAccountInfo = JSON.parse(localStorage.getItem("maestroAccountInfo") || "{}") || {}; }catch(_e){ sdAccountInfo = {}; }
+let sdAccountSavedMsg = "";
+function sdAccountSave(e){
+  if(e) e.preventDefault();
+  const out = {};
+  SD_ACCOUNT_FIELDS.forEach(([k]) => { const el = document.getElementById("sdAcc_" + k); out[k] = el ? el.value.trim() : ""; });
+  sdAccountInfo = out;
+  try{ localStorage.setItem("maestroAccountInfo", JSON.stringify(out)); sdAccountSavedMsg = "Account information saved."; }
+  catch(_e){ sdAccountSavedMsg = "Saved for this session only (browser storage is unavailable)."; }
+  render();
+  setTimeout(() => { sdAccountSavedMsg = ""; if(isLoggedIn && active === "sysdev" && sdMainTab === "account") render(); }, 2500);
+}
+function renderSdAccountInfo(){
+  const esc = v => String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  return `
+    <div class="panel" style="max-width:720px;">
+      <div class="panel-header"><h3><i class="fa-solid fa-id-card" style="color:var(--blue);"></i>&nbsp;Account Information</h3></div>
+      <form onsubmit="sdAccountSave(event)" style="padding:6px 20px 20px;">
+        <div class="profile-form-grid">
+          ${SD_ACCOUNT_FIELDS.map(([k,l,t,ph]) => `
+            <label class="field"><span>${l}</span>
+              ${t === "select"
+                ? `<select id="sdAcc_${k}"><option value="" ${sdAccountInfo[k] ? "" : "selected"}>${ph}</option>${(SD_BANKS.includes(sdAccountInfo[k]) || !sdAccountInfo[k] ? SD_BANKS : [sdAccountInfo[k]].concat(SD_BANKS)).map(b => `<option value="${esc(b)}" ${b === sdAccountInfo[k] ? "selected" : ""}>${esc(b)}</option>`).join("")}</select>`
+                : `<input id="sdAcc_${k}" type="${t}" autocomplete="off" placeholder="${ph}" value="${esc(sdAccountInfo[k])}">`}
+            </label>`).join("")}
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:6px;">
+          <button type="submit" class="btn-primary auto"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+          <span role="status" style="font-size:13px;font-weight:600;color:var(--green);">${sdAccountSavedMsg ? `<i class="fa-solid fa-circle-check"></i> ${sdAccountSavedMsg}` : ""}</span>
+        </div>
+      </form>
+    </div>`;
+}
 function renderSystemDeveloperPage(){
-  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"]];
+  if(currentUserRole === "System Developer") saEnsureDeveloperAgent();
+  if(isSalesAgentRole()){
+    return `<div class="dash2-topline"><div><h1 class="dash2-title">My Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + renderSystemDeveloperPageSchools();
+  }
+  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"]];
   const bar = `<div class="class-tab-row" style="margin-bottom:16px;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
   if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + renderLoginMonitor();
   if(sdMainTab === "pricing") return `<div class="dash2-topline"><div><h1 class="dash2-title">Pricing</h1><p class="dash2-sub">Fixed and variable cost for each registered school &mdash; total = fixed cost + (variable cost &times; enrollment)</p></div></div>` + bar + renderSdPricing();
+  if(sdMainTab === "account") return `<div class="dash2-topline"><div><h1 class="dash2-title">Account Information</h1><p class="dash2-sub">Your platform account and payment details</p></div></div>` + bar + renderSdAccountInfo();
   if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections each registered school sees, and post a notice on its dashboard</p></div></div>` + bar + renderSchoolModules() + renderSchoolDashMgmt();
   return bar + renderSystemDeveloperPageSchools();
 }
 
 function renderSystemDeveloperPageSchools(){
   sdEnsureSchoolsListed();
-  const total = sdSchools.length;
-  const activeCount = sdSchools.filter(s => s.status === "Active").length;
+  const mine = sdSchools.filter(sdOwnsSchool);
+  const total = mine.length;
+  const activeCount = mine.filter(s => s.status === "Active").length;
   const inactiveCount = total - activeCount;
-  const totalEnroll = sdSchools.reduce((sum,s) => sum + Number(s.enrollment||0), 0);
+  const totalEnroll = mine.reduce((sum,s) => sum + Number(s.enrollment||0), 0);
   const rows = sdFilteredSortedSchools();
 
   const tableRows = rows.map((s, idx) => {
@@ -10865,7 +11125,7 @@ function renderSystemDeveloperPageSchools(){
         <td>${sdFmtDate(s.dor)}</td>
         <td style="${dateStyle}">${sdFmtDate(s.expiry)}${dateNote}</td>
         <td>
-          <select class="sd-status-select ${s.status==='Active'?'active':'inactive'}" onchange="sdChangeStatus(${s.id}, this.value)">
+          <select class="sd-status-select ${s.status==='Active'?'active':'inactive'}" ${isSalesAgentRole() ? 'disabled' : ''} onchange="sdChangeStatus(${s.id}, this.value)">
             <option value="Active" ${s.status==='Active'?'selected':''}>Active</option>
             <option value="Inactive" ${s.status==='Inactive'?'selected':''}>Inactive</option>
           </select>
@@ -10875,7 +11135,7 @@ function renderSystemDeveloperPageSchools(){
             <button class="btn-ghost" style="width:32px;height:32px;padding:0;" onclick="sdOpenInvoice(${s.id})" title="Generate Invoice"><i class="fa-solid fa-file-invoice"></i></button>
             <button class="btn-ghost" style="width:32px;height:32px;padding:0;" onclick="sdOpenReceipt(${s.id})" title="Generate Receipt"><i class="fa-solid fa-receipt"></i></button>
             <button class="btn-ghost" style="width:32px;height:32px;padding:0;" onclick="sdOpenModal(${s.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-ghost" style="width:32px;height:32px;padding:0;color:var(--rose);" onclick="sdRemoveSchool(${s.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
+            ${isSalesAgentRole() ? '' : `<button class="btn-ghost" style="width:32px;height:32px;padding:0;color:var(--rose);" onclick="sdRemoveSchool(${s.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>`}
           </div>
         </td>
       </tr>`;
@@ -10909,23 +11169,23 @@ function renderSystemDeveloperPageSchools(){
     <!-- Sales Agents: platform-level roster of agents who bring new schools
          onto MASMS and their commission, tracked here alongside the school
          registry since both are System Developer-only concerns. -->
-    ${renderSalesAgentsCard()}
+    ${isSalesAgentRole() ? '' : renderSalesAgentsCard()}
 
     <!-- Payment Guide: editable licensing rates by enrollment band, kept
          alongside the school registry and sales agents as another
          System Developer-only reference/config table. -->
-    ${renderPaymentGuideCard()}
+    ${isSalesAgentRole() ? '' : renderPaymentGuideCard()}
 
     <!-- Active-school switcher: moved here from the sidebar so that
          switching which school a login is working in is controlled only
          from the System Developer console, not from the general dashboard. -->
-    <div class="panel" style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    ${isSalesAgentRole() ? '' : `<div class="panel" style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <div style="font-weight:700;font-size:13.5px;">Active school (login switcher)</div>
       <select class="acct-filter-select" onchange="selectSchool(this.value)">
         ${schools.map(s => `<option value="${s}" ${s===currentSchool?'selected':''}>${s}</option>`).join('')}
       </select>
       <span style="color:var(--muted);font-size:12px;">Choosing a school here sets which school's data the current login sees on the main dashboard.</span>
-    </div>
+    </div>`}
 
     <div class="stat-cards">
       <div class="stat-card"><div class="val">${total}</div><div class="lbl">Registered Schools</div></div>
@@ -10984,8 +11244,8 @@ function renderSystemDeveloperPageSchools(){
         </div>
       `}
       <div class="bsms-table-footer">
-        <span>Showing ${rows.length} of ${sdSchools.length} registered school${sdSchools.length===1?'':'s'}</span>
-        <span>MASMS &middot; System Developer role</span>
+        <span>Showing ${rows.length} of ${mine.length} registered school${mine.length===1?'':'s'}</span>
+        <span>MASMS &middot; ${isSalesAgentRole() ? 'Sales Agent' : 'System Developer role'}</span>
       </div>
     </div>
 
@@ -11323,7 +11583,24 @@ function collectBackupData(){
     _meta: { app: "MAESTRO ADVANCED SCHOOL MANAGEMENT SYSTEM (MASMS)", exportedAt: new Date().toISOString(), version: 2 },
     schools, currentSchool, schoolProfiles,
     schoolData, // every school's isolated data set (students, marks, fees, attendance, etc.)
+    platform: collectPlatformData(),
   };
+}
+// Platform-level records (registered schools, sales agents + their logins,
+// invoice/receipt counters) are not part of any one school's dataset, so they
+// travel beside schoolData in every backup, device save and cloud sync.
+function collectPlatformData(){
+  return { sdSchools, sdNextId, saAgents, saNextId, sdInvoiceNextNo, sdReceiptNextNo };
+}
+function applyPlatformData(data){
+  const p = data && data.platform;
+  if(!p || typeof p !== 'object') return;
+  if(Array.isArray(p.sdSchools)) sdSchools = p.sdSchools;
+  if(Array.isArray(p.saAgents)) saAgents = p.saAgents;
+  if(Number.isFinite(p.sdNextId)) sdNextId = Math.max(sdNextId, p.sdNextId);
+  if(Number.isFinite(p.saNextId)) saNextId = Math.max(saNextId, p.saNextId);
+  if(Number.isFinite(p.sdInvoiceNextNo)) sdInvoiceNextNo = Math.max(sdInvoiceNextNo, p.sdInvoiceNextNo);
+  if(Number.isFinite(p.sdReceiptNextNo)) sdReceiptNextNo = Math.max(sdReceiptNextNo, p.sdReceiptNextNo);
 }
 
 function backupData(){
@@ -11361,6 +11638,7 @@ function restoreDataFromFile(input){
       if(data.schoolData && typeof data.schoolData === 'object'){
         // v2+ backup: a full per-school dataset for every registered school.
         schoolData = data.schoolData;
+        applyPlatformData(data);
         const target = (typeof data.currentSchool === 'string' && schools.includes(data.currentSchool)) ? data.currentSchool : schools[0];
         currentSchool = target;
         loadSchoolData(target);
@@ -11403,7 +11681,7 @@ let currentUserName = "Administrator";
 let streams = [];
 
 // ---- Users & Roles (system accounts, customizable per school) ----
-const ROLE_OPTIONS = ["System Developer", "Super Admin", "Administrator", "HOD", "Registrar", "Examination Officer", "Teacher", "Bursar", "Secretary", "Accountant", "Librarian", "Storekeeper", "Lab Technician", "Security", "Matron", "Cook", "Groundsman", "Read-only"];
+const ROLE_OPTIONS = ["System Developer", "Super Admin", "Administrator", "HOD", "Registrar", "Examination Officer", "Teacher", "Bursar", "Secretary", "Accountant", "Librarian", "Storekeeper", "Lab Technician", "Security", "Matron", "Cook", "Groundsman", "Sales Agent", "Read-only"];
 let systemUsers = [
   { name: "System Developer", email: "", role: "System Developer", status: "Active" },
 ];
@@ -11698,6 +11976,7 @@ function renderSchoolSelect(){
   try{ sdEnsureSchoolsListed(); }catch(_e){}
   const wrap = document.getElementById('schoolSelectWrap');
   if(!wrap) return;
+  if(isSalesAgentRole()){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = `
     <button class="school-select ${schoolDropdownOpen?'open':''}" onclick="toggleSchoolDropdown()">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentSchool}</span>
@@ -11773,6 +12052,7 @@ function toggleUserMenu(e){
   document.addEventListener('keydown', userMenuKey, true);
 }
 
+function navLabel(key){ return (key === "sysdev" && currentUserRole === "Sales Agent") ? "My Schools" : t(key); }
 function renderNav(){
   const nav = document.getElementById('navList');
   // "subjects" is the same page as the "Academics" nav item (just reached
@@ -11784,7 +12064,7 @@ function renderNav(){
   nav.innerHTML = visibleNavItems.map(item => `
     <button class="nav-item ${navActive===item.key?'active':''}" onclick="go('${item.key}')">
       <i class="fa-solid ${item.icon}"></i>
-      ${t(item.key)}
+      ${navLabel(item.key)}
       ${item.key==='medicalalerts' && medAlertPendingCountForMe() ? `<span style="margin-left:auto;background:var(--rose);color:#fff;font-size:11px;font-weight:700;min-width:18px;padding:1px 6px;text-align:center;">${medAlertPendingCountForMe()}</span>` : ''}
       ${navActive===item.key ? '<i class="fa-solid fa-chevron-right chev"></i>' : ''}
     </button>
@@ -11812,13 +12092,13 @@ function renderNav(){
       const hideSubbar = navActive === 'finance' || navActive === 'registration';
       subbar.innerHTML = hideSubbar ? '' : `
         <div class="subbar-icon"><i class="fa-solid ${activeItem.icon}"></i></div>
-        <span class="subbar-title">${t(activeItem.key)}</span>
+        <span class="subbar-title">${navLabel(activeItem.key)}</span>
       `;
       subbar.style.display = hideSubbar ? 'none' : '';
     }
   }
   const schoolLabel = document.getElementById('topbarSchool');
-  if(schoolLabel) schoolLabel.textContent = currentSchool;
+  if(schoolLabel) schoolLabel.textContent = isSalesAgentRole() ? 'MASMS Sales' : currentSchool;
 }
 
 function pageHeader(title, subtitle){
@@ -14707,7 +14987,7 @@ function editExamGroup(term, exam){
   subjects.forEach(s => { maxMarks[s] = getMaxMarks(found.group.exam, s); });
   const editCurriculum = /^Form/i.test(found.group.rows[0]?.class || "") ? "844" : "CBC";
   createExamData = {
-    examType: "Summative Assessment", name: found.group.exam, term,
+    examType: editCurriculum === "844" ? "Summative Assessment" : "Written Tests", name: found.group.exam, term,
     year: createExamData.year || "2026", forms, minSubjects:{},
     streams: streamsByForm, curriculum: editCurriculum, subjects, maxMarks, sourceExams:[],
   };
@@ -14733,7 +15013,7 @@ function clearAllExams(){
 
 function resetCreateExamFormSilently(){
   const { subjects, maxMarks } = defaultExamSubjectsAndMarks("CBC");
-  createExamData = { examType:"Summative Assessment", name:"", term:getCurrentTermInfo().term, year:getCurrentTermInfo().year, forms:{}, minSubjects:{}, streams:{}, curriculum:"CBC", subjects, maxMarks, stream:"", sourceExams:[] };
+  createExamData = { examType:"Written Tests", name:"", term:getCurrentTermInfo().term, year:getCurrentTermInfo().year, forms:{}, minSubjects:{}, streams:{}, curriculum:"CBC", subjects, maxMarks, stream:"", sourceExams:[] };
   createExamNameMode = "select";
   examSetupStep = "create";
 }
@@ -15251,7 +15531,7 @@ function publishExamRow(term, exam, cls){
 
 // Create Exam form state
 const EXAM_TYPES_BY_CURRICULUM = {
-  CBC:   ["Summative Assessment","Written Tests","Consolidated Exam","KCBE"],
+  CBC:   ["Written Tests","Summative Assessment","Consolidated Exam","KCBE"],
   "844": ["Summative Assessment","Consolidated Exam","KCSE"],
 };
 function examTypesForCurriculum(c){ return EXAM_TYPES_BY_CURRICULUM[c === "844" ? "844" : "CBC"]; }
@@ -15263,7 +15543,7 @@ const EXAM_NAME_OPTIONS = ["MID","CAT 1","CAT 2","CAT 3","SERIES 1","SERIES 2","
 // defined. The literal defaults below just mirror that same starting list so
 // the very first render (before those are declared) isn't left empty.
 let createExamData = {
-  examType:"Summative Assessment", name:"", term:"", year:"2026",
+  examType:"Written Tests", name:"", term:"", year:"2026",
   forms:{}, minSubjects:{}, streams:{}, curriculum:"CBC", sourceExams:[],
   subjects: ["English", "Kiswahili", "Community Service Learning", "Core Mathematics", "Essential Mathematics"],
   maxMarks: { "English":100, "Kiswahili":100, "Community Service Learning":100, "Core Mathematics":100, "Essential Mathematics":100 },
@@ -15420,7 +15700,7 @@ function removeExamSubjectSel(subject){
 
 function resetCreateExamForm(){
   const { subjects, maxMarks } = defaultExamSubjectsAndMarks("CBC");
-  createExamData = { examType:"Summative Assessment", name:"", term:getCurrentTermInfo().term, year:getCurrentTermInfo().year, forms:{}, minSubjects:{}, streams:{}, curriculum:"CBC", subjects, maxMarks, stream:"", sourceExams:[] };
+  createExamData = { examType:"Written Tests", name:"", term:getCurrentTermInfo().term, year:getCurrentTermInfo().year, forms:{}, minSubjects:{}, streams:{}, curriculum:"CBC", subjects, maxMarks, stream:"", sourceExams:[] };
   createExamNameMode = "select";
   examSetupStep = "create";
   examEditRef = null;
@@ -15565,7 +15845,7 @@ function setExamCurriculum(c){
   if(createExamData.curriculum === c) return;
   const { subjects, maxMarks } = defaultExamSubjectsAndMarks(c);
   createExamData.curriculum = c;
-  if(!examTypesForCurriculum(c).includes(createExamData.examType)){ createExamData.examType = "Summative Assessment"; createExamData.sourceExams = []; }
+  if(!examTypesForCurriculum(c).includes(createExamData.examType)){ createExamData.examType = c === "844" ? "Summative Assessment" : "Written Tests"; createExamData.sourceExams = []; }
   createExamData.forms = {};
   createExamData.streams = {};
   createExamData.minSubjects = {};
@@ -15776,7 +16056,7 @@ function renderExamSetupStepSubjects(){
   }).join(' ');
   const hintParagraph = isCbc
     ? `Grade 10-12 learners sit a maximum of 7 subjects: 4 compulsory (English, Kiswahili, Community Service Learning, and Mathematics — Core or Essential) plus up to ${EXAM_MAX_ELECTIVES} electives from their pathway. Kenyan Sign Language is optional — add it as one of the electives. Compulsory subjects are pre-loaded and locked below${isKcbe ? '; KCBE also caps the exam at 7 subjects overall' : ''}.`
-    : `8-4-4 learners sit a MINIMUM of ${EIGHT44_MIN_SUBJECTS} and a MAXIMUM of ${EIGHT44_MAX_SUBJECTS} subjects: English, Kiswahili and Mathematics are compulsory (pre-loaded below), plus ${EIGHT44_MIN_SCIENCES}-${EIGHT44_MAX_SCIENCES} Sciences (Biology, Chemistry, Physics), ${EIGHT44_MIN_HUMANITIES}-${EIGHT44_MAX_HUMANITIES} Humanities — at least one Humanity is compulsory, and History and Government / Geography are an either/or choice (picking one swaps out the other) — and exactly one of Agriculture, Business Studies or Computer Studies (picking a second swaps out the first)${isKcbe ? '. KCBE caps the exam at 7 subjects overall' : ''}.`;
+    : `8-4-4 learners sit at least ${EIGHT44_MIN_SUBJECTS} subjects (up to ${EIGHT44_MAX_SUBJECTS}): English, Kiswahili and Mathematics are compulsory (pre-loaded below), plus ${EIGHT44_MIN_SCIENCES}-${EIGHT44_MAX_SCIENCES} Sciences (Biology, Chemistry, Physics), ${EIGHT44_MIN_HUMANITIES}-${EIGHT44_MAX_HUMANITIES} Humanities (History and Government / Geography is an either/or choice) and one of Agriculture, Business Studies or Computer Studies. <b>Only 7 subjects count toward the total, mean and points:</b> Mathematics, the better-performed of English or Kiswahili (one language only), and the 5 best-performed of the remaining subjects${isKcbe ? '. KCBE caps the exam at 7 subjects overall' : ''}.`;
   const electiveHint = isCbc
     ? `${electiveCount} of ${EXAM_MAX_ELECTIVES} pathway electives selected${kcbeCapReached ? ` (${selected.length} of 7 KCBE subjects overall)` : ''}. Click an elective above to remove it and pick a different one.`
     : `${selected.length} of ${EIGHT44_MIN_SUBJECTS}-${EIGHT44_MAX_SUBJECTS} subjects selected — Sciences ${eight44ScienceCount}/${EIGHT44_MAX_SCIENCES}, Humanities ${eight44HumanityCount}/${EIGHT44_MAX_HUMANITIES} (History/Geography is either/or), Agriculture/Business/Computer ${eight44TechnicalCount}/1${selected.length < EIGHT44_MIN_SUBJECTS ? ` — add at least ${EIGHT44_MIN_SUBJECTS - selected.length} more` : ''}. Click an elective above to remove it and pick a different one.`;
@@ -16345,15 +16625,25 @@ function removeMarksTask(id){
   render();
 }
 // Typing a task mark re-totals that student's Score (sum of task marks).
-function updateMarksTaskDraft(admissionNumber, taskId, value){
+function updateMarksTaskDraft(admissionNumber, taskId, value, el){
+  value = marksSanitizeScore(value, false); if(value[0] === 'A') value = '';   // task marks: numbers only
+  if(el && el.value !== value) el.value = value;
   const d = marksEntryTaskDraft[admissionNumber] = marksEntryTaskDraft[admissionNumber] || {};
   d[taskId] = value;
   const tasks = marksEntryTasks();
   const vals = tasks.map(t => d[t.id]).filter(v => v !== '' && v !== undefined && !isNaN(Number(v)));
   marksEntryDraft[admissionNumber] = vals.length ? String(vals.reduce((a,v) => a + Number(v), 0)) : '';
   if(marksEntryRemarkDraft[admissionNumber] && vals.length) marksEntryRemarkDraft[admissionNumber] = '';
-  const el = document.getElementById('marksScore_' + admissionNumber);
-  if(el) el.value = marksEntryDraft[admissionNumber];
+  const scoreEl = document.getElementById('marksScore_' + admissionNumber);
+  if(scoreEl) scoreEl.value = marksEntryDraft[admissionNumber];
+  if(el){
+    const tk = tasks.find(t => t.id === taskId);
+    const over = tk && value !== '' && Number(value) > Number(tk.max);
+    el.classList.toggle('marks-over', !!over);
+    const w = document.getElementById('marksTWarn_' + admissionNumber + '_' + taskId);
+    if(w) w.textContent = over ? `Max is ${tk.max}` : '';
+  }
+  refreshMarksValidation(null);
   const max = marksEntryMaxMarksFor(marksEntryContext.exam, marksEntryContext.subject, marksEntryContext.paper);
   const pe = document.getElementById('marksPct_' + admissionNumber);
   if(pe) pe.textContent = (marksEntryDraft[admissionNumber] !== '' && max > 0) ? Math.round(Number(marksEntryDraft[admissionNumber]) / max * 100) + '%' : '—';
@@ -16899,6 +17189,72 @@ function deleteCurrentMarks(){
   render();
   setTimeout(() => { marksImportMsg = null; render(); }, 2800);
 }
+// ---- Score cell rules: digits only (one decimal point), or exactly "AB" (upper case) for absent.
+// "AB" is stored as the existing Absent remark (X). Anything above Max Marks is flagged in red and
+// blocks saving until corrected.
+function marksRemarkLabel(r){ return r === 'X' ? 'AB' : (r || ''); }
+function marksSanitizeScore(v, wasAbsent){
+  v = String(v);
+  if(wasAbsent && v !== 'AB' && v.startsWith('AB') && /\d/.test(v.slice(2))) v = v.slice(2);   // typed a number over "AB"
+  if(v[0] === 'A') return v.startsWith('AB') ? 'AB' : 'A';
+  let out = v.replace(/[^0-9.]/g, '');
+  const i = out.indexOf('.');
+  if(i >= 0) out = out.slice(0, i + 1) + out.slice(i + 1).replace(/\./g, '');
+  return out;
+}
+// Every row whose entry is not savable: over Max Marks, not a number (e.g. a lone "A"), or a task over its max.
+function marksEntryProblems(onlyAdm){
+  const out = { over: [], bad: [], task: [], max: null };
+  if(!marksEntryContext) return out;
+  const { exam, subject, paper } = marksEntryContext;
+  const max = marksEntryMaxMarksFor(exam, subject, paper);
+  out.max = max;
+  const hasTasks = marksEntryTasks().length > 0;
+  marksEntryStudentList().forEach(s => {
+    const adm = s.admissionNumber;
+    if(onlyAdm && adm !== onlyAdm) return;
+    if(marksEntryRemarkDraft[adm]) return;                       // AB / cheating: no score to check
+    const who = { adm, name: `${s.firstName} ${s.lastName}` };
+    const ot = marksTaskOverMax(adm);
+    if(ot) out.task.push(Object.assign({ task: ot }, who));
+    const raw = marksEntryDraft[adm];
+    if(raw === '' || raw === undefined || raw === null) return;
+    const n = Number(raw);
+    if(isNaN(n)) out.bad.push(who);
+    else if(!hasTasks && max !== null && !isNaN(max) && n > max) out.over.push(who);
+  });
+  return out;
+}
+function marksProblemsBannerHtml(){
+  const pr = marksEntryProblems();
+  if(!pr.over.length && !pr.bad.length && !pr.task.length) return '';
+  const names = a => a.slice(0, 4).map(x => x.name).join(', ') + (a.length > 4 ? ` and ${a.length - 4} more` : '');
+  const lines = [];
+  if(pr.over.length) lines.push(`${pr.over.length} score${pr.over.length > 1 ? 's are' : ' is'} above the Max Marks (${pr.max}): ${names(pr.over)}.`);
+  if(pr.task.length) lines.push(`${pr.task.length} task mark${pr.task.length > 1 ? 's are' : ' is'} above the task's Max Marks: ${names(pr.task)}.`);
+  if(pr.bad.length) lines.push(`Enter numbers only, or AB for absent: ${names(pr.bad)}.`);
+  return `<div role="alert" style="margin:0 0 12px;padding:10px 14px;border:1px solid #dc2626;background:#fef2f2;color:#b91c1c;font-size:13px;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> ${lines.join(' ')} Correct them before saving.</div>`;
+}
+function refreshMarksValidation(adm){
+  const b = document.getElementById('marksValidationBanner'); if(b) b.innerHTML = marksProblemsBannerHtml();
+  if(!adm) return;
+  const pr = marksEntryProblems(adm);
+  const el = document.getElementById('marksScore_' + adm), w = document.getElementById('marksWarn_' + adm);
+  const bad = pr.over.length || pr.bad.length;
+  if(el) el.classList.toggle('marks-over', !!bad);
+  if(w) w.textContent = pr.over.length ? `Max is ${pr.max}` : (pr.bad.length ? 'Numbers or AB only' : '');
+}
+function onMarksScoreInput(adm, el){
+  const wasAbsent = marksEntryRemarkDraft[adm] === 'X';
+  const out = marksSanitizeScore(el.value, wasAbsent);
+  if(out !== el.value) el.value = out;
+  if(out === 'AB'){ marksEntryRemarkDraft[adm] = 'X'; marksEntryDraft[adm] = ''; }
+  else { marksEntryDraft[adm] = out; if(marksEntryRemarkDraft[adm]) marksEntryRemarkDraft[adm] = ''; }
+  const max = marksEntryMaxMarksFor(marksEntryContext.exam, marksEntryContext.subject, marksEntryContext.paper);
+  const pe = document.getElementById('marksPct_' + adm);
+  if(pe) pe.textContent = (out === 'AB') ? 'AB' : (out !== '' && !isNaN(Number(out)) && max > 0) ? Math.round(Number(out) / max * 100) + '%' : '—';
+  refreshMarksValidation(adm);
+}
 function updateMarksDraft(admissionNumber, value){
   marksEntryDraft[admissionNumber] = value;
   // Typing a numeric score clears any Absent/Cheating remark on this row —
@@ -16940,6 +17296,13 @@ function saveMarksEntry(){
   if(!marksEntryContext || !canEditMarks()) return;
   const { term, exam, cls, subject, paper } = marksEntryContext;
   const max = marksEntryMaxMarksFor(exam, subject, paper);
+  // Nothing is saved while any score is over Max Marks or not a number/AB.
+  { const pr = marksEntryProblems();
+    if(pr.over.length || pr.bad.length || pr.task.length){
+      marksImportMsg = null; render();
+      const bn = document.getElementById('marksValidationBanner'); if(bn && bn.scrollIntoView) bn.scrollIntoView({ block:'center', behavior:'smooth' });
+      return;
+    } }
   let hadInvalid = false;
   let hadOverMax = false;
   let savedCount = 0;
@@ -17033,6 +17396,8 @@ function saveMarksRowEntry(admissionNumber){
   const oldValue = marksData[key];
   const oldRemark = marksRemarks[key];
   const remark = marksEntryRemarkDraft[admissionNumber] || "";
+  { const pr = marksEntryProblems(admissionNumber);
+    if(pr.over.length || pr.bad.length || pr.task.length){ marksImportMsg = null; render(); return; } }
   let invalid = false;
   let overMax = !!marksTaskOverMax(admissionNumber);
   if(!overMax) persistMarksTaskRow(admissionNumber);
@@ -17142,7 +17507,9 @@ function handleMarksImport(input){
         }
         const scoreRaw = row.length > 2 ? row[2] : row[1];
         if(Object.prototype.hasOwnProperty.call(marksEntryDraft, admissionNumber)){
-          marksEntryDraft[admissionNumber] = (scoreRaw === undefined || scoreRaw === null) ? "" : String(scoreRaw);
+          const txt = (scoreRaw === undefined || scoreRaw === null) ? "" : String(scoreRaw).trim();
+          if(txt === 'AB'){ marksEntryDraft[admissionNumber] = ""; marksEntryRemarkDraft[admissionNumber] = 'X'; }   // only upper-case AB means absent
+          else { marksEntryDraft[admissionNumber] = txt; marksEntryRemarkDraft[admissionNumber] = ""; }               // anything else non-numeric is flagged in red
           matched++;
         }
       });
@@ -17436,21 +17803,25 @@ function renderMarksEntrySubTab(overrideRows){
     const tasksNow = marksEntryTasks();
     const taskCells = tasksNow.map(tk => {
       const tv = ((marksEntryTaskDraft[s.admissionNumber] || {})[tk.id]) ?? '';
-      return `<td><input type="number" min="0" max="${tk.max}" class="grade-band-input" style="width:80px;" value="${tv}" placeholder="/${tk.max}" ${(isEditing && !remarkVal) ? '' : 'readonly'}
-          oninput="updateMarksTaskDraft('${s.admissionNumber}','${tk.id}', this.value)"></td>`;
+      const tOver = tv !== '' && Number(tv) > Number(tk.max);
+      return `<td><input type="text" inputmode="decimal" autocomplete="off" maxlength="6" class="grade-band-input${tOver ? ' marks-over' : ''}" style="width:80px;" value="${tv}" placeholder="/${tk.max}" title="Numbers only (max ${tk.max})" ${(isEditing && !remarkVal) ? '' : 'readonly'}
+          oninput="updateMarksTaskDraft('${s.admissionNumber}','${tk.id}', this.value, this)"><div class="marks-warn" id="marksTWarn_${s.admissionNumber}_${tk.id}">${tOver ? 'Max is ' + tk.max : ''}</div></td>`;
     }).join('');
+    const scoreOver = !remarkVal && !tasksNow.length && draftVal !== '' && !isNaN(Number(draftVal)) && max !== null && Number(draftVal) > max;
+    const scoreBad = !remarkVal && !tasksNow.length && draftVal !== '' && isNaN(Number(draftVal));
     const scoreCell = tasksNow.length ? `
         <input id="marksScore_${s.admissionNumber}" type="text" class="grade-band-input" style="width:90px;text-align:center;font-weight:800;${remarkVal ? 'color:var(--rose);' : ''}"
-          value="${remarkVal || draftVal}" readonly title="Sum of task marks">
-      ` : remarkVal ? `
+          value="${marksRemarkLabel(remarkVal) || draftVal}" readonly title="Sum of task marks">
+      ` : (remarkVal && remarkVal !== 'X') ? `
         <input id="marksScore_${s.admissionNumber}" type="text" class="grade-band-input" style="width:90px;text-align:center;font-weight:800;color:var(--rose);"
           value="${remarkVal}" readonly>
       ` : `
-        <input id="marksScore_${s.admissionNumber}" type="number" min="0" max="${max}" class="grade-band-input" style="width:90px;"
-          value="${draftVal}" placeholder="Score" ${isEditing ? '' : 'readonly'}
-          oninput="updateMarksDraft('${s.admissionNumber}', this.value)">
+        <input id="marksScore_${s.admissionNumber}" type="text" inputmode="decimal" autocomplete="off" maxlength="6" class="grade-band-input${(scoreOver || scoreBad) ? ' marks-over' : ''}" style="width:90px;${remarkVal ? 'font-weight:800;color:var(--rose);text-align:center;' : ''}"
+          value="${remarkVal === 'X' ? 'AB' : draftVal}" placeholder="Score or AB" title="Numbers only (max ${max}). Type AB (capitals) for absent." ${isEditing ? '' : 'readonly'}
+          oninput="onMarksScoreInput('${s.admissionNumber}', this)">
+        <div class="marks-warn" id="marksWarn_${s.admissionNumber}">${scoreOver ? 'Max is ' + max : (scoreBad ? 'Numbers or AB only' : '')}</div>
       `;
-    const pct = (draftVal !== '' && !isNaN(Number(draftVal)) && max > 0) ? `${Math.round(Number(draftVal) / max * 100)}%` : (remarkVal || '—');
+    const pct = (draftVal !== '' && !isNaN(Number(draftVal)) && max > 0) ? `${Math.round(Number(draftVal) / max * 100)}%` : (marksRemarkLabel(remarkVal) || '—');
     const commentCell = `
         <input id="marksComment_${s.admissionNumber}" type="text" class="grade-band-input" style="width:180px;" maxlength="200"
           value="${commentVal.replace(/"/g,'&quot;')}" placeholder="Auto from task performance (editable)" ${canEdit ? '' : 'readonly'}
@@ -17498,6 +17869,7 @@ function renderMarksEntrySubTab(overrideRows){
         <h3 style="font-size:15px;">${subject} Scores</h3>
       </div>
       ${msg}
+      <div id="marksValidationBanner">${marksProblemsBannerHtml()}</div>
       <p style="margin:0 0 12px;font-size:12px;color:var(--muted);">Total &amp; Average update automatically as scores across every subject are recorded for this exam.</p>
       <div class="streams-scroll">
         <table class="excel-table" style="min-width:680px;">
@@ -48871,8 +49243,8 @@ function renderSettingsUsersRolesTab(){
   syncSuperAdminRoles();
   const admins = systemUsers.filter(u => u.role === "Administrator");
   // The System Developer account and role belong to the platform owner only.
-  const roleChoices = currentUserRole === "System Developer" ? ROLE_OPTIONS : ROLE_OPTIONS.filter(r => r !== "System Developer");
-  const visibleUsers = currentUserRole === "System Developer" ? systemUsers : systemUsers.filter(u => u.role !== "System Developer");
+  const roleChoices = currentUserRole === "System Developer" ? ROLE_OPTIONS : ROLE_OPTIONS.filter(r => r !== "System Developer" && r !== "Sales Agent");
+  const visibleUsers = currentUserRole === "System Developer" ? systemUsers : systemUsers.filter(u => u.role !== "System Developer" && u.role !== "Sales Agent");
   const userRows = visibleUsers.map(u => {
     const isLastAdmin = u.role === "Administrator" && admins.length <= 1;
     const isSuperAdminLocked = teacherHasSuperAdminResponsibility(u.name);
@@ -49519,7 +49891,7 @@ function renderPage(){
     case "reports": body = renderReports(); break;
     case "settings": body = renderSettings(); break;
     case "legal": body = renderMaestroLegal(); break;
-    case "sysdev": body = (currentUserRole === "System Developer") ? renderSystemDeveloperPage() : renderDashboard(); break;
+    case "sysdev": body = (currentUserRole === "System Developer" || currentUserRole === "Sales Agent") ? renderSystemDeveloperPage() : renderDashboard(); break;
     default: return renderDashboard();
   }
   return `<div style="border:12px solid #8b5cf6;border-radius:0;padding:16px;">${body}</div>`;
