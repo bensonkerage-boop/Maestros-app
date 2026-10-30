@@ -7,7 +7,7 @@ android {
         applicationId "com.maestro.masms"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode (System.getenv("VERSION_CODE") ? System.getenv("VERSION_CODE").toInteger() : 2)
         versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -16,8 +16,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing: only active when the upload key is supplied (GitHub "Build Play Store release" workflow).
+    signingConfigs {
+        release {
+            if (System.getenv("KEYSTORE_FILE")) {
+                storeFile file(System.getenv("KEYSTORE_FILE"))
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("KEYSTORE_FILE")) { signingConfig signingConfigs.release }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

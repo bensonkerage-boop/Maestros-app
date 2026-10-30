@@ -78,6 +78,7 @@ if (require.main !== module) return;
   // PWA: manifest, icons, service worker; optional API base for the Android app (API_BASE=https://your-site)
   fs.cpSync(path.join(root, 'pwa', 'icons'), path.join(pub, 'icons'), { recursive: true });
   cp(path.join(root, 'pwa', 'manifest.webmanifest'), path.join(pub, 'manifest.webmanifest'));
+  cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
   const native = process.env.NATIVE_APP === '1';

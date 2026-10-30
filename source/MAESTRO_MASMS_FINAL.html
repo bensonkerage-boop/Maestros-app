@@ -5199,6 +5199,111 @@ function userLastName(name){
   return parts.length > 1 ? parts[parts.length - 1] : (parts[0] || "");
 }
 
+// ---- Fingerprint sign-in ----------------------------------------------------
+// Android app: the phone's own fingerprint prompt (NativeBiometric plugin).
+// Browser / PC: the device's built-in authenticator (WebAuthn: Windows Hello,
+// Touch ID, Android fingerprint). Only a short "who signed in here" note is kept
+// on this device; the fingerprint itself never leaves the phone or computer.
+// The first sign-in on a device is always with the password; after that the
+// person can choose to use their fingerprint instead.
+var FP_KEY = "masmsFingerprintUser";
+var fpAvailableCache = false;
+function fpNative(){ try{ var C = window.Capacitor; return (C && typeof C.isNativePlatform === "function" && C.isNativePlatform() && C.Plugins && C.Plugins.NativeBiometric) || null; }catch(e){ return null; } }
+function fpStored(){ try{ return JSON.parse(localStorage.getItem(FP_KEY) || "null"); }catch(e){ return null; } }
+function fpForget(){ try{ localStorage.removeItem(FP_KEY); }catch(e){} }
+function fpB64(buf){ var b = new Uint8Array(buf), s = ""; for(var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+function fpUnB64(str){ var s = atob(str), b = new Uint8Array(s.length); for(var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+function fpRand(n){ var a = new Uint8Array(n); (window.crypto || window.msCrypto).getRandomValues(a); return a; }
+function fpDetect(){
+  var nat = fpNative();
+  if(nat) return nat.isAvailable().then(function(r){ return !!(r && r.isAvailable); }).catch(function(){ return false; });
+  if(window.PublicKeyCredential && navigator.credentials && window.isSecureContext && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
+    return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(v){ return !!v; }).catch(function(){ return false; });
+  return Promise.resolve(false);
+}
+function fpVerify(rec){
+  var nat = fpNative();
+  if(nat) return nat.verifyIdentity({ reason:"Sign in to MASMS", title:"Fingerprint sign-in", subtitle:"Touch the fingerprint sensor", negativeButtonText:"Cancel", useFallback:false }).then(function(){ return true; }).catch(function(){ return false; });
+  if(!rec || !rec.cred) return Promise.resolve(false);
+  return navigator.credentials.get({ publicKey:{ challenge: fpRand(32), allowCredentials:[{ id: fpUnB64(rec.cred), type:"public-key" }], userVerification:"required", timeout:60000 } })
+    .then(function(){ return true; }).catch(function(){ return false; });
+}
+function fpEnroll(u){
+  var rec = { name:u.name, role:u.role, agentId: u.agentId != null ? u.agentId : null, cred:"" };
+  var nat = fpNative();
+  var done = function(){ try{ localStorage.setItem(FP_KEY, JSON.stringify(rec)); }catch(e){ return false; } return true; };
+  if(nat) return fpVerify(rec).then(function(ok){ return ok && done(); });
+  return navigator.credentials.create({ publicKey:{
+    rp:{ name:"MASMS" }, user:{ id: fpRand(16), name: u.name, displayName: u.name }, challenge: fpRand(32),
+    pubKeyCredParams:[{ type:"public-key", alg:-7 }, { type:"public-key", alg:-257 }],
+    authenticatorSelection:{ authenticatorAttachment:"platform", userVerification:"required" }, timeout:60000
+  } }).then(function(c){ rec.cred = fpB64(c.rawId); return done(); }).catch(function(){ return false; });
+}
+function fpOfferEnroll(u){
+  try{
+    if(!u || u.role === "System Developer" || isPortalSession) return;
+    var cur = fpStored();
+    if(cur && cur.name === u.name && cur.role === u.role) return;
+    var skipKey = "masmsFpSkip:" + u.name;
+    if(localStorage.getItem(skipKey)) return;
+    fpDetect().then(function(ok){
+      fpAvailableCache = ok;
+      if(!ok) return;
+      setTimeout(function(){
+        if(!confirm("Sign in faster next time?\n\nUse your fingerprint to sign in as " + u.name + " on this device.\n\nOK = set up fingerprint\nCancel = not now")){
+          try{ if(confirm("Stop asking on this device?")) localStorage.setItem(skipKey, "1"); }catch(e){}
+          return;
+        }
+        fpEnroll(u).then(function(done){ alert(done ? "Fingerprint sign-in is on. Use the fingerprint button on the sign-in page next time." : "Fingerprint could not be set up. You can keep signing in with your password."); });
+      }, 700);
+    });
+  }catch(e){}
+}
+function fpSignIn(){
+  var s = fpStored();
+  if(!s) return;
+  fpVerify(s).then(function(ok){
+    if(!ok){ loginError = "Fingerprint not recognised. Try again or use your password."; renderLoginPage(); return; }
+    var u = null;
+    if(s.agentId != null){
+      var a = (saAgents || []).find(function(x){ return x.id === s.agentId && !x.isDeveloper && x.status !== "Inactive"; });
+      u = a ? saLoginUser(a) : null;
+    } else {
+      u = systemUsers.find(function(x){ return x.name === s.name && x.role === s.role && x.role !== "System Developer" && x.status !== "Inactive"; }) || null;
+    }
+    if(!u || userNeedsPasswordChange(u)){
+      fpForget();
+      loginError = "Please sign in with your password once, then set up fingerprint again.";
+      renderLoginPage();
+      return;
+    }
+    completeStaffLogin(u);
+  });
+}
+function fpRemove(){ fpForget(); renderLoginPage(); }
+function fpLoginButtonHtml(){
+  var s = fpStored();
+  if(!s || !fpAvailableCache) return "";
+  var first = userFirstName(s.name);
+  return `<div style="text-align:center;margin:12px 0 4px;">
+            <button type="button" class="login-cert-submit" style="background:#0f766e;" onclick="fpSignIn()"><i class="fa-solid fa-fingerprint"></i> Sign in with fingerprint${first ? " (" + first + ")" : ""}</button>
+            <div style="margin-top:6px;"><a href="#" onclick="fpRemove();return false;" style="font-size:12px;">Not you? Remove fingerprint sign-in</a></div>
+          </div>`;
+}
+(function(){
+  var run = function(){
+    if(!fpStored()) return;
+    fpDetect().then(function(ok){
+      fpAvailableCache = ok;
+      if(!ok) return;
+      var u = document.getElementById("login_username"), p = document.getElementById("login_password");
+      if(!isLoggedIn && (!u || (!u.value && !(p && p.value)))) { try{ renderLoginPage(); }catch(e){} }
+    });
+  };
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(run, 400); });
+  else setTimeout(run, 400);
+})();
+
 function renderLoginPage(){
   const root = document.getElementById('loginPageRoot');
   if(!root) return;
@@ -5231,6 +5336,7 @@ function renderLoginPage(){
           <div class="login-cert-submit-row">
             <button type="submit" class="login-cert-submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Log in</button>
           </div>
+          ${fpLoginButtonHtml()}
           <div style="text-align:center;margin:10px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
           <div class="login-cert-signup-row">
             New here?
@@ -5504,6 +5610,7 @@ function completeStaffLogin(u){
   document.getElementById('appWrap').style.display = "";
   renderLoginPage();
   render();
+  fpOfferEnroll(u);
 }
 function closeForcedPasswordChange(){
   const ov = document.getElementById('pwChangeOverlay');
@@ -8991,7 +9098,7 @@ function emptySchoolDataset(){
   d.portalFeatures = { feeStatements:true, examResults:true, attendance:true, announcements:true, messaging:false };
   d.termDates = { "2026": { "Term 1": { start:"2026-01-06", end:"2026-04-03" }, "Term 2": { start:"2026-04-27", end:"2026-08-07" }, "Term 3": { start:"2026-08-10", end:"2026-11-13" } } };
   d.departments = ["Pure Sciences", "Applied Sciences", "Technical Studies", "Language & Literature", "Humanities & Business Studies", "Art & Sports Science", "Examinations", "Finance", "Boarding", "Support Staff", "Co-curricular", "Guidance & Counselling", "Transport"];
-  d.responsibilities = ["Chief Principal", "Senior Principal", "Principal", "Deputy Principal", "Deputy Principal Administration", "Deputy Principal Academics", "Deputy Principal Boarding", "Director of Studies", "Senior Teacher", "Head of Department", "Head of Pathway", "Class Teacher", "Teacher"];
+  d.responsibilities = ["Chief Principal", "Senior Principal", "Principal", "Deputy Principal", "Deputy Principal Administration", "Deputy Principal Academics", "Deputy Principal Boarding", "Director of Studies", "Senior Teacher", "Head of Department", "Subject Head", "Head of Pathway", "Class Teacher", "Teacher"];
   d.gradingSystems = [
     { name:"CBE", bands:[ {low:85,high:100,grade:"EE1",points:8}, {low:73,high:84,grade:"EE2",points:7}, {low:61,high:72,grade:"ME1",points:6}, {low:50,high:60,grade:"ME2",points:5}, {low:37,high:49,grade:"AE1",points:4}, {low:25,high:36,grade:"AE2",points:3}, {low:13,high:24,grade:"BE1",points:2}, {low:0,high:12,grade:"BE2",points:1}, {low:-1,high:-1,grade:"X",points:0}, {low:-1,high:-1,grade:"Y",points:0} ] },
     { name:"KCSE", bands:[ {low:80,high:100,grade:"A",points:12}, {low:75,high:79,grade:"A-",points:11}, {low:70,high:74,grade:"B+",points:10}, {low:65,high:69,grade:"B",points:9}, {low:60,high:64,grade:"B-",points:8}, {low:55,high:59,grade:"C+",points:7}, {low:50,high:54,grade:"C",points:6}, {low:45,high:49,grade:"C-",points:5}, {low:40,high:44,grade:"D+",points:4}, {low:35,high:39,grade:"D",points:3}, {low:30,high:34,grade:"D-",points:2}, {low:0,high:29,grade:"E",points:1}, {low:-1,high:-1,grade:"X",points:0}, {low:-1,high:-1,grade:"Y",points:0} ] },
@@ -9035,6 +9142,9 @@ function loadSchoolData(name){
   // Backfill fields missing from saved/older data so a restore can't leave a store undefined.
   try{ const _def = emptySchoolDataset(); Object.keys(_def).forEach(k => { if(schoolData[name][k] === undefined || schoolData[name][k] === null) schoolData[name][k] = _def[k]; }); }catch(_e){}
   const d = schoolData[name];
+  // One-time: add the newer "Subject Head" responsibility to lists saved before it existed.
+  try{ if(d.subjectPaperRatios && !d._sciRatios30){ d._sciRatios30 = true; applyScienceRatios(d.subjectPaperRatios); } }catch(_e){}
+  try{ if(Array.isArray(d.responsibilities) && !d._subjectHeadResp){ d._subjectHeadResp = true; if(!d.responsibilities.includes("Subject Head")){ const i = d.responsibilities.indexOf("Head of Department"); d.responsibilities = i >= 0 ? [...d.responsibilities.slice(0, i+1), "Subject Head", ...d.responsibilities.slice(i+1)] : [...d.responsibilities, "Subject Head"]; } } }catch(_e){}
   announcementsList = d.announcementsList; calendarEvents = d.calendarEvents; students = d.students; medicalAlerts = d.medicalAlerts || []; savedRegisters = d.savedRegisters || []; disciplineCases = d.disciplineCases || []; disciplineCommittee = d.disciplineCommittee || []; try{ (students||[]).forEach(st => { if(medAlertHasRecommendation(st.medicalNotes) && !medicalAlerts.some(a => a.admissionNumber === st.admissionNumber)) syncMedicalAlert(st); }); }catch(e){}
   clubJoined = d.clubJoined; clubMembers = d.clubMembers; clubPatrons = d.clubPatrons;
   clubAttendance = d.clubAttendance; clubAttendanceDate = d.clubAttendanceDate; clubAttendanceSaved = d.clubAttendanceSaved;
@@ -9608,16 +9718,23 @@ function saSaveAgent(e){
   const status = document.getElementById('sa_status').value;
 
   const isDevRec = !!(saEditingId && (saAgents.find(x => x.id === saEditingId) || {}).isDeveloper);
-  if(!name || (!phone && !isDevRec) || schoolsReferred === "" || commissionRate === ""){
-    document.getElementById('sa_name').focus();
-    return;
-  }
+  const showErr = (msg, id) => {
+    const box = document.getElementById('sa_error');
+    if(box){ box.textContent = msg; box.style.display = 'block'; }
+    const el = document.getElementById(id); if(el) el.focus();
+  };
+  if(!name){ showErr('Enter the agent name.', 'sa_name'); return; }
+  if(!phone && !isDevRec){ showErr('Enter the agent phone number.', 'sa_phone'); return; }
+  const dup = saAgents.find(x => x.id !== saEditingId && !x.isDeveloper && phone && String(x.phone).replace(/\D/g,'').slice(-9) === phone.replace(/\D/g,'').slice(-9));
+  if(dup){ showErr('Another agent (' + dup.name + ') already uses that phone number.', 'sa_phone'); return; }
+  // Schools Referred and Commission Rate are optional: a new agent has no referrals yet.
+  const schools = Number(schoolsReferred) || 0, rate = Number(commissionRate) || 0;
 
   if(saEditingId){
     const a = saAgents.find(x => x.id === saEditingId);
-    Object.assign(a, { name, phone, email, region, schoolsReferred:Number(schoolsReferred), commissionRate:Number(commissionRate), status });
+    Object.assign(a, { name, phone, email, region, schoolsReferred:schools, commissionRate:rate, status });
   } else {
-    saAgents = [...saAgents, { id:saNextId++, name, phone, email, region, schoolsReferred:Number(schoolsReferred), commissionRate:Number(commissionRate), status }];
+    saAgents = [...saAgents, { id:saNextId++, name, phone, email, region, schoolsReferred:schools, commissionRate:rate, status }];
   }
   saCloseModal();
 }
@@ -9653,12 +9770,12 @@ function renderSalesAgentModal(){
       </div>
       <form onsubmit="saSaveAgent(event)">
         <div class="preview-modal-body" style="padding:20px 22px;">
-          <div class="profile-form-grid">
+          <div id="sa_error" style="display:none;margin-bottom:12px;padding:10px 12px;background:#fdecea;color:#b42318;border:1px solid #f5c2c0;font-size:13px;"></div><div class="profile-form-grid">
             <div class="field" style="grid-column:1 / -1;"><span>Agent Name *</span>
-              <input id="sa_name" type="text" placeholder="e.g. Peter Mwangi" value="${a ? a.name : ''}">
+              <input id="sa_name" type="text" oninput="nameOnly(this)" placeholder="e.g. Peter Mwangi" value="${a ? a.name : ''}">
             </div>
             <div class="field"><span>Phone *</span>
-              <input id="sa_phone" type="text" placeholder="Phone number" value="${a ? a.phone : ''}">
+              <input id="sa_phone" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')" placeholder="Phone number" value="${a ? a.phone : ''}">
             </div>
             <div class="field"><span>Email</span>
               <input id="sa_email" type="email" placeholder="Email address" value="${a ? a.email : ''}">
@@ -9668,10 +9785,10 @@ function renderSalesAgentModal(){
                 ${Object.keys(SD_REGION_COUNTIES).map(r => `<option value="${r}" ${r===region?'selected':''}>${r}</option>`).join('')}
               </select>
             </div>
-            <div class="field"><span>Schools Referred *</span>
+            <div class="field"><span>Schools Referred</span>
               <input id="sa_schoolsReferred" type="number" min="0" placeholder="e.g. 5" value="${a ? a.schoolsReferred : ''}">
             </div>
-            <div class="field"><span>Commission Rate (KES / school) *</span>
+            <div class="field"><span>Commission Rate (KES / school)</span>
               <input id="sa_commissionRate" type="number" min="0" placeholder="e.g. 15000" value="${a ? a.commissionRate : ''}">
             </div>
             <div class="field" style="grid-column:1 / -1;"><span>Status *</span>
@@ -11817,7 +11934,7 @@ function removeDepartment(i){
 }
 
 // ---- Responsibilities (customizable per school) ----
-let responsibilities = ["Chief Principal", "Senior Principal", "Principal", "Deputy Principal", "Deputy Principal Administration", "Deputy Principal Academics", "Deputy Principal Boarding", "Director of Studies", "Senior Teacher", "Head of Department", "Head of Pathway", "Class Teacher", "Teacher"];
+let responsibilities = ["Chief Principal", "Senior Principal", "Principal", "Deputy Principal", "Deputy Principal Administration", "Deputy Principal Academics", "Deputy Principal Boarding", "Director of Studies", "Senior Teacher", "Head of Department", "Subject Head", "Head of Pathway", "Class Teacher", "Teacher"];
 
 // Teachers holding any of these responsibilities are always granted the
 // "Super Admin" system role (full, unrestricted access) — their Users &
@@ -13359,7 +13476,7 @@ const COUNTY_DATA = {
 const ADD_STUDENT_FIELD_GROUPS = {
   basic: ["admissionNumber","firstName","middleName","lastName","gender","dateOfBirth","nationality","birthCertNumber","religion","denomination","disabilityStatus","disabilityType","familyTerminalCondition"],
   residence: ["nearestPrimarySchool","villageEstate","houseNumber","nearestStreetRoad","town","birthCounty","constituency","ward"],
-  education: ["dateOfAdmission","admissionType","term","formGrade","stream","pathway","track","previousSchool","county","subcounty","previousIndexNumber","assessmentYear","pointsObtained","boardingStatus","house"],
+  education: ["curriculum","dateOfAdmission","admissionType","term","formGrade","stream","pathway","track","previousSchool","county","subcounty","previousIndexNumber","assessmentYear","pointsObtained","boardingStatus","house"],
   optionalSubjects: ["mathematicsChoice"],
   guardian: ["familyType"],
   medical: ["bloodGroup","allergies","chronicIllness","previousInjuries","surgeries","otherMedicalInfo","medicalNotes"],
@@ -13446,7 +13563,7 @@ function captureAddStudentFields(){
     const el = document.getElementById(k);
     if(el) regData[k] = el.value;
   });
-  if(addStudentSection === "education") capturePhoneGroup("studentPhones");
+  if(addStudentSection === "education") syncStudentPhoneNumbers();
   if(addStudentSection === "guardian") capturePhoneGroup("guardianPhones");
 }
 
@@ -13459,6 +13576,44 @@ function capturePhoneGroup(groupKey){
 }
 
 // Renders a single text field for one or more comma-separated phone numbers.
+// Student phone numbers: pick the phone type first, then who it belongs to, then type the number.
+const STUDENT_PHONE_TYPES = ["Primary phone no","Secondary phone no"];
+const STUDENT_PHONE_RELATIONS = ["Father","Mother","Guardian"];
+function studentPhoneRows(){
+  if(!Array.isArray(regData.studentPhoneRows) || !regData.studentPhoneRows.length){
+    const nums = (regData.studentPhones || []).filter(Boolean);
+    regData.studentPhoneRows = nums.length ? nums.map(n => ({ type:"", relationship:"", number:n })) : [{ type:"", relationship:"", number:"" }];
+  }
+  return regData.studentPhoneRows;
+}
+function syncStudentPhoneNumbers(){ regData.studentPhones = studentPhoneRows().map(r => digitsOnly2(r.number)).filter(Boolean); }
+function onStudentPhoneType(i, v){ const r = studentPhoneRows()[i]; if(!r) return; r.type = v; if(!v){ r.relationship = ""; } render(); }
+function onStudentPhoneRelation(i, v){ const r = studentPhoneRows()[i]; if(!r) return; r.relationship = v; render(); }
+function onStudentPhoneNumber(i, el){ const r = studentPhoneRows()[i]; if(!r) return; el.value = digitsOnly2(el.value); r.number = el.value; syncStudentPhoneNumbers(); }
+function addStudentPhoneRow(){ studentPhoneRows().push({ type:"", relationship:"", number:"" }); render(); }
+function removeStudentPhoneRow(i){ const rows = studentPhoneRows(); rows.splice(i, 1); if(!rows.length) rows.push({ type:"", relationship:"", number:"" }); syncStudentPhoneNumbers(); render(); }
+function studentPhonesField(label){
+  const rows = studentPhoneRows();
+  const sel = "padding:10px;border:1px solid var(--border,#cbd5e1);background:#fff;min-width:0;";
+  const html = rows.map((r, i) => {
+    const takenPrimary = rows.some((x, k) => k !== i && x.type === "Primary phone no");
+    const legacy = !r.type && !r.relationship && r.number;   // numbers saved before types existed stay editable
+    return `<div style="display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:8px;margin-bottom:8px;align-items:center;">
+      <select onchange="onStudentPhoneType(${i}, this.value)" style="${sel}">
+        <option value="" ${!r.type?'selected':''}>Phone type...</option>
+        ${STUDENT_PHONE_TYPES.map(t => `<option value="${t}" ${r.type===t?'selected':''} ${t==="Primary phone no" && takenPrimary ? 'disabled' : ''}>${t}</option>`).join('')}
+      </select>
+      <select onchange="onStudentPhoneRelation(${i}, this.value)" ${r.type ? '' : 'disabled'} style="${sel}">
+        <option value="" ${!r.relationship?'selected':''}>${r.type ? 'Relationship...' : 'Select phone type first'}</option>
+        ${STUDENT_PHONE_RELATIONS.map(t => `<option value="${t}" ${r.relationship===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" value="${r.number || ''}" oninput="onStudentPhoneNumber(${i}, this)" ${(r.relationship || legacy) ? '' : 'disabled'} placeholder="${(r.relationship || legacy) ? 'Phone number' : 'Select relationship first'}" style="${sel}">
+      ${rows.length > 1 || r.number ? `<button type="button" class="btn-ghost" style="width:36px;height:36px;padding:0;color:var(--rose);" title="Remove" onclick="removeStudentPhoneRow(${i})"><i class="fa-solid fa-xmark"></i></button>` : '<span></span>'}
+    </div>`;
+  }).join('');
+  return `<div class="field" style="grid-column:1 / -1;"><span>${label}</span>${html}
+    <button type="button" class="link-btn" style="font-weight:600;color:var(--blue-dark);" onclick="addStudentPhoneRow()"><i class="fa-solid fa-plus"></i>&nbsp;Add another number</button></div>`;
+}
 function multiPhoneField(label, groupKey, required, placeholder=""){
   const arr = regData[groupKey] && regData[groupKey].length ? regData[groupKey] : [""];
   const joined = arr.filter(Boolean).join(', ');
@@ -13583,8 +13738,8 @@ function editStudent(i){
   const s = students[i];
   regData = {
     admissionNumber: s.admissionNumber || "", lastName: s.lastName || "", firstName: s.firstName || "",
-    middleName: s.middleName || "", dateOfBirth: s.dateOfBirth || "", formGrade: s.grade || "", stream: s.stream || "", gender: s.gender || "", boardingStatus: s.boardingStatus || "", house: s.house || "", county: s.county || "", subcounty: s.subcounty || "", division: s.division || "",
-    nationality: s.nationality || "", birthCertNumber: s.birthCertNumber || "", religion: s.religion || "", denomination: s.denomination || "", photo: studentPhotos[s.admissionNumber] || "",
+    curriculum: s.curriculum || (/^form/i.test(s.grade || "") ? "8-4-4" : (/^grade/i.test(s.grade || "") ? "CBE" : "")), middleName: s.middleName || "", dateOfBirth: s.dateOfBirth || "", formGrade: s.grade || "", stream: s.stream || "", gender: s.gender || "", boardingStatus: s.boardingStatus || "", house: s.house || "", county: s.county || "", subcounty: s.subcounty || "", division: s.division || "",
+    nationality: s.nationality || "", birthCertNumber: s.birthCertNumber || "", religion: normReligion(s.religion), denomination: s.denomination || "", photo: studentPhotos[s.admissionNumber] || "",
     disabilityStatus: s.disabilityStatus || "", disabilityType: s.disabilityType || "", familyTerminalCondition: s.familyTerminalCondition || "",
     nearestPrimarySchool: s.nearestPrimarySchool || "", town: s.town || "", birthCounty: s.birthCounty || "", constituency: s.constituency || "", ward: s.ward || "",
     nearestStreetRoad: s.nearestStreetRoad || "", houseNumber: s.houseNumber || "", villageEstate: s.villageEstate || "",
@@ -13592,6 +13747,7 @@ function editStudent(i){
     admissionType: s.admissionType || "", term: s.term || "", pathway: s.pathway || "", track: s.track || "", admissionStatus: s.admissionStatus || "",
     mathematicsChoice: s.mathematicsChoice || "", optionalSubjects: s.optionalSubjects && s.optionalSubjects.length ? [...s.optionalSubjects] : [],
     studentPhones: s.studentPhones && s.studentPhones.length ? [...s.studentPhones] : [""],
+    studentPhoneRows: s.studentPhoneContacts && s.studentPhoneContacts.length ? s.studentPhoneContacts.map(r => ({ type:r.type || "", relationship:r.relationship || "", number:r.number || "" })) : undefined,
     familyType: s.familyType || "", guardianIdNumber: s.guardianIdNumber || "", guardianName: s.guardian || "",
     guardianPhone: (s.guardianPhones && s.guardianPhones[0]) || "", guardianEmail: s.guardianEmail || "", guardianKraPin: s.guardianKraPin || "", guardianShaRate: s.guardianShaRate || "",
     guardianEducation: s.guardianEducation || "", guardianCounty: s.guardianCounty || "", occupation: s.occupation || "",
@@ -16155,18 +16311,40 @@ SUBJECT_PAPER_RATIOS_SEED.forEach(({ subject, p1Out, p2Out, p3Out }) => {
   };
   subjectPaperRatios[subject] = { ...draft, ...computePaperPcts(draft) };
 });
+try{ applyScienceRatios(subjectPaperRatios); }catch(_e){}
 let paperRatiosEditingSubject = null; // subject currently unlocked for editing, or null
 let paperRatiosDraft = {};   // { p1Out, p2Out, p3Out } for the open row — percentages are derived, not stored in the draft
 
 // Auto-computes each paper's percentage contribution as its share of the
 // combined "out of X" total across whichever papers have a value entered.
-function computePaperPcts(draft){
-  const outs = ['p1Out','p2Out','p3Out'].map(f => {
-    const n = Number(draft[f]);
-    return (draft[f] === "" || draft[f] === undefined || isNaN(n)) ? null : n;
+function paperRatioDerived(data){
+  const outs = ['p1Out','p2Out','p3Out'].map(f => { const n = Number(data[f]); return (data[f] === "" || data[f] === undefined || data[f] === null || isNaN(n)) ? null : n; });
+  const g = (a, b) => b ? g(b, a % b) : a;
+  const d = outs.reduce((acc, n) => n ? g(acc, n) : acc, 0);
+  return outs.map(n => (n === null || !d) ? "" : String(n / d));
+}
+function applyScienceRatios(map){
+  if(!map) return;
+  ["Biology","Physics","Chemistry"].forEach(sub => {
+    const r = map[sub];
+    if(!r) return;
+    const draft = { p1Out: r.p1Out, p2Out: r.p2Out, p3Out: r.p3Out, p1Ratio:"3", p2Ratio:"3", p3Ratio:"4" };
+    map[sub] = { ...r, ...draft, ...computePaperPcts(draft) };
   });
-  const total = outs.reduce((sum, n) => sum + (n || 0), 0);
-  const pcts = outs.map(n => (n === null || !total) ? "" : Math.round(n / total * 100));
+}
+function computePaperPcts(draft){
+  const num = f => {
+    const n = Number(draft[f]);
+    return (draft[f] === "" || draft[f] === undefined || draft[f] === null || isNaN(n)) ? null : n;
+  };
+  const outs = ['p1Out','p2Out','p3Out'].map(num);
+  const ratios = ['p1Ratio','p2Ratio','p3Ratio'].map(num);
+  // If any Contribution Ratio has been entered, the ratios set the weights;
+  // otherwise each paper's share of the "out of X" total does.
+  const useRatios = ratios.some(n => n !== null);
+  const weights = useRatios ? ratios.map((n, i) => outs[i] === null ? null : n) : outs;
+  const total = weights.reduce((sum, n) => sum + (n || 0), 0);
+  const pcts = weights.map(n => (n === null || !total) ? "" : Math.round(n / total * 100));
   return { p1Pct: pcts[0], p2Pct: pcts[1], p3Pct: pcts[2] };
 }
 
@@ -16177,6 +16355,7 @@ function togglePaperRatiosEdit(subject){
     const existing = subjectPaperRatios[subject] || {};
     paperRatiosDraft = {
       p1Out: existing.p1Out ?? "", p2Out: existing.p2Out ?? "", p3Out: existing.p3Out ?? "",
+      p1Ratio: existing.p1Ratio ?? "", p2Ratio: existing.p2Ratio ?? "", p3Ratio: existing.p3Ratio ?? "",
     };
     paperRatiosEditingSubject = subject;
   }
@@ -16496,8 +16675,17 @@ function renderPaperRatiosTab(){
 
   const outCell = (field, isEditing, data, rowId) => isEditing ? `
       <input id="${rowId}_${field}" type="text" inputmode="numeric" pattern="[0-9]*" class="grade-band-input" style="width:70px;padding:4px 6px;font-size:12.5px;"
-        value="${paperRatiosDraft[field]}" oninput="updatePaperRatiosDraft('${field}', this.value)">
+        value="${paperRatiosDraft[field] ?? ''}" oninput="updatePaperRatiosDraft('${field}', this.value)">
     ` : `<span style="${data[field] ? 'color:var(--blue);font-weight:600;' : 'color:var(--muted);'}">${data[field] || ''}</span>`;
+
+  const ratioCell = (field, isEditing, data, rowId) => {
+    const shown = (data[field] !== undefined && data[field] !== "") ? data[field] : (paperRatioDerived(data)[Number(field[1]) - 1] || "");
+    const explicit = data[field] !== undefined && data[field] !== "";
+    return isEditing ? `
+      <input id="${rowId}_${field}" type="text" inputmode="numeric" pattern="[0-9]*" class="grade-band-input" style="width:70px;padding:4px 6px;font-size:12.5px;"
+        value="${paperRatiosDraft[field] ?? ''}" placeholder="${paperRatioDerived(paperRatiosDraft)[Number(field[1]) - 1] || ''}" oninput="updatePaperRatiosDraft('${field}', this.value)">
+    ` : `<span style="${shown ? 'color:var(--blue);font-weight:600;' : 'color:var(--muted);'}${explicit ? '' : 'opacity:.75;'}">${shown}</span>`;
+  };
 
   const pctCell = (value) => `<span style="${value !== '' && value !== undefined ? 'color:var(--green);font-weight:700;' : 'color:var(--muted);'}">${value !== '' && value !== undefined ? value + '%' : ''}</span>`;
 
@@ -16516,6 +16704,9 @@ function renderPaperRatiosTab(){
         <td style="border-left:1px solid var(--border);">${pctCell(pcts.p1Pct)}</td>
         <td>${pctCell(pcts.p2Pct)}</td>
         <td>${pctCell(pcts.p3Pct)}</td>
+        <td style="border-left:1px solid var(--border);">${ratioCell('p1Ratio',isEditing,data,rowId)}</td>
+        <td>${ratioCell('p2Ratio',isEditing,data,rowId)}</td>
+        <td>${ratioCell('p3Ratio',isEditing,data,rowId)}</td>
         <td>
           ${isEditing ? `
             <button type="button" class="btn-primary" style="width:auto;padding:4px 12px;font-size:11.5px;" onclick="savePaperRatiosRow('${safeSubject}')">
@@ -16534,14 +16725,15 @@ function renderPaperRatiosTab(){
   return `
     <div class="panel" style="overflow:hidden;">
       <div class="panel-header"><h3>Subject Paper Ratios</h3></div>
-      <p style="margin:0;padding:14px 24px 0;font-size:12.5px;color:var(--muted);">Enter each paper's maximum score — the percentage contribution is calculated automatically as that paper's share of the total. Click Edit to unlock a row, then Save to record it.</p>
+      <p style="margin:0;padding:14px 24px 0;font-size:12.5px;color:var(--muted);">Enter each paper's maximum score. The percentage contribution is calculated automatically as that paper's share of the total, unless you enter Contribution Ratios (e.g. 1, 2, 1), which then set the shares instead. Click Edit to unlock a row, then Save to record it.</p>
       <div class="streams-scroll">
-        <table class="paper-ratios-table" style="min-width:960px;width:100%;">
+        <table class="paper-ratios-table" style="min-width:1200px;width:100%;">
           <thead>
             <tr>
               <th rowspan="2" style="vertical-align:bottom;">Subject</th>
               <th colspan="3" style="text-align:center;border-left:1px solid var(--border);">Paper Out Of</th>
               <th colspan="3" style="text-align:center;border-left:1px solid var(--border);">Paper Contribution percentage</th>
+              <th colspan="3" style="text-align:center;border-left:1px solid var(--border);">Contribution Ratios</th>
               <th rowspan="2"></th>
             </tr>
             <tr>
@@ -16551,7 +16743,9 @@ function renderPaperRatiosTab(){
               <th style="border-left:1px solid var(--border);">Paper 1 (%)</th>
               <th>Paper 2 (%)</th>
               <th>Paper 3 (%)</th>
-              
+              <th style="border-left:1px solid var(--border);">Paper 1</th>
+              <th>Paper 2</th>
+              <th>Paper 3</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -18814,7 +19008,7 @@ const CLASS_LIST_COLUMN_DEFS = [
   { key:'boarding', label:'Boarding Status', get:s => s.boardingStatus||'' },
   { key:'house', label:'House', get:s => s.house||'' },
   { key:'nationality', label:'Nationality', get:s => s.nationality||'' },
-  { key:'religion', label:'Religion', get:s => s.religion||'' },
+  { key:'religion', label:'Religion', get:s => normReligion(s.religion) },
   { key:'birthCert', label:'Birth Cert No', get:s => s.birthCertNumber||'' },
   { key:'father', label:"Father's Name", get:s => s.fatherName||'' },
   { key:'mother', label:"Mother's Name", get:s => s.motherName||'' },
@@ -19125,18 +19319,19 @@ function generateExamAnalysisReport(){
 }
 
 function generateGenderDistributionReport(){
+  const hasOther = students.some(s => s.gender === 'Other');   // add an Other column only when someone is recorded as Other
   const rows = GRADE_OPTIONS.map(g => {
     const c = gradeStudentCounts(g);
-    return [g, c.boys, c.girls, c.total];
+    return hasOther ? [g, c.boys, c.girls, c.total - c.boys - c.girls, c.total] : [g, c.boys, c.girls, c.total];
   });
   const totalBoys = students.filter(s => s.gender === 'Male').length;
   const totalGirls = students.filter(s => s.gender === 'Female').length;
-  rows.push(["All Grades", totalBoys, totalGirls, students.length]);
+  rows.push(hasOther ? ["All Grades", totalBoys, totalGirls, students.length - totalBoys - totalGirls, students.length] : ["All Grades", totalBoys, totalGirls, students.length]);
   classListPreview = buildClassListPreview({
     heading: "Gender Distribution",
     gradeLine: `Total students: ${students.length}`,
     teacherLine: `Generated: ${todayLabel()}`,
-    columns: ["Grade","Male","Female","Total"],
+    columns: hasOther ? ["Grade","Male","Female","Other","Total"] : ["Grade","Male","Female","Total"],
     rows,
     filenameBase: "gender_distribution",
   });
@@ -19407,7 +19602,7 @@ let teacherEditIndex = null;
 function editTeacher(i){
   const t = teachersList[i];
   const dept = Array.isArray(t.department) ? [...t.department] : (t.department ? [t.department] : []);
-  teacherFormData = { ...t, department: dept, groups:[...(t.groups||[])], subjects:[...(t.subjects||[])], subjectHead:[...(t.subjectHead||[])] };
+  teacherFormData = { ...t, department: dept, groups:[...(t.groups||[])], subjects:[...(t.subjects||[])], subjectHead:[...(t.subjectHead||[])], pathways:[...(t.pathways || (t.pathway ? [t.pathway] : []))], pathway:"" };
   teacherEditIndex = i;
   teacherTab = "add";
   render();
@@ -19476,6 +19671,34 @@ function toggleTeacherGroup(group){
   render();
 }
 
+function teacherPathwaysField(){
+  const selected = teacherFormData.pathways || [];
+  const available = CBC_SS_PATHWAYS.map(p => p.label).filter(l => !selected.includes(l));
+  const optionsHtml = available.map(l => `<option value="${l}">${l}</option>`).join('');
+  const bar = selected.length
+    ? selected.map(l => `<span style="display:inline-flex;align-items:center;gap:4px;">${l}<i class="fa-solid fa-xmark" style="cursor:pointer;color:var(--muted);font-size:11px;" onclick="removeTeacherPathway('${l.replace(/'/g,"\\'")}')"></i></span>`).join('')
+    : `<span style="color:var(--muted);">No pathway selected</span>`;
+  return `
+    <label class="field">
+      <span>Pathways</span>
+      <select id="tf_pathway_select" onchange="if(this.value){addTeacherPathway(this.value);} this.value='';">
+        <option value="" selected disabled>${available.length ? 'Add a pathway...' : 'All pathways selected'}</option>
+        ${optionsHtml}
+      </select>
+      <div style="margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:0;display:flex;flex-wrap:wrap;gap:6px;">${bar}</div>
+    </label>`;
+}
+function addTeacherPathway(label){
+  const list = teacherFormData.pathways || (teacherFormData.pathways = []);
+  if(!list.includes(label)) list.push(label);
+  render();
+}
+function removeTeacherPathway(label){
+  const list = teacherFormData.pathways || (teacherFormData.pathways = []);
+  const idx = list.indexOf(label);
+  if(idx >= 0) list.splice(idx, 1);
+  render();
+}
 function teacherSubjectHeadField(){
   const selected = teacherFormData.subjectHead || [];
   const available = SENIOR_SCHOOL_SUBJECTS.filter(s => !selected.includes(s));
@@ -19626,7 +19849,7 @@ let staffFormData = {
 function staffField(label, id, required, placeholder=""){
   return `
     <label class="field"><span>${label}${required?'&nbsp;<span class="req">*</span>':''}</span>
-      <input id="sf_${id}" type="text" placeholder="${placeholder}" value="${staffFormData[id] || ''}" oninput="staffFormData['${id}']=this.value">
+      <input id="sf_${id}" type="text" ${NUMERIC_ONLY_FIELD_IDS.includes(id) ? NUM_INPUT_ATTRS : ''} placeholder="${placeholder}" value="${staffFormData[id] || ''}" oninput="${NUMERIC_ONLY_FIELD_IDS.includes(id) ? 'this.value=this.value.replace(/\\D/g,\'\');' : (id === 'name' ? 'nameOnly(this);' : '')}staffFormData['${id}']=this.value">
     </label>`;
 }
 
@@ -19964,7 +20187,7 @@ function toggleRegOptionalSubject(name){
 function teacherField(label, id, required, placeholder=""){
   return `
     <label class="field"><span>${label}${required?'&nbsp;<span class="req">*</span>':''}</span>
-      <input id="tf_${id}" type="text" placeholder="${placeholder}" value="${teacherFormData[id] || ''}" oninput="teacherFormData['${id}']=this.value">
+      <input id="tf_${id}" type="text" ${NUMERIC_ONLY_FIELD_IDS.includes(id) ? NUM_INPUT_ATTRS : ''} placeholder="${placeholder}" value="${teacherFormData[id] || ''}" oninput="${NUMERIC_ONLY_FIELD_IDS.includes(id) ? 'this.value=this.value.replace(/\\D/g,\'\');' : (NAME_ONLY_FIELD_IDS.includes(id) ? 'nameOnly(this);' : '')}teacherFormData['${id}']=this.value">
     </label>`;
 }
 
@@ -20075,17 +20298,17 @@ function renderAddTeacherForm(){
             ${teacherField("Surname","surname",false,"Surname")}
             ${teacherField("First Name","firstName",true,"First Name")}
             ${teacherField("Other Names","otherNames",false,"Other Names")}
-            ${teacherField("Phone Number","phone",false,"+254 712 3## ###")}
+            ${teacherField("Phone Number","phone",false,"0712345678")}
             <label class="field"><span>TSC Number</span>
               <input id="tf_tscNumber" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="TSC Number" value="${teacherFormData['tscNumber'] || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,'');teacherFormData['tscNumber']=this.value;">
             </label>
-            ${teacherSelect("Gender","gender",["Male","Female"],false)}
+            ${teacherSelect("Gender","gender",["Male","Female","Other"],false)}
             ${teacherSelect("Responsibility","responsibility",responsibilities,false)}
             ${teacherField("National ID No.","nationalId",false,"National ID No.")}
             ${teacherField("Address","address",false,"Address")}
             ${teacherField("Postal Code","postalCode",false,"")}
             ${teacherField("Email","email",false,"name@school.edu")}
-            ${teacherSelect("Pathway","pathway",CBC_SS_PATHWAYS.map(p => p.label),false)}
+            ${teacherPathwaysField()}
           </div>
           <div class="form-grid-3" style="margin-top:8px;align-items:start;">
             ${teacherDepartmentsField()}
@@ -20195,6 +20418,17 @@ function updateRegField(key, value){
 
 // When Pathway changes, its Track options change too, so clear any Track that
 // no longer belongs to the newly selected Pathway before re-rendering.
+// Curriculum decides the rest of Education Background: 8-4-4 learners are in a Form
+// (no Pathway / Track) and carry KCPE details; CBE learners use Grade, Pathway and Track.
+function regIs844(){ return regData.curriculum === "8-4-4"; }
+function onRegCurriculumChange(value){
+  if(regData.curriculum === value) return;
+  regData.curriculum = value;
+  regData.formGrade = "";
+  regData.pathway = ""; regData.track = "";
+  regData.mathematicsChoice = ""; regData.optionalSubjects = [];
+  render();
+}
 function onRegPathwayChange(value){
   regData.pathway = value;
   regData.track = "";
@@ -20216,7 +20450,7 @@ function addOptionalSubjectFromPicker(selectEl){
 function regSubmitFinal(){
   captureAddStudentFields();
   // basic validation for required fields — each one now lives in its own section
-  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","formGrade","stream","boardingStatus","pathway","nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
+  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","curriculum","formGrade","stream","boardingStatus",...(regIs844() ? [] : ["pathway"]),"nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
   if(regData.boardingStatus === "Boarder") required.push("house");
   const missing = required.filter(k => !regData[k]);
   if(missing.length){
@@ -20227,7 +20461,7 @@ function regSubmitFinal(){
     return;
   }
   // A learner must pick exactly ELECTIVES_REQUIRED_COUNT electives — no more, no less.
-  if((regData.optionalSubjects || []).length !== ELECTIVES_REQUIRED_COUNT){
+  if(!regIs844() && (regData.optionalSubjects || []).length !== ELECTIVES_REQUIRED_COUNT){
     setAddStudentSection("optionalSubjects");
     return;
   }
@@ -20236,6 +20470,7 @@ function regSubmitFinal(){
     firstName: regData.firstName,
     middleName: regData.middleName,
     dateOfBirth: regData.dateOfBirth,
+    curriculum: regData.curriculum,
     grade: regData.formGrade,
     stream: regData.stream,
     gender: regData.gender,
@@ -20265,11 +20500,11 @@ function regSubmitFinal(){
     assessmentYear: regData.assessmentYear,
     admissionType: regData.admissionType,
     term: regData.term,
-    pathway: regData.pathway,
-    track: regData.track,
+    pathway: regIs844() ? "" : regData.pathway,
+    track: regIs844() ? "" : regData.track,
     admissionStatus: regData.admissionStatus,
-    mathematicsChoice: isStemPathway(regData.pathway) ? "" : regData.mathematicsChoice,
-    optionalSubjects: [...(regData.optionalSubjects || [])],
+    mathematicsChoice: (regIs844() || isStemPathway(regData.pathway)) ? "" : regData.mathematicsChoice,
+    optionalSubjects: regIs844() ? [] : [...(regData.optionalSubjects || [])],
     familyType: regData.familyType,
     relationship: guardianRoleForFamilyType(regData.familyType),
     guardian: regData.guardianName,
@@ -20284,7 +20519,8 @@ function regSubmitFinal(){
     guardianIncomeBasic: regData.guardianIncomeBasic,
     guardianIncomeOther: regData.guardianIncomeOther,
     admissionNumber: regData.admissionNumber,
-    studentPhones: (regData.studentPhones || []).map(p => p.trim()).filter(Boolean),
+    studentPhones: studentPhoneRows().map(r => digitsOnly2(r.number)).filter(Boolean),
+    studentPhoneContacts: studentPhoneRows().filter(r => digitsOnly2(r.number)).map(r => ({ type:r.type, relationship:r.relationship, number:digitsOnly2(r.number) })),
     guardianPhones: [regData.guardianPhone].map(p => (p||'').trim()).filter(Boolean),
     occupation: regData.occupation,
     bloodGroup: regData.bloodGroup,
@@ -20333,8 +20569,9 @@ const NATIONALITY_LIST = [
   "Brazilian","Mexican","Turkish","Saudi Arabian","Emirati","Other"
 ];
 
+function normReligion(r){ return r === "Christian" ? "Christianity" : (r || ""); }   // older records were saved as "Christian"
 const RELIGION_DATA = {
-  "Christian": ["Catholic","Protestant","Anglican","Orthodox","Seventh-day Adventist","Pentecostal","Evangelical","Baptist","Methodist","Presbyterian","Lutheran","Other"],
+  "Christianity": ["Catholic","Protestant","Anglican","Orthodox","Seventh-day Adventist","Pentecostal","Evangelical","Baptist","Methodist","Presbyterian","Lutheran","Other"],
   "Islamic": ["Sunni","Shia","Sufi","Ahmadiyya","Other"],
   "Hindu": ["Vaishnavism","Shaivism","Shaktism","Smartism","Other"],
   "Buddhist": ["Theravada","Mahayana","Vajrayana","Zen","Other"],
@@ -20357,10 +20594,19 @@ function onRegReligionChange(value){
   render();
 }
 
-function stepField(label, id, required, placeholder=""){
+// Fields that take digits only (P.O. Box, postal code, phone and TSC numbers). House numbers,
+// birth certificate numbers and everything else still accept letters, digits and symbols.
+const NUMERIC_ONLY_FIELD_IDS = ["permBoxNo","permPostalCode","postalCode","boxNo","phone","tscNumber","guardianPhone","admissionNumber"];
+// People's names take letters only (plus space, apostrophe, hyphen and full stop): no digits.
+const NAME_ONLY_FIELD_IDS = ["firstName","middleName","lastName","surname","otherNames","guardianName"];
+function nameOnly(el){ el.value = el.value.replace(/[^\p{L}\s'\u2019.\-]/gu, ""); }
+const NUM_INPUT_ATTRS = `inputmode="numeric" pattern="[0-9]*"`;
+function digitsOnly2(v){ return String(v == null ? "" : v).replace(/\D/g, ""); }
+function stepField(label, id, required, placeholder="", forceNumeric=false){
+  const num = forceNumeric || NUMERIC_ONLY_FIELD_IDS.includes(id);
   return `
     <label class="field"><span>${label}${required?'&nbsp;<span class="req">*</span>':''}</span>
-      <input id="${id}" type="text" placeholder="${placeholder}" value="${regData[id] || ''}">
+      <input id="${id}" type="text" ${num ? NUM_INPUT_ATTRS + ' oninput="this.value=this.value.replace(/\\D/g,\'\')"' : (NAME_ONLY_FIELD_IDS.includes(id) ? 'oninput="nameOnly(this)"' : '')} placeholder="${placeholder}" value="${regData[id] || ''}">
     </label>`;
 }
 
@@ -20480,7 +20726,7 @@ function renderAddStudentSection(){
             <label class="field"><span>Admission Number&nbsp;<span class="req">*</span></span>
               <input id="admissionNumber" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 4290" value="${regData['admissionNumber'] || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,'');">
             </label>
-            ${stepSelect("Gender","gender",["Male","Female"],true)}
+            ${stepSelect("Gender","gender",["Male","Female","Other"],true)}
             ${stepCalendarField("Date of Birth","dateOfBirth",true)}
             ${stepSelect("Nationality","nationality",NATIONALITY_LIST,false)}
             ${stepField("Birth Certificate Number","birthCertNumber",false,"")}
@@ -20589,12 +20835,19 @@ function renderAddStudentSection(){
         <h3 style="margin:0 0 10px;padding-bottom:10px;font-size:16px;font-weight:700;color:var(--blue-dark);border-bottom:2px solid var(--blue-dark);">Education Background</h3>
         <div class="wizard-body" style="padding-top:16px;padding-left:0;padding-right:0;">
           <div class="form-grid-3">
+            <label class="field"><span>Curriculum&nbsp;<span class="req">*</span></span>
+              <select id="curriculum" onchange="onRegCurriculumChange(this.value)">
+                <option value="" ${!regData.curriculum?'selected':''} disabled>Select curriculum...</option>
+                <option value="8-4-4" ${regData.curriculum==='8-4-4'?'selected':''}>8-4-4</option>
+                <option value="CBE" ${regData.curriculum==='CBE'?'selected':''}>CBE</option>
+              </select>
+            </label>
             ${stepCalendarField("Date of Admission","dateOfAdmission",false)}
             ${stepSelect("Admission Type","admissionType",["New","Transfer","Re-admission"],false)}
             ${stepSelect("Term","term",["Term 1","Term 2","Term 3"],false)}
-            ${stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true)}
+            ${regIs844() ? stepSelect("Form","formGrade",["Form 1","Form 2","Form 3","Form 4"],true) : stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true)}
             ${stepSelect("Stream","stream",activeStreamNames(),true)}
-            <label class="field"><span>Pathway</span>
+            ${regIs844() ? '' : `<label class="field"><span>Pathway</span>
               <select id="pathway" onchange="onRegPathwayChange(this.value)">
                 <option value="" ${!regData.pathway?'selected':''} disabled>Select pathway...</option>
                 ${CBC_SS_PATHWAYS.map(p => `<option value="${p.label}" ${regData.pathway===p.label?'selected':''}>${p.label}</option>`).join('')}
@@ -20609,7 +20862,7 @@ function renderAddStudentSection(){
                   return tracks.map(t => `<option value="${t}" ${regData.track===t?'selected':''}>${t}</option>`).join('');
                 })()}
               </select>
-            </label>
+            </label>`}
             ${stepField("Previous School","previousSchool",false,"")}
             <label class="field"><span>County</span>
               <select id="county" onchange="onCountyChange(this.value)">
@@ -20623,9 +20876,9 @@ function renderAddStudentSection(){
                 ${regData.county ? Object.keys(COUNTY_DATA[regData.county]).map(sc => `<option value="${sc}" ${regData.subcounty===sc?'selected':''}>${sc}</option>`).join('') : ''}
               </select>
             </label>
-            ${stepField("Assessment Number","previousIndexNumber",false,"e.g. KPSEA/KCPE index number")}
+            ${regIs844() ? stepField("KCPE Index No","previousIndexNumber",false,"e.g. 12345678",true) : stepField("Assessment Number","previousIndexNumber",false,"e.g. KPSEA/KCPE index number")}
             ${stepSelect("Assessment Year","assessmentYear",yearOptions(0,15),false)}
-            ${stepField("Points","pointsObtained",false,"")}
+            ${regIs844() ? stepField("KCPE Marks","pointsObtained",false,"e.g. 350",true) : stepField("Points","pointsObtained",false,"")}
             <label class="field"><span>Boarding Status&nbsp;<span class="req">*</span></span>
               <select id="boardingStatus" onchange="updateRegField('boardingStatus', this.value); render();">
                 <option value="" ${!regData.boardingStatus?'selected':''} disabled>Select boarding status...</option>
@@ -20634,9 +20887,18 @@ function renderAddStudentSection(){
               </select>
             </label>
             ${regData.boardingStatus === 'Boarder' ? stepSelect("House","house",SCHOOL_HOUSES,true) : ''}
-            ${multiPhoneField("Student phone number(s)","studentPhones",false,"Phone number")}
+            ${studentPhonesField("Student phone number(s)")}
           </div>
           <div class="hint-text">Stream picked from school settings</div>
+        </div>
+      </div>`;
+  }
+  if(addStudentSection === "optionalSubjects" && regIs844()){
+    return `
+      <div class="section-enclosure">
+        <h3 style="margin:0 0 10px;padding-bottom:10px;font-size:16px;font-weight:700;color:var(--blue-dark);border-bottom:2px solid var(--blue-dark);">Electives</h3>
+        <div class="wizard-body" style="padding-top:16px;padding-left:0;padding-right:0;">
+          <div class="hint-text" style="margin-top:0;">Pathways and electives apply to the CBE curriculum only. Nothing to select here for an 8-4-4 learner.</div>
         </div>
       </div>`;
   }
@@ -21077,10 +21339,10 @@ function renderGuardianDetailModal(){
               <input id="guardianIdNumber" type="text" placeholder="Enter ID number" value="${regData.guardianIdNumber || ''}" oninput="updateRegField('guardianIdNumber', this.value)">
             </label>
             <label class="field" style="grid-column:span 2;"><span>Full Names&nbsp;<span class="req">*</span></span>
-              <input id="guardianName" type="text" placeholder="Enter full names" value="${regData.guardianName || ''}" oninput="updateRegField('guardianName', this.value)">
+              <input id="guardianName" type="text" placeholder="Enter full names" value="${regData.guardianName || ''}" oninput="nameOnly(this);updateRegField('guardianName', this.value)">
             </label>
             <label class="field"><span>Telephone No.&nbsp;<span class="req">*</span></span>
-              <input id="guardianPhone" type="text" placeholder="Enter telephone number" value="${regData.guardianPhone || ''}" oninput="updateRegField('guardianPhone', this.value)">
+              <input id="guardianPhone" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Enter telephone number" value="${regData.guardianPhone || ''}" oninput="this.value=this.value.replace(/\D/g,'');updateRegField('guardianPhone', this.value)">
             </label>
             <label class="field"><span>Email Address</span>
               <input id="guardianEmail" type="email" placeholder="Enter email address" value="${regData.guardianEmail || ''}" oninput="updateRegField('guardianEmail', this.value)">
@@ -21121,24 +21383,6 @@ function renderGuardianDetailModal(){
                 <option value="No" ${regData.guardianPhysicalChallenge==='No'?'selected':''}>No</option>
               </select>
             </label>
-          </div>
-          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:14px;">
-            <button type="button" class="link-btn" style="font-weight:700;color:var(--blue-dark);display:flex;align-items:center;gap:8px;width:100%;text-align:left;" onclick="toggleGuardianIncomeSection()">
-              <i class="fa-solid fa-bell"></i> Income Details (Monthly)
-              <i class="fa-solid fa-chevron-${guardianIncomeOpen?'up':'down'}" style="margin-left:auto;"></i>
-            </button>
-            ${guardianIncomeOpen ? `
-              <div class="form-grid-3" style="margin-top:12px;">
-                <label class="field"><span>Basic Salary (KES)</span>
-                  <input id="guardianIncomeBasic" type="text" inputmode="numeric" placeholder="0" value="${regData.guardianIncomeBasic || ''}" oninput="onGuardianIncomeInput(this, 'guardianIncomeBasic')">
-                </label>
-                <label class="field"><span>Other Income/Allowances (KES)</span>
-                  <input id="guardianIncomeOther" type="text" inputmode="numeric" placeholder="0" value="${regData.guardianIncomeOther || ''}" oninput="onGuardianIncomeInput(this, 'guardianIncomeOther')">
-                </label>
-                <label class="field"><span>Total Monthly Income</span>
-                  <input id="guardianIncomeTotalDisplay" type="text" readonly value="${guardianIncomeTotal().toLocaleString()}" style="background:var(--blue-tint);color:var(--muted);cursor:not-allowed;">
-                </label>
-              </div>` : ''}
           </div>
         </div>
         <div class="preview-modal-footer">
@@ -21227,7 +21471,7 @@ function renderStudentProfileModal(){
             <div class="profile-detail-row"><span>Age</span><strong>${ageFromDmy(s.dateOfBirth) !== null ? ageFromDmy(s.dateOfBirth) : '—'}</strong></div>
             <div class="profile-detail-row"><span>Nationality</span><strong>${s.nationality || '—'}</strong></div>
             <div class="profile-detail-row"><span>Birth Certificate Number</span><strong>${s.birthCertNumber || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Religion</span><strong>${s.religion || '—'}</strong></div>
+            <div class="profile-detail-row"><span>Religion</span><strong>${normReligion(s.religion) || '—'}</strong></div>
             <div class="profile-detail-row"><span>Denomination</span><strong>${s.denomination || '—'}</strong></div>
             <div class="profile-detail-row"><span>Person with Disability</span><strong>${s.disabilityStatus || '—'}</strong></div>
             ${s.disabilityStatus === 'Yes' ? `<div class="profile-detail-row"><span>Type of Disability</span><strong>${s.disabilityType || '—'}</strong></div>` : ''}
@@ -21246,22 +21490,23 @@ function renderStudentProfileModal(){
             <div class="profile-detail-row"><span>Date of Admission</span><strong>${s.dateOfAdmission || '—'}</strong></div>
             <div class="profile-detail-row"><span>Admission Type</span><strong>${s.admissionType || '—'}</strong></div>
             <div class="profile-detail-row"><span>Term</span><strong>${s.term || '—'}</strong></div>
+            <div class="profile-detail-row"><span>Curriculum</span><strong>${s.curriculum || (/^form/i.test(s.grade || '') ? '8-4-4' : (/^grade/i.test(s.grade || '') ? 'CBE' : '—'))}</strong></div>
             <div class="profile-detail-row"><span>Form/Grade</span><strong>${s.grade || '—'}</strong></div>
             <div class="profile-detail-row"><span>Stream</span><strong>${s.stream || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Pathway</span><strong>${s.pathway || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Track</span><strong>${s.track || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Mathematics Subject</span><strong>${(s.pathway && s.pathway === (CBC_SS_PATHWAYS.find(p=>p.key==='stem')||{}).label) ? 'Core Mathematics' : (s.mathematicsChoice || '—')}</strong></div>
-            <div class="profile-detail-row"><span>Electives</span><strong>${(s.optionalSubjects && s.optionalSubjects.length) ? s.optionalSubjects.join(', ') : '—'}</strong></div>
+            ${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? '' : `<div class="profile-detail-row"><span>Pathway</span><strong>${s.pathway || '—'}</strong></div>
+            <div class="profile-detail-row"><span>Track</span><strong>${s.track || '—'}</strong></div>`}
+            ${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? '' : `<div class="profile-detail-row"><span>Mathematics Subject</span><strong>${(s.pathway && s.pathway === (CBC_SS_PATHWAYS.find(p=>p.key==='stem')||{}).label) ? 'Core Mathematics' : (s.mathematicsChoice || '—')}</strong></div>
+            <div class="profile-detail-row"><span>Electives</span><strong>${(s.optionalSubjects && s.optionalSubjects.length) ? s.optionalSubjects.join(', ') : '—'}</strong></div>`}
             <div class="profile-detail-row"><span>Previous School</span><strong>${s.previousSchool || '—'}</strong></div>
             <div class="profile-detail-row"><span>County</span><strong>${s.county || '—'}</strong></div>
             <div class="profile-detail-row"><span>Sub County</span><strong>${s.subcounty || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Assessment Number</span><strong>${s.previousIndexNumber || '—'}</strong></div>
+            <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Index No' : 'Assessment Number'}</span><strong>${s.previousIndexNumber || '—'}</strong></div>
             <div class="profile-detail-row"><span>Assessment Year</span><strong>${s.assessmentYear || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Points Obtained</span><strong>${s.pointsObtained || '—'}</strong></div>
+            <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Marks' : 'Points Obtained'}</span><strong>${s.pointsObtained || '—'}</strong></div>
             <div class="profile-detail-row"><span>Boarding Status</span><strong>${s.boardingStatus || '—'}</strong></div>
             ${isBoarder ? `<div class="profile-detail-row"><span>Dormitory/House</span><strong>${s.house || '—'}</strong></div>` : ''}
             ${s.exitDate ? `<div class="profile-detail-row"><span>Exit Date</span><strong>${s.exitDate}</strong></div>` : ''}
-            <div class="profile-detail-row"><span>Student Phone(s)</span><strong>${phoneList(s.studentPhones) || '—'}</strong></div>
+            <div class="profile-detail-row"><span>Student Phone(s)</span><strong>${(s.studentPhoneContacts && s.studentPhoneContacts.length) ? s.studentPhoneContacts.map(c => `${c.number}${(c.type || c.relationship) ? ' (' + [c.type, c.relationship].filter(Boolean).join(' - ') + ')' : ''}`).join('<br>') : (phoneList(s.studentPhones) || '—')}</strong></div>
 
             <div class="profile-section-title">Parents/Guardian</div>
             <div class="profile-detail-row"><span>Family Type</span><strong>${s.familyType || '—'}</strong></div>
@@ -21276,7 +21521,6 @@ function renderStudentProfileModal(){
             <div class="profile-detail-row"><span>Occupation</span><strong>${s.occupation || '—'}</strong></div>
             <div class="profile-detail-row"><span>Employed</span><strong>${s.guardianEmployed || '—'}</strong></div>
             <div class="profile-detail-row"><span>Physical Challenge</span><strong>${s.guardianPhysicalChallenge || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Monthly Income (KES)</span><strong>${(s.guardianIncomeBasic || s.guardianIncomeOther) ? (Number(s.guardianIncomeBasic||0)+Number(s.guardianIncomeOther||0)).toLocaleString() : '—'}</strong></div>
 
             <div class="profile-section-title">Medical Information</div>
             <div class="profile-detail-row"><span>Blood Group</span><strong>${s.bloodGroup || '—'}</strong></div>
@@ -22039,7 +22283,7 @@ function renderAddStaffForm(){
           ${staffField("Full Name","name",true,"Full Name")}
           ${staffSelect("Role","role",STAFF_ROLES,false)}
           ${staffSelect("Department","department",departments,false)}
-          ${staffField("Phone Number","phone",false,"+254 712 3## ###")}
+          ${staffField("Phone Number","phone",false,"0712345678")}
           ${staffField("National ID No.","nationalId",false,"National ID No.")}
           ${staffField("Employee Number","employeeNumber",false,"Employee Number")}
           ${staffSelect("Status","status",["Active","On leave"],false)}
@@ -23654,7 +23898,7 @@ let transportRouteFormData = { name:"", vehicle:"", driver:"", driverPhone:"", s
 function transportRouteField(label, id, required, placeholder="", type="text"){
   return `
     <label class="field"><span>${label}${required?'&nbsp;<span class="req">*</span>':''}</span>
-      <input id="tr_${id}" type="${type}" placeholder="${placeholder}" value="${transportRouteFormData[id] ?? ''}" oninput="transportRouteFormData['${id}']=this.value">
+      <input id="tr_${id}" type="${type}" placeholder="${placeholder}" value="${transportRouteFormData[id] ?? ''}" oninput="${id === 'driver' ? 'nameOnly(this);' : ''}transportRouteFormData['${id}']=this.value">
     </label>`;
 }
 
@@ -23708,7 +23952,7 @@ function renderTransportRoutesForm(){
         ${transportRouteField("Route Name","name",true,"e.g. Route A - Diani")}
         ${transportRouteField("Vehicle / Bus Reg. No.","vehicle",false,"e.g. KDA 245B")}
         ${transportRouteField("Driver Name","driver",false,"e.g. Peter Mwangangi")}
-        ${transportRouteField("Driver Phone","driverPhone",false,"+254 712 3## ###")}
+        ${transportRouteField("Driver Phone","driverPhone",false,"0712345678")}
         <label class="field"><span>Stops (comma-separated)</span>
           <textarea id="tr_stops" rows="2" placeholder="e.g. Diani Beach, Ukunda Town, Tiwi" oninput="transportRouteFormData['stops']=this.value">${transportRouteFormData.stops || ''}</textarea>
         </label>
@@ -31641,7 +31885,7 @@ function ttSelQuickGroups(){
     return g.filter(x => x.names.length);
   }
   const g = [{ label:'All teachers', names:keys(o) }];
-  ['Male','Female'].forEach(sex => g.push({ label:sex + ' teachers', names:keys(o.filter(x => x.t.gender === sex)) }));
+  ['Male','Female','Other'].forEach(sex => g.push({ label:sex + ' teachers', names:keys(o.filter(x => x.t.gender === sex)) }));
   [...new Set(o.flatMap(x => x.t.department || []))].forEach(d => g.push({ label:d + ' department', names:keys(o.filter(x => (x.t.department || []).includes(d))) }));
   return g.filter(x => x.names.length);
 }
@@ -33836,7 +34080,7 @@ let bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:""
 function bomField(label, id, required, placeholder=""){
   return `
     <label class="field"><span>${label}${required?'&nbsp;<span class="req">*</span>':''}</span>
-      <input id="bf_${id}" type="text" placeholder="${placeholder}" value="${bomMemberFormData[id] || ''}" oninput="bomMemberFormData['${id}']=this.value">
+      <input id="bf_${id}" type="text" ${NUMERIC_ONLY_FIELD_IDS.includes(id) ? NUM_INPUT_ATTRS : ''} placeholder="${placeholder}" value="${bomMemberFormData[id] || ''}" oninput="${NUMERIC_ONLY_FIELD_IDS.includes(id) ? 'this.value=this.value.replace(/\\D/g,\'\');' : (id === 'name' ? 'nameOnly(this);' : '')}bomMemberFormData['${id}']=this.value">
     </label>`;
 }
 
@@ -33896,7 +34140,7 @@ function renderAddBomMemberForm(){
           ${bomField("Full Name","name",true,"Full Name")}
           ${bomSelect("Position","position",BOM_POSITIONS,false)}
           ${bomSelect("Highest Qualification","qualification",BOM_QUALIFICATIONS,false)}
-          ${bomField("Phone Number","phone",false,"+254 712 3## ###")}
+          ${bomField("Phone Number","phone",false,"0712345678")}
           ${bomField("Email","email",false,"Email address")}
           ${bomSelect("Committee","committee",BOM_COMMITTEES,false)}
           ${bomSelect("Status","status",["Active","Inactive"],false)}
@@ -46953,7 +47197,7 @@ function renderOpeningClosingRegister(){
           <label class="field" style="margin:0;flex:1;min-width:150px;"><span>Register</span><select onchange="setOpeningClosingType(this.value)"><option ${openingClosingType==='Opening'?'selected':''}>Opening</option><option ${openingClosingType==='Closing'?'selected':''}>Closing</option></select></label>
           <label class="field" style="margin:0;flex:1;min-width:170px;"><span>Class</span><select onchange="setOpeningClosingClass(this.value)"><option value="">All classes</option>${classGrades.map(g=>`<option value="${g}" ${openingClosingClassSelGrade===g?'selected':''}>${g}</option>`).join('')}</select></label>
           <label class="field" style="margin:0;flex:1;min-width:150px;"><span>Stream</span><select onchange="setOpeningClosingStream(this.value)"><option value="">All streams</option>${streams.map(v=>`<option value="${v}" ${openingClosingStream===v?'selected':''}>${v}</option>`).join('')}</select></label>
-          <label class="field" style="margin:0;flex:1;min-width:130px;"><span>Gender</span><select onchange="setOpeningClosingGender(this.value)"><option value="">All genders</option><option ${openingClosingGender==='Male'?'selected':''}>Male</option><option ${openingClosingGender==='Female'?'selected':''}>Female</option></select></label>
+          <label class="field" style="margin:0;flex:1;min-width:130px;"><span>Gender</span><select onchange="setOpeningClosingGender(this.value)"><option value="">All genders</option><option ${openingClosingGender==='Male'?'selected':''}>Male</option><option ${openingClosingGender==='Female'?'selected':''}>Female</option><option ${openingClosingGender==='Other'?'selected':''}>Other</option></select></label>
           <label class="field" style="margin:0;flex:1;min-width:190px;"><span>Pathway</span><select onchange="setOpeningClosingPathway(this.value)"><option value="">All pathways</option>${pathways.map(v=>`<option ${openingClosingPathway===v?'selected':''}>${v}</option>`).join('')}</select></label>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
@@ -49372,7 +49616,7 @@ function renderSettingsProfileTab(){
             <div class="icon-input"><i class="fa-solid fa-school"></i><input id="sp_shortName" type="text" value="${profile.shortName||''}"></div>
           </label>
           <label class="icon-field"><span>Principal Name</span>
-            <div class="icon-input"><i class="fa-solid fa-user-tie"></i><input id="sp_principalName" type="text" value="${profile.principalName||''}"></div>
+            <div class="icon-input"><i class="fa-solid fa-user-tie"></i><input id="sp_principalName" type="text" oninput="nameOnly(this)" value="${profile.principalName||''}"></div>
           </label>
 
           <label class="icon-field"><span>Phone Number&nbsp;<span class="req">*</span></span>
@@ -49571,6 +49815,27 @@ function clearTeachersAndLearners(){
   alert('Done. Teacher and learner data has been cleared from ' + currentSchool + '.');
 }
 
+function resetAllData(){
+  if(!["System Developer","Super Admin","Administrator"].includes(currentUserRole)){ alert('Only an administrator can erase all data.'); return; }
+  const msg = "ERASE ALL DATA for " + currentSchool + "?\n\n" +
+    "This removes every learner, teacher, class, mark, attendance record, fee and payment record, library, store, boarding, timetable, announcement and setting, and returns the school to a blank system.\n" +
+    "Administrator logins other than Teacher accounts are kept so you can still sign in.\n\n" +
+    "A backup file will be downloaded first. If cloud sync is on, the cloud copy is replaced too. This cannot be undone.";
+  if(!confirm(msg)) return;
+  const typed = prompt('Type ERASE ALL (capital letters) to confirm.');
+  if(typed !== 'ERASE ALL'){ alert('Cancelled: nothing was removed.'); return; }
+  try{ backupData(); }catch(e){ if(!confirm('The safety backup could not be downloaded. Continue anyway?')) return; }
+  const keepUsers = (systemUsers || []).filter(u => u && u.role !== "Teacher");
+  const E = emptySchoolDataset();
+  if(keepUsers.length) E.systemUsers = keepUsers;
+  schoolData[currentSchool] = E;
+  try{ invoices.length = 0; }catch(e){}
+  loadSchoolData(currentSchool);
+  try{ snapshotSchoolData(currentSchool); }catch(e){}
+  render();
+  try{ if(window.MASMS_LOCAL) window.MASMS_LOCAL.saveNow(); }catch(e){}
+  alert('Done. All data has been erased from ' + currentSchool + '.');
+}
 function renderSettingsBackupTab(){
   return `
     <div class="panel settings-card" style="max-width:none;">
@@ -49604,7 +49869,7 @@ function renderSettingsBackupTab(){
         <p style="margin:0 0 12px;font-size:12.5px;color:#64748b;line-height:1.5;">Removes all teacher and learner records for the current school (a backup downloads first). Classes, streams, settings and non-teaching staff stay.</p>
         <button type="button" class="btn-ghost" style="width:auto;padding:10px 20px;color:var(--rose);border-color:var(--rose);" onclick="clearTeachersAndLearners()">
           <i class="fa-solid fa-trash"></i> Clear teachers &amp; learners
-        </button>
+        </button><div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);"><div style="font-size:13.5px;font-weight:700;color:var(--rose);margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation"></i> Erase ALL data</div><p style="margin:0 0 12px;font-size:12.5px;color:#64748b;line-height:1.5;">Resets the current school to a blank system: learners, teachers, classes, marks, fees, library, stores, timetable and settings. A backup downloads first. Administrator logins are kept.</p><button type="button" class="btn-primary" style="width:auto;padding:10px 20px;background:var(--rose);border-color:var(--rose);" onclick="resetAllData()"><i class="fa-solid fa-eraser"></i> Erase ALL data</button></div>
       </div>
     </div>
   `;
@@ -50039,7 +50304,39 @@ function renderMobileChrome(){
   `;
 }
 
-function render(){
+// ---- Keep typing focus/caret across full re-renders (also for inputs without an id) ----
+function _focusSnapshot(){
+  try{
+    const el = document.activeElement;
+    if(!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return null;
+    const all = Array.from(document.querySelectorAll('input,textarea,select'));
+    const snap = { id: el.id || null, idx: all.indexOf(el), tag: el.tagName, type: el.type, ph: el.getAttribute('placeholder') || '',
+      h: el.getAttribute('oninput') || el.getAttribute('onchange') || '', s: null, e: null };
+    try{ snap.s = el.selectionStart; snap.e = el.selectionEnd; }catch(_e){}
+    return snap;
+  }catch(_e){ return null; }
+}
+function _focusRestore(snap){
+  try{
+    if(!snap) return;
+    let el = snap.id ? document.getElementById(snap.id) : null;
+    if(!el){
+      const c = Array.from(document.querySelectorAll('input,textarea,select'))[snap.idx];
+      if(c && c.tagName === snap.tag && c.type === snap.type && (c.getAttribute('placeholder') || '') === snap.ph &&
+         (c.getAttribute('oninput') || c.getAttribute('onchange') || '') === snap.h) el = c;
+    }
+    if(!el) return;
+    if(document.activeElement !== el) el.focus();
+    if(typeof snap.s === 'number'){
+      try{ el.setSelectionRange(snap.s, snap.e); }catch(_e){}
+    } else if(el.tagName !== 'SELECT' && /^(number|email)$/.test(el.type)){
+      // number inputs expose no caret: put it at the end so the next digit appends
+      try{ const v = el.value; el.value = ''; el.value = v; }catch(_e){}
+    }
+  }catch(_e){}
+}
+function render(){ const _snap = _focusSnapshot(); __renderCore(); _focusRestore(_snap); }
+function __renderCore(){
   if(!canAccessModule(active)) active = firstAllowedModule();
   const active_focus = document.activeElement;
   const activeId = active_focus && active_focus.id ? active_focus.id : null;
@@ -50097,7 +50394,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2204501",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Catholic",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50170,7 +50467,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2204638",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Anglican",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50316,7 +50613,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2204912",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Pentecostal",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50389,7 +50686,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2205049",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Seventh-day Adventist",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50464,7 +50761,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2205186",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Protestant",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50537,7 +50834,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2205323",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Presbyterian",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50683,7 +50980,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2205597",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Methodist",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50756,7 +51053,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2205734",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Evangelical",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50829,7 +51126,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2205871",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Catholic",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -50902,7 +51199,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2206008",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Anglican",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51048,7 +51345,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2206282",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Baptist",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51121,7 +51418,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2206419",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Protestant",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51194,7 +51491,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2206556",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Catholic",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51267,7 +51564,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2206693",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Evangelical",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51415,7 +51712,7 @@ function seedGrade10Registrations(){
   "gender": "Female",
   "nationality": "Kenyan",
   "birthCertNumber": "2206967",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Pentecostal",
   "disabilityType": "",
   "disabilityStatus": "No",
@@ -51490,7 +51787,7 @@ function seedGrade10Registrations(){
   "gender": "Male",
   "nationality": "Kenyan",
   "birthCertNumber": "2207104",
-  "religion": "Christian",
+  "religion": "Christianity",
   "denomination": "Methodist",
   "disabilityType": "",
   "disabilityStatus": "No",
