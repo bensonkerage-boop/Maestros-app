@@ -44,11 +44,17 @@ describe('clean start: no built-in teachers or learners', () => {
     expect(src).not.toMatch(/^seedGrade10Registrations\(\);/m);
     expect(src).not.toMatch(/"surname": "(Mwangi|Achieng)"/);
   });
-  test('Settings has a guarded "Clear teachers & learners" action', () => {
-    expect(src).toMatch(/onclick="clearTeachersAndLearners\(\)"/);
-    const fn = src.slice(src.indexOf('function clearTeachersAndLearners'), src.indexOf('function renderSettingsBackupTab'));
-    expect(fn).toMatch(/prompt\('Type CLEAR/);
-    expect(fn.indexOf('backupData()')).toBeGreaterThan(fn.indexOf("typed !== 'CLEAR'"));
+  test('Backup tab has no "Clear teachers & learners" or "Erase ALL data"; Erase ALL is System Developer console only', () => {
+    expect(src).not.toMatch(/clearTeachersAndLearners/);
+    expect(src).not.toMatch(/Clear teachers/);
+    const tab = src.slice(src.indexOf('function renderSettingsBackupTab'), src.indexOf('function renderSettings()'));
+    expect(tab).not.toMatch(/Erase ALL|resetAllData/);
+    const fn = src.slice(src.indexOf('function resetAllData'), src.indexOf('function renderSettingsBackupTab'));
+    expect(fn).toMatch(/currentUserRole !== "System Developer"/);
+    expect(fn).toMatch(/prompt\('Type ERASE ALL/);
+    expect(fn.indexOf('backupData()')).toBeGreaterThan(fn.indexOf("typed !== 'ERASE ALL'"));
+    const consolePage = src.slice(src.indexOf('function renderSystemDeveloperPageSchools'), src.indexOf('// ---- Academic Term automation'));
+    expect(consolePage).toMatch(/renderEraseAllDataCard\(\)/);
   });
 });
 
@@ -125,4 +131,23 @@ describe('Kenyan Sign Language is an elective, not compulsory', () => {
 
 test('module title bar shows only the module name (no descriptive note after it)', () => {
   expect(src).not.toMatch(/<span class="subbar-note">\$\{activeItem\.note/);
+});
+
+describe('phone and ID number fields accept digits only', () => {
+  const inputTag = id => (src.match(new RegExp('<input[^>]*id="' + id + '"[^>]*>')) || [''])[0];
+  test('every phone / ID input filters through digitsOnlyInput', () => {
+    ['signup_phone','reset_pw_phone','portalPreviewPhone','waBotPhoneInput','contactEditPhoneInput','sa_phone',
+     'guardianPhone','guardianIdNumber','exp_payeePhone','sup_phone','buySmsPhoneInput','sp_phone'
+    ].forEach(id => expect(inputTag(id)).toMatch(/digitsOnlyInput\(this\)/));
+  });
+  test('teacher, staff, BOM and stepper forms use the numeric id list incl. national ID', () => {
+    const list = src.match(/const NUMERIC_ONLY_FIELD_IDS = \[([^\]]*)\]/)[1];
+    ['phone', 'nationalId', 'tscNumber', 'guardianPhone'].forEach(k => expect(list).toContain('"' + k + '"'));
+  });
+  test('a bare /\\D/ inside an HTML template would be cooked to /D/ and filter nothing', () => {
+    expect(src).not.toMatch(/oninput="this\.value=this\.value\.replace\(\/\\D\/g/);
+  });
+  test('transport driver phone is numeric', () => {
+    expect(src).toMatch(/id === 'driverPhone' \? 'digitsOnlyInput\(this\);'/);
+  });
 });
