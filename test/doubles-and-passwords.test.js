@@ -44,6 +44,8 @@ describe('no back-to-back doubles', () => {
       'function teacherFullName(t){ return t.name; }',
       'function timetableClassKey(c){ return c.grade + "||" + c.stream; }',
       'function ttDivisionGroupSubjects(){ return new Set(); }',
+      'function ttParallelSubjectsOf(){ return []; }',
+      'function ttJointSubjectsOf(){ return new Set(); }',
       'function ttPlaceSupportivePrograms(){ return 0; }',
       'function timetableSubjectTimeOffAt(){ return ""; }',
       'function timetableClassTimeOffAt(day, pid){ return classOff(day, pid); }',

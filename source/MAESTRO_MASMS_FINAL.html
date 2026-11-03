@@ -4269,6 +4269,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     border-radius:0;padding:10px 12px;font-size:13px;margin:0 0 16px;
   }
   .login-cert-submit-row{display:flex;justify-content:center;}
+  .fp-login-wrap{text-align:center;margin:14px 0 4px;}
+  .fp-login-or{display:flex;align-items:center;gap:10px;color:#64748b;font-size:12px;margin-bottom:10px;}
+  .fp-login-or:before,.fp-login-or:after{content:"";flex:1;height:1px;background:#cbd5e1;}
+  .fp-login-btn{width:64px;height:64px;border-radius:50%;border:2px solid #0f766e;background:#fff;color:#0f766e;font-size:30px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s;}
+  .fp-login-btn:hover,.fp-login-btn.fp-ready{background:#0f766e;color:#fff;}
+  .fp-login-btn:active{transform:scale(.94);}
+  .fp-login-label{margin-top:6px;font-size:12.5px;color:#334155;}
   .login-cert-submit{
     width:100%;max-width:220px;padding:12px;font-size:14.5px;font-weight:700;
     background:#1c1cf0;border:none;border-radius:0;color:#fff;cursor:pointer;
@@ -5253,7 +5260,7 @@ function fpEnroll(u){
 }
 function fpOfferEnroll(u){
   try{
-    if(!u || u.role === "System Developer" || isPortalSession) return;
+    if(!u || isPortalSession) return;
     var cur = fpStored();
     if(cur && cur.name === u.name && cur.role === u.role) return;
     var skipKey = "masmsFpSkip:" + u.name;
@@ -5276,12 +5283,13 @@ function fpSignIn(){
   if(!s) return;
   fpVerify(s).then(function(ok){
     if(!ok){ loginError = "Fingerprint not recognised. Try again or use your password."; renderLoginPage(); return; }
+    if(s.role === "System Developer"){ completeSysDevLogin(); return; }
     var u = null;
     if(s.agentId != null){
       var a = (saAgents || []).find(function(x){ return x.id === s.agentId && !x.isDeveloper && x.status !== "Inactive"; });
       u = a ? saLoginUser(a) : null;
     } else {
-      u = systemUsers.find(function(x){ return x.name === s.name && x.role === s.role && x.role !== "System Developer" && x.status !== "Inactive"; }) || null;
+      u = systemUsers.find(function(x){ return x.name === s.name && x.role === s.role && x.status !== "Inactive"; }) || null;
     }
     if(!u || userNeedsPasswordChange(u)){
       fpForget();
@@ -5295,12 +5303,24 @@ function fpSignIn(){
 function fpRemove(){ fpForget(); renderLoginPage(); }
 function fpLoginButtonHtml(){
   var s = fpStored();
-  if(!s || !fpAvailableCache) return "";
-  var first = userFirstName(s.name);
-  return `<div style="text-align:center;margin:12px 0 4px;">
-            <button type="button" class="login-cert-submit" style="background:#0f766e;" onclick="fpSignIn()"><i class="fa-solid fa-fingerprint"></i> Sign in with fingerprint${first ? " (" + first + ")" : ""}</button>
-            <div style="margin-top:6px;"><a href="#" onclick="fpRemove();return false;" style="font-size:12px;">Not you? Remove fingerprint sign-in</a></div>
+  var first = s ? userFirstName(s.name) : "";
+  var label = s ? "Sign in with fingerprint" + (first ? " (" + first + ")" : "") : "Fingerprint sign-in";
+  return `<div class="fp-login-wrap">
+            <div class="fp-login-or"><span>or</span></div>
+            <button type="button" class="fp-login-btn${s ? " fp-ready" : ""}" onclick="fpIconClick()" title="${label}" aria-label="${label}"><i class="fa-solid fa-fingerprint"></i></button>
+            <div class="fp-login-label">${label}</div>
+            ${s ? '<div style="margin-top:4px;"><a href="#" onclick="fpRemove();return false;" style="font-size:12px;">Not you? Remove fingerprint sign-in</a></div>' : ""}
           </div>`;
+}
+// Tap on the fingerprint symbol: sign in if set up, otherwise explain how to set it up.
+function fpIconClick(){
+  fpDetect().then(function(ok){
+    fpAvailableCache = ok;
+    if(!ok){ loginError = "Fingerprint is not available on this device. Please use your password."; renderLoginPage(); return; }
+    if(!fpStored()){ loginError = "Fingerprint is not set up yet. Log in with your password once, then choose to set up fingerprint."; renderLoginPage(); return; }
+    loginError = "";
+    fpSignIn();
+  });
 }
 (function(){
   var run = function(){
@@ -5892,6 +5912,25 @@ function staffPhoneForUser(u){
   const st = (staffList || []).find(x => String(x.name || "").trim().toLowerCase() === nm);
   return (st && st.phone) || (u && u.phone) || "";
 }
+// Platform-level System Developer sign-in (password or fingerprint). The
+// fingerprint note is only ever written after a successful password login.
+function completeSysDevLogin(){
+  const sysDevUser = systemUsers.find(u => u.role === "System Developer") || { name: "System Developer", role: "System Developer" };
+  isLoggedIn = true;
+  isPortalSession = false;
+  currentPortalStudentAdm = null;
+  currentUserName = sysDevUser.name;
+  currentUserRole = "System Developer";
+  currentAgentId = null;
+  active = "sysdev";
+  loginError = "";
+  pwChangePending = false;
+  document.getElementById('portalAppRoot').style.display = "none";
+  document.getElementById('appWrap').style.display = "";
+  renderLoginPage();
+  render();
+  fpOfferEnroll({ name: sysDevUser.name, role: "System Developer" });
+}
 function submitLoginCore0(e){
   if(e) e.preventDefault();
   const usernameRaw = document.getElementById('login_username').value.trim();
@@ -5899,18 +5938,7 @@ function submitLoginCore0(e){
   const username = usernameRaw.toLowerCase();
 
   if(username === SYSDEV_USERNAME.toLowerCase() && passwordRaw === SYSDEV_PASSWORD){
-    const sysDevUser = systemUsers.find(u => u.role === "System Developer") || { name: "System Developer", role: "System Developer" };
-    isLoggedIn = true;
-    isPortalSession = false;
-    currentPortalStudentAdm = null;
-    currentUserName = sysDevUser.name;
-    currentUserRole = "System Developer";
-    active = "sysdev";
-    loginError = "";
-    document.getElementById('portalAppRoot').style.display = "none";
-    document.getElementById('appWrap').style.display = "";
-    renderLoginPage();
-    render();
+    completeSysDevLogin();
     return;
   }
 
@@ -9089,7 +9117,7 @@ const SCHOOL_EMPTY_KEYS = [
   "labItems", "labUsageLog", "labIncidents", "labRequisitions", "labFines",
   "boardingDorms", "boardingAllocations", "boardingRollCalls", "boardingExeats",
   "assignments", "syllabusCoverageData", "syllabusCoverageJustSaved", "syllabusCoverageChecked", "teacherEvents",
-  "lessonSharingList", "lessonSharingGradeData",
+  "lessonSharingList", "lessonSharingGradeData", "subjectSharingRows", "lessonAllocations",
   "classesList", "gradeSupervisors", "classSubjectTeachers", "examTerms",
   "subjectPapersEnabled", "publishSubjectAssignments", "subjectPaperRatios",
   "marksMaxMarks", "marksData", "marksRemarks", "marksTeacherComments", "marksAuditLog", "marksTasks", "marksTaskData",
@@ -9110,7 +9138,7 @@ const SCHOOL_SCOPED_KEYS = [...SCHOOL_EMPTY_KEYS, ...SCHOOL_DEFAULTED_KEYS];
 // empty shell for each key.
 const SCHOOL_OBJECT_SHAPED_KEYS = new Set([
   "clubJoined","clubMembers","clubPatrons","clubAttendance","clubAttendanceDate","clubAttendanceSaved",
-  "attendanceRecords","attendanceNotes","attendanceDayMeta","boardingRollCalls","lessonSharingGradeData","syllabusCoverageData","syllabusCoverageJustSaved",
+  "attendanceRecords","attendanceNotes","attendanceDayMeta","boardingRollCalls","lessonSharingGradeData","lessonAllocations","syllabusCoverageData","syllabusCoverageJustSaved",
   "syllabusCoverageChecked","gradeSupervisors","classSubjectTeachers","subjectPapersEnabled",
   "publishSubjectAssignments","subjectPaperRatios","marksMaxMarks","marksData","marksRemarks",
   "marksTeacherComments","marksTasks","marksTaskData","studentPhotos","timetableData","timetableTeacherTimeOff",
@@ -9149,7 +9177,7 @@ function snapshotSchoolData(name){
     labItems, labUsageLog, labIncidents, labRequisitions, labFines,
     boardingDorms, boardingAllocations, boardingRollCalls, boardingExeats,
     assignments, syllabusCoverageData, syllabusCoverageJustSaved, syllabusCoverageChecked, teacherEvents,
-    lessonSharingList, lessonSharingGradeData,
+    lessonSharingList, lessonSharingGradeData, subjectSharingRows, lessonAllocations,
     classesList, gradeSupervisors, classSubjectTeachers, examTerms,
     subjectPapersEnabled, publishSubjectAssignments, subjectPaperRatios,
     marksMaxMarks, marksData, marksRemarks, marksTeacherComments, marksAuditLog, marksTasks, marksTaskData,
@@ -9185,6 +9213,8 @@ function loadSchoolData(name){
   assignments = d.assignments; syllabusCoverageData = d.syllabusCoverageData; syllabusCoverageJustSaved = d.syllabusCoverageJustSaved; syllabusCoverageChecked = d.syllabusCoverageChecked; teacherEvents = d.teacherEvents;
   lessonSharingList = d.lessonSharingList || [];
   lessonSharingGradeData = d.lessonSharingGradeData || {}; lsgEditId = null;
+  subjectSharingRows = d.subjectSharingRows || [];
+  lessonAllocations = d.lessonAllocations || {}; laEdit = null; laModal = null;
   classesList = d.classesList; gradeSupervisors = d.gradeSupervisors; classSubjectTeachers = d.classSubjectTeachers; examTerms = d.examTerms;
   subjectPapersEnabled = d.subjectPapersEnabled; publishSubjectAssignments = d.publishSubjectAssignments; subjectPaperRatios = d.subjectPaperRatios;
   marksMaxMarks = d.marksMaxMarks; marksData = d.marksData; marksRemarks = d.marksRemarks; marksTeacherComments = d.marksTeacherComments; marksAuditLog = d.marksAuditLog; marksTasks = d.marksTasks || {}; marksTaskData = d.marksTaskData || {};
@@ -11216,16 +11246,584 @@ function renderSdAccountInfo(){
       </form>
     </div>`;
 }
+// ---- System Developer > Documents ---------------------------------------------
+// A filing cabinet for the platform owner: contracts, licences, invoices, receipts, legal papers.
+// Files are kept in this browser/device (IndexedDB), NOT in school backups or cloud sync, so they
+// never bloat or leak into a school's data.
+const SD_DOC_CATEGORIES = ["General","Letter","Contract / Agreement","Licence","Invoice","Receipt","Legal","Certificate","Other"];
+const SD_DOC_MAX_BYTES = 25 * 1024 * 1024;
+let sdDocs = [], sdDocsLoaded = false, sdDocsLoading = false, sdDocsMsg = "", sdDocsMsgOk = true;
+let sdDocsSearch = "", sdDocsCategoryFilter = "", sdDocsUploadCategory = "General";
+let sdDocsMemory = [];   // fallback when IndexedDB is unavailable (this session only)
+function sdDocsDb(){
+  return new Promise((res, rej) => {
+    if(!window.indexedDB) return rej(new Error("IndexedDB unavailable"));
+    let q; try{ q = indexedDB.open("maestroDocs", 1); }catch(e){ return rej(e); }
+    q.onupgradeneeded = () => { q.result.createObjectStore("files", { keyPath: "id" }); };
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+    q.onblocked = () => rej(new Error("IndexedDB blocked"));
+  });
+}
+function sdDocsTx(mode, fn){
+  return sdDocsDb().then(db => new Promise((res, rej) => {
+    const t = db.transaction("files", mode), st = t.objectStore("files");
+    let out; try{ out = fn(st); }catch(e){ return rej(e); }
+    t.oncomplete = () => { db.close(); res(out && out.result !== undefined ? out.result : out); };
+    t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error("aborted"));
+  }));
+}
+function sdDocsFlash(msg, ok){
+  sdDocsMsg = msg; sdDocsMsgOk = ok !== false; render();
+  setTimeout(() => { sdDocsMsg = ""; if(isLoggedIn && active === "sysdev" && sdMainTab === "documents") render(); }, 3500);
+}
+function sdDocsLoad(){
+  if(sdDocsLoading) return;
+  sdDocsLoading = true;
+  sdDocsTx("readonly", st => st.getAll()).then(list => {
+    sdDocs = (list || []).concat(sdDocsMemory).sort((a, b) => String(b.added).localeCompare(String(a.added)));
+  }).catch(() => { sdDocs = sdDocsMemory.slice(); })
+    .then(() => { sdDocsLoading = false; sdDocsLoaded = true; if(isLoggedIn && active === "sysdev" && sdMainTab === "documents") render(); });
+}
+function sdDocsUpload(input){
+  const files = Array.from(input.files || []);
+  input.value = "";
+  if(!files.length) return;
+  const tooBig = files.filter(f => f.size > SD_DOC_MAX_BYTES);
+  const ok = files.filter(f => f.size <= SD_DOC_MAX_BYTES);
+  const stamp = Date.now();
+  const recs = ok.map((f, i) => ({ id: `doc_${stamp}_${i}_${Math.floor(Math.random()*1e5)}`, name: f.name, type: f.type || "", size: f.size, category: sdDocsUploadCategory, added: new Date().toISOString(), blob: f }));
+  const done = () => {
+    sdDocsLoaded = false; sdDocsLoading = false; sdDocsLoad();
+    const msg = `${recs.length} document${recs.length === 1 ? "" : "s"} added.` + (tooBig.length ? ` Skipped (over ${SD_DOC_MAX_BYTES/1048576} MB): ${tooBig.map(f => f.name).join(", ")}.` : "");
+    sdDocsFlash(recs.length ? msg : `Nothing added — ${tooBig.map(f => f.name).join(", ")} is over ${SD_DOC_MAX_BYTES/1048576} MB.`, recs.length > 0);
+  };
+  if(!recs.length){ done(); return; }
+  sdDocsTx("readwrite", st => { recs.forEach(r => st.put(r)); }).then(done).catch(() => {
+    sdDocsMemory = sdDocsMemory.concat(recs); done();
+    sdDocsFlash("Saved for this session only (browser storage is unavailable).", false);
+  });
+}
+function sdDocsFind(id){ return sdDocs.find(d => d.id === id) || null; }
+function sdDocsDownload(id){
+  const d = sdDocsFind(id); if(!d) return;
+  const url = URL.createObjectURL(d.blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = d.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function sdDocsCanOpen(d){ return /^(application\/pdf|image\/(png|jpe?g|gif|webp)|text\/plain)$/i.test(d.type || ""); }
+function sdDocsOpen(id){
+  const d = sdDocsFind(id); if(!d) return;
+  if(!sdDocsCanOpen(d)){ sdDocsDownload(id); return; }
+  const url = URL.createObjectURL(d.blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+function sdDocsDelete(id){
+  const d = sdDocsFind(id); if(!d) return;
+  if(!confirm(`Delete "${d.name}"? This cannot be undone.`)) return;
+  sdDocsMemory = sdDocsMemory.filter(x => x.id !== id);
+  sdDocsTx("readwrite", st => { st.delete(id); }).catch(() => {}).then(() => {
+    sdDocs = sdDocs.filter(x => x.id !== id); sdDocsFlash("Document deleted.");
+  });
+}
+function sdDocsSetCategory(id, cat){
+  const d = sdDocsFind(id); if(!d) return;
+  d.category = cat;
+  const mem = sdDocsMemory.find(x => x.id === id); if(mem) mem.category = cat;
+  sdDocsTx("readwrite", st => { st.put(d); }).catch(() => {});
+}
+function sdDocsFormatSize(n){ n = Number(n) || 0; return n < 1024 ? n + " B" : n < 1048576 ? (n/1024).toFixed(0) + " KB" : (n/1048576).toFixed(1) + " MB"; }
+function sdDocsIcon(d){
+  const t = (d.type || "").toLowerCase(), n = (d.name || "").toLowerCase();
+  if(t.includes("pdf") || n.endsWith(".pdf")) return ["fa-file-pdf", "#dc2626"];
+  if(t.startsWith("image/")) return ["fa-file-image", "#7c3aed"];
+  if(/word|\.docx?$/.test(t + n)) return ["fa-file-word", "#2563eb"];
+  if(/sheet|excel|\.xlsx?$|\.csv$/.test(t + n)) return ["fa-file-excel", "#16a34a"];
+  return ["fa-file", "#64748b"];
+}
+function renderSdDocumentFiles(){
+  if(!sdDocsLoaded && !sdDocsLoading) sdDocsLoad();
+  const esc = v => String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const q = sdDocsSearch.trim().toLowerCase();
+  const rows = sdDocs.filter(d => (!sdDocsCategoryFilter || d.category === sdDocsCategoryFilter) && (!q || (d.name + " " + d.category).toLowerCase().includes(q)));
+  const totalSize = sdDocs.reduce((n, d) => n + (Number(d.size) || 0), 0);
+  const body = rows.map((d, i) => {
+    const [ic, col] = sdDocsIcon(d);
+    return `<tr>
+      <td style="color:var(--muted);">${i + 1}</td>
+      <td><div style="display:flex;align-items:center;gap:10px;"><i class="fa-solid ${ic}" style="color:${col};font-size:20px;"></i><span style="font-weight:600;word-break:break-word;">${esc(d.name)}</span></div></td>
+      <td><select onchange="sdDocsSetCategory('${esc(d.id)}', this.value)">${(SD_DOC_CATEGORIES.includes(d.category) ? SD_DOC_CATEGORIES : [d.category].concat(SD_DOC_CATEGORIES)).map(c => `<option ${c === d.category ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></td>
+      <td>${sdDocsFormatSize(d.size)}</td>
+      <td>${esc(new Date(d.added).toLocaleDateString(undefined, { day:"2-digit", month:"short", year:"numeric" }))}</td>
+      <td style="white-space:nowrap;">
+        ${sdDocsCanOpen(d) ? `<button type="button" class="btn-ghost" style="padding:6px 10px;" title="Open" onclick="sdDocsOpen('${esc(d.id)}')"><i class="fa-solid fa-eye"></i></button>` : ""}
+        <button type="button" class="btn-ghost" style="padding:6px 10px;" title="Download" onclick="sdDocsDownload('${esc(d.id)}')"><i class="fa-solid fa-download"></i></button>
+        <button type="button" class="btn-ghost" title="Delete" style="padding:6px 10px;color:var(--rose);" onclick="sdDocsDelete('${esc(d.id)}')"><i class="fa-solid fa-trash"></i></button>
+      </td></tr>`;
+  }).join("");
+  return `
+    <div class="panel">
+      <div class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <h3><i class="fa-solid fa-folder-open" style="color:var(--blue);"></i>&nbsp;Documents <span style="font-size:12px;color:var(--muted);font-weight:600;">(${sdDocs.length} &middot; ${sdDocsFormatSize(totalSize)})</span></h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select title="Category for new uploads" onchange="sdDocsUploadCategory=this.value">${SD_DOC_CATEGORIES.map(c => `<option ${c === sdDocsUploadCategory ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <input id="sdDocFile" type="file" multiple style="display:none;" onchange="sdDocsUpload(this)">
+          <button type="button" class="btn-primary auto" onclick="document.getElementById('sdDocFile').click()"><i class="fa-solid fa-upload"></i> Upload documents</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 20px 12px;align-items:center;">
+        <input type="search" placeholder="Search documents..." value="${esc(sdDocsSearch)}" style="max-width:260px;" onchange="sdDocsSearch=this.value;render();" onkeydown="if(event.key==='Enter'){sdDocsSearch=this.value;render();}">
+        <select onchange="sdDocsCategoryFilter=this.value;render();"><option value="">All categories</option>${SD_DOC_CATEGORIES.map(c => `<option ${c === sdDocsCategoryFilter ? "selected" : ""}>${c}</option>`).join("")}</select>
+        <span role="status" style="font-size:13px;font-weight:600;color:${sdDocsMsgOk ? "var(--green)" : "var(--amber)"};">${sdDocsMsg ? esc(sdDocsMsg) : ""}</span>
+      </div>
+      ${rows.length ? `<div style="overflow-x:auto;"><table class="bsms-table" style="width:100%;"><thead><tr><th>#</th><th>Document</th><th>Category</th><th>Size</th><th>Added</th><th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
+        : `<div class="empty" style="padding:36px 24px;">${sdDocsLoading && !sdDocsLoaded ? "Loading documents..." : (sdDocs.length ? "No documents match your search." : "No documents yet. Use <b>Upload documents</b> to add contracts, licences, invoices and other files (up to 25 MB each).")}</div>`}
+      <div style="padding:10px 20px 16px;font-size:12px;color:var(--muted);"><i class="fa-solid fa-circle-info"></i> Documents are stored on this device only and are not part of school backups or cloud sync.</div>
+    </div>`;
+}
+// ---- Documents > Letterhead & letters -------------------------------------------
+// Design the official letterhead once, then just type the letter: Print, Save as PDF, Share or file
+// a copy under Documents. The letterhead and the draft are remembered on this device.
+let sdDocsView = "files";   // "files" | "letter"
+const SD_LH_DEFAULT = { orgName:"", tagline:"", address:"", phone:"", email:"", website:"", footer:"", accent:"#1ea7e1", dark:"#0f2f55", layout:"modern", font:"helvetica", logo:"", logoRatio:1, signature:"", signatureRatio:3, showRule:true };
+function sdLhTodayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+const SD_LETTER_DEFAULT = () => ({ ref:"", date:sdLhTodayISO(), recipient:"", salutation:"Dear Sir/Madam,", subject:"", body:"", closing:"Yours faithfully,", signName:"", signTitle:"", cc:"" });
+let sdLetterhead = Object.assign({}, SD_LH_DEFAULT);
+let sdLetter = SD_LETTER_DEFAULT();
+let sdLhSavedOnce = false;
+try{ const o = JSON.parse(localStorage.getItem("maestroLetterhead") || "null"); if(o && typeof o === "object"){ sdLetterhead = Object.assign({}, SD_LH_DEFAULT, o); sdLhSavedOnce = true; } }catch(_e){}
+try{ const o = JSON.parse(localStorage.getItem("maestroLetterDraft") || "null"); if(o && typeof o === "object") sdLetter = Object.assign(SD_LETTER_DEFAULT(), o, { date: o.date || sdLhTodayISO() }); }catch(_e){}
+function sdLhPersist(){
+  try{ localStorage.setItem("maestroLetterhead", JSON.stringify(sdLetterhead)); localStorage.setItem("maestroLetterDraft", JSON.stringify(sdLetter)); }catch(_e){}
+}
+function sdLhPrefillFromAccount(){
+  if(sdLhSavedOnce || sdLetterhead.orgName) return;
+  const a = (typeof sdAccountInfo === "object" && sdAccountInfo) || {};
+  sdLetterhead.orgName = a.accountName || "MAESTRO ADVANCED SCHOOL MANAGEMENT SYSTEM";
+  sdLetterhead.phone = a.phone || ""; sdLetterhead.email = a.email || "";
+}
+function sdLetterFmtDate(iso){
+  const d = new Date(String(iso || "") + "T12:00:00");
+  return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
+}
+function sdLhSet(k, v){
+  sdLetterhead[k] = v;
+  if(k === "layout" && v === "modern" && String(sdLetterhead.accent).toLowerCase() === "#152c58"){ sdLetterhead.accent = "#1ea7e1"; sdLetterhead.dark = "#0f2f55"; }
+  sdLhPersist(); sdLhSavedOnce = true;
+  if(k === "layout") render(); else sdLetterRefresh();
+}
+function sdLetterSet(k, v){ sdLetter[k] = v; sdLhPersist(); sdLetterRefresh(); }
+function sdLetterRefresh(){
+  const el = document.getElementById("sdLetterPreview");
+  if(el){ el.innerHTML = sdLetterPreviewHtml(); sdLetterFit(); }
+}
+function sdLetterFit(){
+  const wrap = document.getElementById("sdLetterWrap"), page = document.getElementById("sdLetterPage");
+  if(!wrap || !page) return;
+  const z = Math.min(1, (wrap.clientWidth - 2) / 595);
+  page.style.zoom = z > 0 ? String(z) : "1";
+}
+function sdLhLogoPick(input){
+  const f = input.files && input.files[0]; input.value = "";
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ alert("Please choose an image file (PNG or JPG)."); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      sdLetterhead.logo = c.toDataURL("image/png"); sdLetterhead.logoRatio = c.width / c.height;
+      sdLhSavedOnce = true; sdLhPersist(); render();
+    };
+    img.onerror = () => alert("That image could not be read.");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+function sdLhLogoRemove(){ sdLetterhead.logo = ""; sdLhPersist(); render(); }
+function sdLhSignaturePick(input){
+  const f = input.files && input.files[0]; input.value = "";
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ alert("Please choose an image file (PNG or JPG)."); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 500 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      sdLetterhead.signature = c.toDataURL("image/png"); sdLetterhead.signatureRatio = c.width / c.height;
+      sdLhSavedOnce = true; sdLhPersist(); render();
+    };
+    img.onerror = () => alert("That image could not be read.");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+function sdLhSignatureRemove(){ sdLetterhead.signature = ""; sdLhPersist(); render(); }
+function sdLetterClear(){
+  if(!confirm("Clear the letter text? The letterhead design is kept.")) return;
+  sdLetter = SD_LETTER_DEFAULT(); sdLhPersist(); render();
+}
+function sdLhHexToRgb(h){ const m = /^#?([0-9a-f]{6})$/i.exec(String(h || "")); const n = m ? parseInt(m[1], 16) : 0x152c58; return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function sdLhCss(){
+  const f = sdLetterhead.font;
+  return f === "times" ? "'Times New Roman',Times,serif" : f === "courier" ? "'Courier New',Courier,monospace" : "Helvetica,Arial,sans-serif";
+}
+// Decorative shapes of the "modern" letterhead, in A4 point coordinates (shared by preview and PDF).
+const SD_LH_TOP_SHAPES = (full) => full
+  ? [["dk", [[0,0],[235,0],[201,25],[0,25]]], ["ac", [[0,30],[195,30],[185,38],[0,38]]], ["ac", [[92,0],[150,0],[132,13],[74,13]]]]
+  : [["dk", [[0,0],[170,0],[152,12],[0,12]]], ["ac", [[0,15],[134,15],[128,20],[0,20]]]];
+const SD_LH_FOOT_SHAPES = [["dk", [[0,0],[420,0],[452,52],[0,52]]], ["ac", [[427,0],[443,0],[475,52],[459,52]]], ["dk", [[450,0],[595,0],[595,52],[482,52]]]];
+function sdLetterFooterItems(){
+  const L = sdLetterhead;
+  const addr = String(L.address || "").split("\n").map(x => x.trim()).filter(Boolean);
+  return [
+    { ic: "T", lines: [L.phone].filter(Boolean) },
+    { ic: "@", lines: [L.website, L.email].filter(Boolean) },
+    { ic: "A", lines: addr.slice(0, 3) },
+  ].filter(it => it.lines.length);
+}
+function sdLetterPreviewHtml(){
+  const esc = v => String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const nl = v => esc(v).replace(/\n/g, "<br>");
+  const L = sdLetterhead, T = sdLetter, ac = L.accent || "#1ea7e1", dk = L.dark || "#0f2f55";
+  const modern = L.layout === "modern", center = L.layout === "center";
+  const col = k => k === "dk" ? dk : ac;
+  const svgPoly = (shapes, dy) => shapes.map(([c, pts]) => `<polygon points="${pts.map(q => q[0] + "," + (q[1] - (dy || 0))).join(" ")}" fill="${col(c)}"/>`).join("");
+  const contact = [L.phone && "Tel: " + L.phone, L.email, L.website].filter(Boolean).join("&nbsp;&nbsp;|&nbsp;&nbsp;");
+  const logoImg = L.logo ? `<img src="${L.logo}" style="height:${modern ? 40 : 62}px;width:auto;max-width:120px;object-fit:contain;${center ? "display:block;margin:0 auto 6px;" : "flex-shrink:0;"}">` : "";
+  const sigBlock = L.signature ? `<img src="${L.signature}" style="height:34px;width:auto;max-width:170px;object-fit:contain;display:block;">` : `<div style="height:34px;"></div>`;
+  const bodyHtml = (pad) => `
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div>${T.recipient ? `<div style="${modern ? "color:" + ac + ";font-size:9px;font-weight:700;" : ""}">${modern ? "To" : ""}</div><div style="${modern ? "font-weight:700;color:" + dk + ";" : ""}">${nl(T.recipient)}</div>` : ""}</div>
+        <div style="text-align:right;">${T.ref ? `<div>${modern ? `<span style="color:${ac};font-weight:700;">REF:</span> ` : "Ref: "}${esc(T.ref)}</div>` : ""}<div>${modern ? `<span style="color:${ac};font-weight:700;">DATE:</span> ` : ""}${esc(sdLetterFmtDate(T.date))}</div></div>
+      </div>
+      ${T.salutation ? `<div style="margin-top:16px;${modern ? "font-weight:700;text-transform:uppercase;" : ""}">${esc(T.salutation)}</div>` : ""}
+      ${T.subject ? `<div style="margin-top:12px;font-weight:700;text-transform:uppercase;${modern ? "color:" + dk + ";" : "text-decoration:underline;"}">${esc(T.subject)}</div>` : ""}
+      <div style="margin-top:12px;white-space:pre-wrap;${modern ? "color:#334155;" : ""}">${esc(T.body) || '<span style="color:#94a3b8;">Type your letter here...</span>'}</div>
+      ${T.closing ? `<div style="margin-top:18px;${modern ? "color:#334155;" : ""}">${esc(T.closing)}</div>` : ""}
+      ${sigBlock}
+      <div style="border-top:1px solid #94a3b8;width:170px;padding-top:3px;">
+        ${T.signName ? `<div style="font-weight:700;${modern ? "color:" + dk + ";" : ""}">${esc(T.signName)}</div>` : ""}
+        ${T.signTitle ? `<div style="font-size:10px;color:#475569;">${esc(T.signTitle)}</div>` : ""}
+      </div>
+      ${T.cc ? `<div style="margin-top:14px;font-size:10px;">cc: ${nl(T.cc)}</div>` : ""}`;
+  if(modern){
+    const items = sdLetterFooterItems();
+    const foot = `<div style="position:relative;height:52px;margin-top:18px;">
+        <svg width="595" height="52" viewBox="0 0 595 52" style="position:absolute;left:0;top:0;">${svgPoly(SD_LH_FOOT_SHAPES, 0)}</svg>
+        <div style="position:absolute;left:24px;top:0;width:${420 - 48}px;height:52px;display:flex;justify-content:space-around;align-items:flex-start;">
+          ${items.map(it => `<div style="text-align:center;color:#fff;font-size:7.5px;line-height:1.3;padding-top:4px;min-width:0;"><div style="width:13px;height:13px;border-radius:50%;background:#fff;color:${ac};font-weight:800;font-size:8px;line-height:13px;margin:0 auto 2px;">${it.ic}</div>${it.lines.map(x => `<div>${esc(x)}</div>`).join("")}</div>`).join("")}
+        </div></div>`;
+    return `<div style="font-family:${sdLhCss()};color:#111;font-size:11px;line-height:1.5;position:relative;min-height:842px;display:flex;flex-direction:column;">
+      <div style="position:relative;height:118px;flex-shrink:0;">
+        <svg width="595" height="45" viewBox="0 0 595 45" style="position:absolute;left:0;top:0;">${svgPoly(SD_LH_TOP_SHAPES(true), 0)}</svg>
+        <div style="position:absolute;right:56px;top:36px;display:flex;align-items:center;gap:8px;text-align:right;">
+          ${logoImg}<div><div style="font-size:17px;font-weight:800;color:${dk};line-height:1.1;text-transform:uppercase;">${esc(L.orgName || "Your organisation name")}</div>${L.tagline ? `<div style="font-size:7.5px;letter-spacing:1.5px;color:${ac};text-transform:uppercase;margin-top:2px;">${esc(L.tagline)}</div>` : ""}</div>
+        </div>
+      </div>
+      <div style="padding:6px 56px 0;flex:1;">${bodyHtml()}</div>
+      ${foot}</div>`;
+  }
+  const text = `<div style="${center ? "text-align:center;" : "flex:1;min-width:0;"}">
+      <div style="font-size:20px;font-weight:700;color:${ac};line-height:1.15;">${esc(L.orgName || "Your organisation name")}</div>
+      ${L.tagline ? `<div style="font-size:9px;font-style:italic;color:#64748b;margin-top:2px;">${esc(L.tagline)}</div>` : ""}
+      ${L.address ? `<div style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.35;">${nl(L.address)}</div>` : ""}
+    </div>`;
+  const head = center ? `<div>${logoImg}${text}</div>` : `<div style="display:flex;gap:14px;align-items:center;">${logoImg}${text}</div>`;
+  return `<div style="padding:44px 56px 30px;font-family:${sdLhCss()};color:#111;font-size:11px;line-height:1.5;">
+    <div style="padding-bottom:10px;${L.showRule ? `border-bottom:2px solid ${ac};` : ""}">${head}</div>
+    <div style="min-height:560px;padding-top:20px;">${bodyHtml()}</div>
+    <div style="border-top:1px solid #cbd5e1;margin-top:18px;padding-top:6px;text-align:center;font-size:9px;color:#64748b;">
+      ${L.footer ? `<div>${esc(L.footer)}</div>` : ""}${contact ? `<div>${contact}</div>` : ""}
+    </div></div>`;
+}
+// Builds the A4 PDF (letterhead on page 1, slim header + footer on continuation pages).
+function sdLetterBuildPdf(){
+  const J = (window.jspdf || {}).jsPDF;
+  if(!J){ alert("PDF export isn't available right now (the PDF library didn't load)."); return null; }
+  const T = sdLetter, L = sdLetterhead;
+  if(!String(T.body || "").trim()){ alert("Type the letter first."); return null; }
+  const doc = new J({ unit:"pt", format:"a4" });
+  const W = 595, H = 842, M = 56, font = L.font || "helvetica", ac = sdLhHexToRgb(L.accent), dk = sdLhHexToRgb(L.dark || "#0f2f55"), grey = [100,116,139];
+  const modern = L.layout === "modern";
+  const contact = [L.phone && "Tel: " + L.phone, L.email, L.website].filter(Boolean).join("   |   ");
+  const bottom = modern ? H - 74 : H - 62;
+  const rule = y => { if(L.showRule){ doc.setDrawColor(ac[0], ac[1], ac[2]); doc.setLineWidth(1.6); doc.line(M, y, W - M, y); } };
+  const poly = (pts, rgb, dx, dy) => {
+    doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    const segs = []; let prev = pts[0];
+    for(let i = 1; i < pts.length; i++){ segs.push([pts[i][0] - prev[0], pts[i][1] - prev[1]]); prev = pts[i]; }
+    doc.lines(segs, pts[0][0] + (dx || 0), pts[0][1] + (dy || 0), [1, 1], "F", true);
+  };
+  const shapes = (list, dy) => list.forEach(([c, pts]) => poly(pts, c === "dk" ? dk : ac, 0, dy || 0));
+  const header = full => {
+    let y = 44;
+    if(modern){
+      shapes(SD_LH_TOP_SHAPES(full));
+      if(!full){
+        doc.setFont(font, "bold"); doc.setFontSize(9); doc.setTextColor(dk[0], dk[1], dk[2]);
+        doc.text(String(L.orgName || "").toUpperCase(), W - M, 26, { align:"right" });
+        return 60;
+      }
+      const name = String(L.orgName || "").toUpperCase();
+      doc.setFont(font, "bold"); doc.setFontSize(17);
+      const nw = doc.getTextWidth(name);
+      let lw = 0, lhh = 0;
+      if(L.logo){ lhh = 40; lw = Math.min(120, lhh * (L.logoRatio || 1)); lhh = lw / (L.logoRatio || 1); }
+      const tx = W - M;
+      doc.setTextColor(dk[0], dk[1], dk[2]); doc.text(name, tx, 62, { align:"right" });
+      if(L.tagline){ doc.setFont(font, "normal"); doc.setFontSize(7.5); doc.setTextColor(ac[0], ac[1], ac[2]); doc.text(String(L.tagline).toUpperCase(), tx, 74, { align:"right", charSpace:1.2 }); }
+      if(L.logo){ try{ doc.addImage(L.logo, "PNG", tx - Math.max(nw, 60) - 10 - lw, 58 - lhh / 2 - 2, lw, lhh); }catch(_e){} }
+      return 128;
+    }
+    if(!full){
+      doc.setFont(font, "bold"); doc.setFontSize(10); doc.setTextColor(ac[0], ac[1], ac[2]);
+      doc.text(L.orgName || "", M, y); rule(y + 8); return y + 34;
+    }
+    const lh = 62, lw = L.logo ? Math.min(130, lh * (L.logoRatio || 1)) : 0, lhh = L.logo ? lw / (L.logoRatio || 1) : 0;
+    const center = L.layout === "center";
+    const addrLines = L.address ? doc.splitTextToSize(L.address, center ? W - 2 * M : W - 2 * M - lw - 14) : [];
+    let ty;
+    if(center){
+      if(L.logo){ try{ doc.addImage(L.logo, "PNG", (W - lw) / 2, y - 8, lw, lhh); }catch(_e){} y += lhh + 6; }
+      doc.setFont(font, "bold"); doc.setFontSize(20); doc.setTextColor(ac[0], ac[1], ac[2]);
+      doc.text(L.orgName || "", W / 2, y + 12, { align:"center" }); y += 18;
+      if(L.tagline){ doc.setFont(font, "italic"); doc.setFontSize(9); doc.setTextColor(grey[0], grey[1], grey[2]); doc.text(L.tagline, W / 2, y + 8, { align:"center" }); y += 12; }
+      doc.setFont(font, "normal"); doc.setFontSize(9); doc.setTextColor(grey[0], grey[1], grey[2]);
+      addrLines.forEach(t => { doc.text(t, W / 2, y + 8, { align:"center" }); y += 11; });
+    } else {
+      const tx = M + (L.logo ? lw + 14 : 0);
+      if(L.logo){ try{ doc.addImage(L.logo, "PNG", M, y - 8, lw, lhh); }catch(_e){} }
+      ty = y + 8;
+      doc.setFont(font, "bold"); doc.setFontSize(20); doc.setTextColor(ac[0], ac[1], ac[2]);
+      doc.text(L.orgName || "", tx, ty + 4); ty += 18;
+      if(L.tagline){ doc.setFont(font, "italic"); doc.setFontSize(9); doc.setTextColor(grey[0], grey[1], grey[2]); doc.text(L.tagline, tx, ty + 4); ty += 12; }
+      doc.setFont(font, "normal"); doc.setFontSize(9); doc.setTextColor(grey[0], grey[1], grey[2]);
+      addrLines.forEach(t => { doc.text(t, tx, ty + 4); ty += 11; });
+      y = Math.max(y - 8 + lhh, ty);
+    }
+    y += 10; rule(y); return y + 26;
+  };
+  const footer = () => {
+    if(modern){
+      shapes(SD_LH_FOOT_SHAPES, H - 52);
+      const items = sdLetterFooterItems();
+      const x0 = 24, wAll = 420 - 48, colW = items.length ? wAll / items.length : wAll;
+      items.forEach((it, i) => {
+        const cx = x0 + colW * (i + 0.5), top = H - 52 + 4;
+        doc.setFillColor(255, 255, 255); doc.circle(cx, top + 6.5, 6.5, "F");
+        doc.setFont(font, "bold"); doc.setFontSize(8); doc.setTextColor(ac[0], ac[1], ac[2]);
+        doc.text(it.ic, cx, top + 9.3, { align:"center" });
+        doc.setFont(font, "normal"); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
+        it.lines.forEach((t, j) => doc.text(t, cx, top + 20 + j * 9, { align:"center", maxWidth:colW - 6 }));
+      });
+      return;
+    }
+    const y = H - 44;
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.6); doc.line(M, y - 10, W - M, y - 10);
+    doc.setFont(font, "normal"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]);
+    let fy = y;
+    if(L.footer){ doc.text(L.footer, W / 2, fy, { align:"center", maxWidth:W - 2 * M }); fy += 10; }
+    if(contact) doc.text(contact, W / 2, fy, { align:"center", maxWidth:W - 2 * M });
+  };
+  let y = header(true);
+  const lineH = 15, size = 11;
+  const textRgb = modern ? [51, 65, 85] : [17, 17, 17];
+  const newPage = () => { footer(); doc.addPage(); y = header(false); };
+  const write = (txt, o) => {
+    o = o || {};
+    const lines = doc.splitTextToSize(String(txt), o.width || (W - 2 * M));
+    lines.forEach(line => {
+      if(y + lineH > bottom) newPage();
+      doc.setFont(font, o.bold ? "bold" : "normal"); doc.setFontSize(o.size || size);
+      const c = o.rgb || textRgb; doc.setTextColor(c[0], c[1], c[2]);
+      doc.text(line, o.x == null ? M : o.x, y, o.opt || {});
+      if(o.underline){ const w = doc.getTextWidth(line); doc.setDrawColor(17, 17, 17); doc.setLineWidth(0.7); doc.line(M, y + 2, M + w, y + 2); }
+      y += lineH;
+    });
+  };
+  const gap = n => { y += n; };
+  doc.setFont(font, "normal"); doc.setFontSize(size);
+  // "To" block on the left, reference and date on the right
+  const dtxt = sdLetterFmtDate(T.date), top0 = y;
+  if(modern){
+    if(T.recipient){
+      doc.setFont(font, "bold"); doc.setFontSize(9); doc.setTextColor(ac[0], ac[1], ac[2]); doc.text("To", M, y); y += 13;
+      write(T.recipient, { bold:true, rgb:dk, width:300 });
+    }
+    let ry = top0;
+    const right = (label, val) => { if(!val) return; doc.setFont(font, "bold"); doc.setFontSize(9); const lw = doc.getTextWidth(label + " "); doc.setTextColor(ac[0], ac[1], ac[2]);
+      doc.setFont(font, "normal"); doc.setFontSize(size); const vw = doc.getTextWidth(val);
+      doc.setFont(font, "bold"); doc.setFontSize(9); doc.setTextColor(ac[0], ac[1], ac[2]); doc.text(label, W - M - vw - 4, ry, { align:"right" });
+      doc.setFont(font, "normal"); doc.setFontSize(size); doc.setTextColor(textRgb[0], textRgb[1], textRgb[2]); doc.text(val, W - M, ry, { align:"right" }); ry += lineH; };
+    right("REF:", T.ref); right("DATE:", dtxt);
+    y = Math.max(y, ry);
+    if(T.salutation){ gap(10); write(String(T.salutation).toUpperCase(), { bold:true }); }
+    if(T.subject){ gap(6); write(String(T.subject).toUpperCase(), { bold:true, rgb:dk }); }
+  } else {
+    doc.setTextColor(17, 17, 17);
+    if(T.ref) doc.text("Ref: " + T.ref, M, y);
+    if(dtxt) doc.text(dtxt, W - M, y, { align:"right" });
+    y += lineH;
+    if(T.recipient){ gap(10); write(T.recipient); }
+    if(T.salutation){ gap(10); write(T.salutation); }
+    if(T.subject){ gap(6); write(String(T.subject).toUpperCase(), { bold:true, underline:true }); }
+  }
+  gap(6);
+  String(T.body).replace(/\r/g, "").split("\n").forEach(par => { if(par.trim() === ""){ gap(lineH * 0.6); } else write(par); });
+  if(y + 120 > bottom) newPage();   // keep closing and signature together
+  if(T.closing){ gap(12); write(T.closing); }
+  gap(6);
+  if(L.signature){
+    const sh = 34, sw = Math.min(170, sh * (L.signatureRatio || 3)), sh2 = sw / (L.signatureRatio || 3);
+    try{ doc.addImage(L.signature, "PNG", M, y, sw, sh2); }catch(_e){}
+  }
+  gap(40);
+  doc.setDrawColor(148, 163, 184); doc.setLineWidth(0.7); doc.line(M, y - 12, M + 170, y - 12);
+  if(T.signName) write(T.signName, { bold:true, rgb: modern ? dk : [17, 17, 17] });
+  if(T.signTitle) write(T.signTitle, { size:9.5, rgb:[71, 85, 105] });
+  if(T.cc){ gap(10); write("cc: " + String(T.cc).replace(/\n/g, ", "), { size:9 }); }
+  footer();
+  const n = doc.getNumberOfPages();
+  for(let i = 1; i <= n; i++){ doc.setPage(i); doc.setFont(font, "normal"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]); doc.text(`Page ${i} of ${n}`, W - M, modern ? H - 60 : H - 22, { align:"right" }); }
+  return doc;
+}
+function sdLetterFileName(){
+  const base = (sdLetter.subject || sdLetter.recipient.split("\n")[0] || "Letter").replace(/[^\w \-]+/g, "").trim().slice(0, 50) || "Letter";
+  return `Letter - ${base}.pdf`;
+}
+function sdLetterPrint(){
+  const doc = sdLetterBuildPdf(); if(!doc) return;
+  const url = URL.createObjectURL(doc.output("blob"));
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 180000);
+}
+function sdLetterDownload(){
+  const doc = sdLetterBuildPdf(); if(!doc) return;
+  const url = URL.createObjectURL(doc.output("blob"));
+  const a = document.createElement("a"); a.href = url; a.download = sdLetterFileName(); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function sdLetterShare(){
+  const doc = sdLetterBuildPdf(); if(!doc) return;
+  const blob = doc.output("blob"), name = sdLetterFileName();
+  try{
+    const file = new File([blob], name, { type:"application/pdf" });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){ navigator.share({ files:[file], title:name }).catch(() => {}); return; }
+  }catch(_e){}
+  sdLetterDownload();
+}
+function sdLetterSaveToDocs(){
+  const doc = sdLetterBuildPdf(); if(!doc) return;
+  const blob = doc.output("blob"), name = sdLetterFileName();
+  const rec = { id:`doc_${Date.now()}_L${Math.floor(Math.random()*1e5)}`, name, type:"application/pdf", size:blob.size, category:"Letter", added:new Date().toISOString(), blob };
+  sdDocsTx("readwrite", st => { st.put(rec); })
+    .catch(() => { sdDocsMemory.push(rec); })
+    .then(() => { sdDocsLoaded = false; sdDocsLoading = false; sdDocsLoad(); sdDocsFlash(`Saved "${name}" under Documents.`); });
+}
+function renderSdLetterStudio(){
+  sdLhPrefillFromAccount();
+  const esc = v => String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const L = sdLetterhead, T = sdLetter;
+  const inp = (obj, setter, k, label, ph, type) => `<label class="field"><span>${label}</span><input type="${type || "text"}" value="${esc(obj[k])}" placeholder="${ph || ""}" autocomplete="off" oninput="${setter}('${k}', this.value)"></label>`;
+  const area = (obj, setter, k, label, rows, ph) => `<label class="field"><span>${label}</span><textarea rows="${rows}" placeholder="${ph || ""}" oninput="${setter}('${k}', this.value)">${esc(obj[k])}</textarea></label>`;
+  setTimeout(sdLetterFit, 0);
+  return `
+    <div style="display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:18px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="panel">
+          <div class="panel-header"><h3><i class="fa-solid fa-palette" style="color:var(--blue);"></i>&nbsp;Letterhead design</h3></div>
+          <div style="padding:4px 20px 18px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              ${L.logo ? `<img src="${L.logo}" style="height:46px;max-width:120px;object-fit:contain;border:1px solid var(--border);padding:3px;">` : `<div style="height:46px;width:46px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fa-solid fa-image"></i></div>`}
+              <input id="sdLhLogoFile" type="file" accept="image/*" style="display:none;" onchange="sdLhLogoPick(this)">
+              <button type="button" class="btn-ghost" style="padding:7px 12px;" onclick="document.getElementById('sdLhLogoFile').click()">${L.logo ? "Change logo" : "Upload logo"}</button>
+              ${L.logo ? `<button type="button" class="btn-ghost" style="padding:7px 12px;color:var(--rose);" onclick="sdLhLogoRemove()">Remove</button>` : ""}
+            </div>
+            ${inp(L, "sdLhSet", "orgName", "Organisation / school name", "e.g. Maestro Technologies Ltd")}
+            ${inp(L, "sdLhSet", "tagline", "Motto / tagline", "optional")}
+            ${area(L, "sdLhSet", "address", "Address (one line per row)", 3, "P.O. Box 123-00100&#10;Nairobi, Kenya")}
+            <div class="profile-form-grid">
+              ${inp(L, "sdLhSet", "phone", "Phone", "0700 000 000")}
+              ${inp(L, "sdLhSet", "email", "Email", "info@example.com")}
+              ${inp(L, "sdLhSet", "website", "Website", "www.example.com")}
+              ${inp(L, "sdLhSet", "footer", "Footer line", "optional, e.g. Registered No. ...")}
+            </div>
+            <div class="profile-form-grid">
+              <label class="field"><span>Layout</span><select onchange="sdLhSet('layout', this.value)"><option value="modern" ${L.layout === "modern" ? "selected" : ""}>Modern (swoosh bands, contact footer)</option><option value="left" ${L.layout === "left" ? "selected" : ""}>Classic: logo left, text right</option><option value="center" ${L.layout === "center" ? "selected" : ""}>Classic: centred</option></select></label>
+              <label class="field"><span>Font</span><select onchange="sdLhSet('font', this.value)"><option value="helvetica" ${L.font === "helvetica" ? "selected" : ""}>Sans-serif</option><option value="times" ${L.font === "times" ? "selected" : ""}>Serif (Times)</option><option value="courier" ${L.font === "courier" ? "selected" : ""}>Typewriter</option></select></label>
+              <label class="field"><span>${L.layout === "modern" ? "Bright colour (stripes, labels)" : "Accent colour"}</span><input type="color" value="${esc(L.accent)}" oninput="sdLhSet('accent', this.value)" style="height:40px;padding:2px;"></label>
+              ${L.layout === "modern" ? `<label class="field"><span>Dark colour (bands, name)</span><input type="color" value="${esc(L.dark)}" oninput="sdLhSet('dark', this.value)" style="height:40px;padding:2px;"></label>` : ""}
+              <label class="field"><span>Line under header</span><select onchange="sdLhSet('showRule', this.value === '1')"><option value="1" ${L.showRule ? "selected" : ""}>Yes</option><option value="0" ${L.showRule ? "" : "selected"}>No</option></select></label>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="fa-solid fa-pen-to-square" style="color:var(--blue);"></i>&nbsp;Letter</h3></div>
+          <div style="padding:4px 20px 18px;">
+            <div class="profile-form-grid">
+              ${inp(T, "sdLetterSet", "ref", "Reference", "e.g. MAE/ADM/001")}
+              ${inp(T, "sdLetterSet", "date", "Date", "", "date")}
+            </div>
+            ${area(T, "sdLetterSet", "recipient", "To (name and address)", 4, "The Principal&#10;Example School&#10;P.O. Box 1, Nairobi")}
+            ${inp(T, "sdLetterSet", "salutation", "Salutation", "Dear Sir/Madam,")}
+            ${inp(T, "sdLetterSet", "subject", "Subject", "RE: ...")}
+            ${area(T, "sdLetterSet", "body", "Message", 12, "Type your letter here...")}
+            <div class="profile-form-grid">
+              ${inp(T, "sdLetterSet", "closing", "Closing", "Yours faithfully,")}
+              ${inp(T, "sdLetterSet", "signName", "Signed by", "Full name")}
+              ${inp(T, "sdLetterSet", "signTitle", "Title / position", "e.g. Managing Director")}
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin:4px 0 10px;">
+              ${L.signature ? `<img src="${L.signature}" style="height:34px;max-width:140px;object-fit:contain;border:1px solid var(--border);padding:3px;">` : `<span style="font-size:12.5px;color:var(--muted);">Signature image (optional)</span>`}
+              <input id="sdLhSigFile" type="file" accept="image/*" style="display:none;" onchange="sdLhSignaturePick(this)">
+              <button type="button" class="btn-ghost" style="padding:7px 12px;" onclick="document.getElementById('sdLhSigFile').click()">${L.signature ? "Change" : "Upload signature"}</button>
+              ${L.signature ? `<button type="button" class="btn-ghost" style="padding:7px 12px;color:var(--rose);" onclick="sdLhSignatureRemove()">Remove</button>` : ""}
+            </div>
+            ${area(T, "sdLetterSet", "cc", "cc (optional)", 2, "")}
+          </div>
+        </div>
+      </div>
+      <div style="position:sticky;top:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button type="button" class="btn-primary auto" onclick="sdLetterPrint()"><i class="fa-solid fa-print"></i> Print</button>
+          <button type="button" class="btn-ghost" onclick="sdLetterDownload()"><i class="fa-solid fa-file-pdf"></i> Save PDF</button>
+          <button type="button" class="btn-ghost" onclick="sdLetterShare()"><i class="fa-solid fa-share-nodes"></i> Send / Share</button>
+          <button type="button" class="btn-ghost" onclick="sdLetterSaveToDocs()"><i class="fa-solid fa-folder-plus"></i> Save to Documents</button>
+          <button type="button" class="btn-ghost" style="color:var(--rose);" onclick="sdLetterClear()"><i class="fa-solid fa-eraser"></i> Clear letter</button>
+        </div>
+        <span role="status" style="font-size:13px;font-weight:600;color:var(--green);">${sdDocsMsg ? esc(sdDocsMsg) : ""}</span>
+        <div id="sdLetterWrap" style="background:#e5e9f0;padding:12px;overflow:auto;">
+          <div id="sdLetterPage" style="width:595px;min-height:842px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18);padding:0;box-sizing:border-box;margin:0 auto;overflow:hidden;"><div id="sdLetterPreview">${sdLetterPreviewHtml()}</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;"><i class="fa-solid fa-circle-info"></i> Long letters continue on extra pages automatically (slim header, footer and page numbers on each page). Your letterhead and draft are remembered on this device.</div>
+      </div>
+    </div>`;
+}
+function renderSdDocuments(){
+  const nav = `<div class="class-tab-row" style="margin-bottom:14px;">
+      <button class="class-tab-cell ${sdDocsView === "files" ? "active" : ""}" onclick="sdDocsView='files';render();"><i class="fa-solid fa-folder-open"></i>&nbsp;Files</button>
+      <button class="class-tab-cell ${sdDocsView === "letter" ? "active" : ""}" onclick="sdDocsView='letter';render();"><i class="fa-solid fa-file-signature"></i>&nbsp;Letterhead &amp; letters</button>
+    </div>`;
+  return nav + (sdDocsView === "letter" ? renderSdLetterStudio() : renderSdDocumentFiles());
+}
 function renderSystemDeveloperPage(){
   if(currentUserRole === "System Developer") saEnsureDeveloperAgent();
   if(isSalesAgentRole()){
     return `<div class="dash2-topline"><div><h1 class="dash2-title">My Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + renderSystemDeveloperPageSchools();
   }
-  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"]];
+  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"]];
   const bar = `<div class="class-tab-row" style="margin-bottom:16px;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
   if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + renderLoginMonitor();
   if(sdMainTab === "pricing") return `<div class="dash2-topline"><div><h1 class="dash2-title">Pricing</h1><p class="dash2-sub">Fixed and variable cost for each registered school &mdash; total = fixed cost + (variable cost &times; enrollment)</p></div></div>` + bar + renderSdPricing();
   if(sdMainTab === "account") return `<div class="dash2-topline"><div><h1 class="dash2-title">Account Information</h1><p class="dash2-sub">Your platform account and payment details</p></div></div>` + bar + renderSdAccountInfo();
+  if(sdMainTab === "documents") return `<div class="dash2-topline"><div><h1 class="dash2-title">Documents</h1><p class="dash2-sub">Contracts, licences, invoices and other files you keep for the platform</p></div></div>` + bar + renderSdDocuments();
   if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections each registered school sees, and post a notice on its dashboard</p></div></div>` + bar + renderSchoolModules() + renderSchoolDashMgmt();
   return bar + renderSystemDeveloperPageSchools();
 }
@@ -12251,7 +12849,7 @@ function pageHeader(title, subtitle){
 
 // ---- Teacher home dashboard (shown on the Dashboard page instead of the
 // admin overview when the logged-in user's role is "Teacher") ----
-let teacherHomeTab = "dashboard"; // "dashboard" | "mySubjects" | "myClass" | "graduatedClasses" | "reports"
+let teacherHomeTab = "dashboard"; // "dashboard" | "mySubjects" | "myClass" | "subjectSharing" | "graduatedClasses" | "reports"
 function setTeacherHomeTab(key){ teacherHomeTab = key; render(); }
 
 // Sub-tabs shown inside "My Subjects": the subject list itself, plus
@@ -12314,6 +12912,7 @@ function renderTeacherHomeDashboard(){
     { key:"dashboard", label:"Dashboard", icon:"fa-table-cells-large" },
     { key:"mySubjects", label:"My Subjects", icon:"fa-book-open" },
     ...(myClassTeacherClasses().length ? [{ key:"myClass", label:"My Class", icon:"fa-users-line" }] : []),
+    { key:"subjectSharing", label:"Subject Sharing", icon:"fa-share-nodes" },
     { key:"graduatedClasses", label:"Graduated Classes", icon:"fa-graduation-cap" },
     { key:"reports", label:"Reports", icon:"fa-chart-column" },
   ];
@@ -12426,6 +13025,8 @@ function renderTeacherHomeDashboard(){
         ${hasClass ? `<button class="reg-card" onclick="setTeacherHomeTab('myClass')"><div class="reg-card-icon"><i class="fa-solid fa-users-line"></i></div><div class="reg-card-label">Class Register</div><div class="reg-card-sub">Lists for the class you teach</div></button>` : ''}
       </div>
     `;
+  } else if(teacherHomeTab === "subjectSharing"){
+    body = renderMyLessonAllocations();
   } else if(teacherHomeTab === "graduatedClasses"){
     body = `
       <div class="panel"><div class="empty" style="padding:40px 24px;">No graduated classes yet. Classes appear here once a Form/Grade completes its final year.</div></div>
@@ -19708,6 +20309,7 @@ const TEACHER_TABS = [
   { key:"add", label:"Add New Teacher", icon:"fa-plus" },
   { key:"groups", label:"Teachers' Groups", icon:"fa-people-group" },
   { key:"manage", label:"Manage Teachers", icon:"fa-gear" },
+  { key:"sharing", label:"Subject Sharing", icon:"fa-share-nodes" },
 ];
 let teacherTab = "add";
 function setTeacherTab(key){ teacherTab = key; render(); }
@@ -20465,6 +21067,140 @@ function renderTeacherDepartmentsCard(){
   `;
 }
 
+// Subject Sharing (Teachers): one row per subject/grade/stream allocation.
+// Pick a Grade (10, 11 or 12) and that grade's streams appear as tick boxes:
+// tick one stream for a SINGLE class, or several for a JOINT class (streams
+// taught together). The Teacher comes from a drop-down (teachers who already
+// teach the subject are listed first) and No of Lessons is per week.
+let subjectSharingRows = []; // { id, subject, grade, streams:[], teacher, lessons }
+function ssEsc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+// Re-draw only this table (not the whole app) and keep every scroll position,
+// so nothing jumps or flickers on Save / double-click / "All streams".
+function ssRefresh(){
+  const host = document.getElementById('ss-host');
+  if(!host){ render(); return; }
+  const sc = host.querySelector('.bsms-table-scroll');
+  const x = sc ? sc.scrollLeft : 0, y = sc ? sc.scrollTop : 0, wy = window.scrollY, ae = document.activeElement && document.activeElement.id;
+  host.innerHTML = renderSubjectSharingInner();
+  const sc2 = host.querySelector('.bsms-table-scroll');
+  if(sc2){ sc2.scrollLeft = x; sc2.scrollTop = y; }
+  window.scrollTo(window.scrollX, wy);
+  if(ae){ const el = document.getElementById(ae); if(el) try{ el.focus({preventScroll:true}); }catch(_e){} }
+}
+function ssRow(id){ return subjectSharingRows.find(r => r.id === id); }
+function ssSubjectOptions(){
+  const set = new Map();
+  [...timetableSubjectPickerOptions(), ...SENIOR_SCHOOL_SUBJECTS].forEach(n => { n = String(n || '').trim(); if(n && !set.has(n.toLowerCase())) set.set(n.toLowerCase(), n); });
+  return Array.from(set.values()).sort((a,b) => a.localeCompare(b));
+}
+// A subject is entered once and spans its rows (one row per grade, normally
+// Grade 10 / 11 / 12). Rows of a subject share a group id (gid) and sit together.
+function ssGid(r){ return r.gid || r.id; }
+function ssNewRow(gid, subject, grade){ return { id: Date.now() + Math.floor(Math.random()*100000), gid, subject, grade, streams:[], teacher:"", lessons:"" }; }
+function addSubjectSharingRow(){
+  const gid = Date.now();
+  CBC_GRADE_OPTIONS.forEach(g => subjectSharingRows.push(ssNewRow(gid, "", g)));
+  ssRefresh();
+}
+function addSubjectSharingGradeRow(gid){
+  let last = -1; subjectSharingRows.forEach((r, i) => { if(ssGid(r) === gid) last = i; });
+  if(last < 0) return;
+  subjectSharingRows.splice(last + 1, 0, ssNewRow(gid, subjectSharingRows[last].subject, ""));
+  ssRefresh();
+}
+function deleteSubjectSharingRow(id){
+  if(!confirm('Remove this row?')) return;
+  subjectSharingRows = subjectSharingRows.filter(r => r.id !== id);
+  ssRefresh();
+}
+function deleteSubjectSharingGroup(gid){
+  if(!confirm('Remove this subject and all its rows?')) return;
+  subjectSharingRows = subjectSharingRows.filter(r => ssGid(r) !== gid);
+  ssRefresh();
+}
+function setSubjectSharingSubject(gid, v){
+  subjectSharingRows.forEach(r => { if(ssGid(r) === gid) r.subject = v; });
+  ssRefresh();
+}
+function setSubjectSharingField(id, k, v){
+  const r = ssRow(id); if(!r) return;
+  if(k === 'grade'){ r.grade = v; r.streams = []; }          // new grade -> its own streams
+  else if(k === 'lessons'){ r.lessons = v === '' ? '' : Math.max(0, parseInt(v, 10) || 0); }
+  else r[k] = v;
+  ssRefresh();
+}
+function toggleSubjectSharingStream(id, stream, on){
+  const r = ssRow(id); if(!r) return;
+  const set = new Set(r.streams || []);
+  on ? set.add(stream) : set.delete(stream);
+  r.streams = lsgStreamsForGrade(r.grade).filter(x => set.has(x)); // keep stream order
+  ssRefresh();
+}
+function setSubjectSharingAllStreams(id, on){
+  const r = ssRow(id); if(!r) return;
+  r.streams = on ? lsgStreamsForGrade(r.grade) : [];
+  ssRefresh();
+}
+function renderSubjectSharingPanel(){
+  return `<div id="ss-host" class="ss-host">${renderSubjectSharingInner()}</div>`;
+}
+function renderSubjectSharingInner(){
+  const subjects = ssSubjectOptions();
+  const cell = 'padding:8px 10px;vertical-align:top;';
+  const noSel = 'user-select:none;-webkit-user-select:none;';
+  const sel = 'width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;border:1px solid #94a3b8;border-radius:0;background:#fff;';
+  const groups = [], gmap = new Map();
+  subjectSharingRows.forEach(r => { const g = ssGid(r); if(!gmap.has(g)){ gmap.set(g, []); groups.push(g); } gmap.get(g).push(r); });
+  const ordered = groups.flatMap(g => gmap.get(g).map((r, k) => ({ r, k, size: gmap.get(g).length, g })));
+  const rows = ordered.map(({ r, k, size, g }, n) => {
+    const streams = r.grade ? lsgStreamsForGrade(r.grade) : [];
+    const chosen = (r.streams || []).filter(x => streams.includes(x));
+    const kind = chosen.length > 1 ? 'Joint' : chosen.length === 1 ? 'Single' : '';
+    const subjOpts = `<option value="">Select subject</option>` + (r.subject && !subjects.includes(r.subject) ? `<option selected value="${ssEsc(r.subject)}">${ssEsc(r.subject)}</option>` : '') +
+      subjects.map(x => `<option value="${ssEsc(x)}" ${x === r.subject ? 'selected' : ''}>${ssEsc(x)}</option>`).join('');
+    const gradeOpts = `<option value="">Select grade</option>` + CBC_GRADE_OPTIONS.map(g => `<option value="${g}" ${g === r.grade ? 'selected' : ''}>${g}</option>`).join('');
+    const streamCell = !r.grade ? '<span style="color:var(--muted);font-size:12px;">Select a grade first</span><div style="min-height:24px;"></div>'
+      : !streams.length ? '<span style="color:var(--muted);font-size:12px;">No streams in ' + ssEsc(r.grade) + ' yet (add them in Classes)</span>'
+      : `<div style="display:flex;flex-wrap:wrap;gap:4px 12px;${noSel}">${streams.map(st => `<label style="font-size:13px;display:flex;gap:5px;align-items:center;cursor:pointer;"><input type="checkbox" ${chosen.includes(st) ? 'checked' : ''} onchange="toggleSubjectSharingStream(${r.id}, this.dataset.s, this.checked)" data-s="${ssEsc(st)}">${ssEsc(st)}</label>`).join('')}</div>
+         <div style="margin-top:6px;min-height:24px;font-size:12px;display:flex;gap:10px;align-items:center;${noSel}">
+           ${kind ? `<span class="badge">${kind}${kind === 'Joint' ? ' · ' + chosen.length + ' streams' : ''}</span>` : '<span style="color:var(--muted);">Tick one stream (single) or several (joint)</span>'}
+           ${streams.length > 1 ? `<button type="button" class="link-btn" onclick="setSubjectSharingAllStreams(${r.id}, ${chosen.length !== streams.length})">${chosen.length === streams.length ? 'Clear' : 'All streams'}</button>` : ''}
+         </div>`;
+    const teaches = t => (t.subjects || []).some(x => String(x).toLowerCase() === String(r.subject).toLowerCase());
+    const mine = r.subject ? teachersList.filter(teaches) : [], others = teachersList.filter(t => !mine.includes(t));
+    const opt = t => { const nm = teacherFullName(t); return `<option value="${ssEsc(nm)}" ${tNameEq(nm, r.teacher) ? 'selected' : ''}>${ssEsc(nm)}</option>`; };
+    const known = teachersList.some(t => tNameEq(teacherFullName(t), r.teacher));
+    const teacherOpts = `<option value="">Select teacher</option>` + (r.teacher && !known ? `<option selected value="${ssEsc(r.teacher)}">${ssEsc(r.teacher)}</option>` : '') +
+      (mine.length ? `<optgroup label="Teaches ${ssEsc(r.subject)}">${mine.map(opt).join('')}</optgroup>` : '') +
+      (others.length ? `<optgroup label="${mine.length ? 'Other teachers' : 'Teachers'}">${others.map(opt).join('')}</optgroup>` : '');
+    return `<tr style="cursor:default;${noSel}${k === 0 && n > 0 ? 'border-top:2px solid #2f5fa8;' : ''}">
+      <td style="${cell}text-align:center;">${n + 1}</td>
+      ${k === 0 ? `<td rowspan="${size}" style="${cell}background:#f4f7fc;border-right:2px solid #2f5fa8;"><select style="${sel}font-weight:700;" onchange="setSubjectSharingSubject(${g},this.value)">${subjOpts}</select>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;${noSel}"><button type="button" class="link-btn" onclick="addSubjectSharingGradeRow(${g})"><i class="fa-solid fa-plus"></i>&nbsp;Add grade row</button><button type="button" class="link-btn danger" onclick="deleteSubjectSharingGroup(${g})"><i class="fa-solid fa-trash"></i>&nbsp;Delete subject</button></div></td>` : ''}
+      <td style="${cell}"><select style="${sel}" onchange="setSubjectSharingField(${r.id},'grade',this.value)">${gradeOpts}</select></td>
+      <td style="${cell}">${streamCell}</td>
+      <td style="${cell}"><select style="${sel}" onchange="setSubjectSharingField(${r.id},'teacher',this.value)">${teacherOpts}</select></td>
+      <td style="${cell}"><input type="number" min="0" max="60" style="${sel}text-align:center;" value="${ssEsc(r.lessons)}" onchange="setSubjectSharingField(${r.id},'lessons',this.value)"></td>
+      <td style="${cell}text-align:center;white-space:nowrap;"><button class="link-btn danger" onclick="deleteSubjectSharingRow(${r.id})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button></td>
+    </tr>`;
+  }).join('') || `<tr style="cursor:default;"><td colspan="7" class="empty">No rows yet. Click "Add Subject": type the subject once and it gets Grade 10, 11 and 12 rows.</td></tr>`;
+  const total = subjectSharingRows.reduce((a, r) => a + (Number(r.lessons) || 0), 0);
+  return `
+    <div class="panel-header" style="padding:16px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <h3>Subject Sharing (${groups.length})</h3>
+      <button type="button" class="btn-primary" style="width:auto;padding:9px 18px;font-size:13px;" onclick="addSubjectSharingRow()"><i class="fa-solid fa-plus"></i> Add Subject</button>
+    </div>
+    <div class="bsms-table-card"><div class="bsms-table-scroll">
+      <table class="bsms-table" style="width:100%;table-layout:fixed;min-width:900px;">
+        <thead><tr style="text-transform:uppercase;font-weight:700;"><th style="width:56px;text-align:center;">S/NO</th><th style="width:16%;">Subject</th><th style="width:11%;">Grade</th><th style="width:27%;">Streams</th><th style="width:17%;">Teacher</th><th style="width:90px;text-align:center;">No of Lessons</th><th style="width:96px;text-align:center;">Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+        ${subjectSharingRows.length ? `<tfoot><tr style="font-weight:700;"><td colspan="5" style="text-align:right;padding:8px 10px;">TOTAL LESSONS</td><td style="text-align:center;">${total}</td><td></td></tr></tfoot>` : ''}
+      </table>
+    </div></div>
+  `;
+}
+
+document.addEventListener('mousedown', e => { if(e.detail > 1 && e.target.closest && e.target.closest('#ss-host') && !e.target.closest('input[type=number],select')) e.preventDefault(); });
 function renderTeachersGroupsPanel(){
   return `
     ${renderTeacherDepartmentsCard()}
@@ -20481,6 +21217,7 @@ function renderTeachersPanel(){
     case "manage": inner = renderManageTeachersPanel(); break;
     case "add": inner = renderAddTeacherForm(); break;
     case "groups": inner = renderTeachersGroupsPanel(); break;
+    case "sharing": inner = renderLessonSharingTab(); break;
     default: inner = renderManageTeachersPanel();
   }
 
@@ -25231,7 +25968,11 @@ function ttShortSubjectName(subject){
 // Teacher name split over two centred lines for the Streams printout / PDF:
 // first name on line 1, surname on line 2 (a single-word name stays on one line).
 // With the teacher "Full name" option off, line 1 is just the first initial.
+// Shown wherever a lesson has a subject but no teacher (display only - never saved).
+const TT_NO_TEACHER = "Without a Teacher";
+function ttTchOrNone(teacher, subject){ return teacher || (subject ? TT_NO_TEACHER : ""); }
 function ttTeacherLines(name){
+  if(name === TT_NO_TEACHER) return ["Without a", "Teacher"];
   if(!name) return [];
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
   if(parts.length < 2) return parts;
@@ -25288,7 +26029,7 @@ function renderTtLessonCardFields(entry, opts){
       const label = s.teacher.fullName ? ttTwoNames(entry.teacher) : ttShortTeacherName(entry.teacher);
       fieldMap.teacher = `<div class="tt-teacher" style="${ttLessonFieldStyle('teacher')}">${label}</div>`;
     } else if(!opts.hideNoTeacher){
-      fieldMap.teacher = `<div class="tt-teacher">No teacher set</div>`;
+      fieldMap.teacher = `<div class="tt-teacher" style="${ttLessonFieldStyle('teacher')}">${TT_NO_TEACHER}</div>`;
     }
   }
   if(s.class.enabled && opts.classLabel){
@@ -25383,6 +26124,7 @@ function ttGroupSubjectText(subject){
 function ttGroupTeacherLines(name){
   const t = ttGroupPrintSetup.teacher;
   if(!name || !t.enabled) return [];
+  if(name === TT_NO_TEACHER) return ["Without a", "Teacher"];
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
   if(parts.length < 2) return parts;
   return [t.fullName ? parts[0] : parts[0][0].toUpperCase() + ".", parts[parts.length - 1]];
@@ -25397,7 +26139,7 @@ function ttGroupPartHtml(l){
   const rowOf = f => { const r = Number(G[f].posRow); return (r >= 0 && r <= 2) ? r : 1; };
   const sub = ttGroupSubjectText(l.subject);
   if(sub) zones[rowOf('subject')].push(`<div class="tt-g-sub" style="${ttGroupFieldStyle('subject')}">${esc2(sub)}</div>`);
-  const tl = ttGroupTeacherLines(l.teacher);
+  const tl = ttGroupTeacherLines(ttTchOrNone(l.teacher, l.subject));
   if(tl.length) zones[rowOf('teacher')].push(`<div class="tt-g-tch tt-s-teacher" style="${ttGroupFieldStyle('teacher')}">${tl.map(x => `<span class="tt-s-tname">${esc2(x)}</span>`).join('')}</div>`);
   const grp = ttGroupLabelText(l);
   if(grp) zones[rowOf('group')].push(`<div class="tt-g-grp" style="${ttGroupFieldStyle('group')}">${esc2(grp)}</div>`);
@@ -25984,6 +26726,7 @@ function ttSummarySubjectText(subject){
 function ttSummaryTeacherParts(name){
   const t = ttLessonPrintSetup.teacher;
   if(!name || !t.enabled) return [];
+  if(name === TT_NO_TEACHER) return ["Without a", "Teacher"];
   const parts = String(ttTwoNames(name)).trim().split(/\s+/).filter(Boolean);
   if(!parts.length) return [];
   const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
@@ -26560,6 +27303,8 @@ function autoFillClassTimetable(classObj){
   for(let i = subjects.length - 1; i >= 0; i--) if(divGroupedSubjects.has(subjects[i])) subjects.splice(i, 1);
   const parallelSubjects = new Set(ttParallelSubjectsOf(classObj, key));   // placed together across the form by ttPlaceParallelSubjectGroups
   for(let i = subjects.length - 1; i >= 0; i--) if(parallelSubjects.has(subjects[i])) subjects.splice(i, 1);
+  const jointSubjects = ttJointSubjectsOf(key);   // taught together with other streams: placed by ttPlaceJointLessons only
+  for(let i = subjects.length - 1; i >= 0; i--) if(jointSubjects.has(subjects[i])) subjects.splice(i, 1);
   if(!lessonPeriods.length) return { placed:0, skipped:0, emptyReason:'noPeriods' };
 
   TIMETABLE_DAYS.forEach(day => {
@@ -26705,7 +27450,7 @@ function autoFillClassTimetable(classObj){
   // exist), rather than leaving that to the luck of the random cycle —
   // which could easily stack a subject into two periods on Monday and skip
   // it entirely on Thursday. This pass never overwrites an existing lesson.
-  const coverageSubjects = ttDailyCoverageSubjects(classObj).all.filter(sj => !divGroupedSubjects.has(sj) && !parallelSubjects.has(sj));
+  const coverageSubjects = ttDailyCoverageSubjects(classObj).all.filter(sj => !divGroupedSubjects.has(sj) && !parallelSubjects.has(sj) && !jointSubjects.has(sj));
   TIMETABLE_DAYS.forEach(day => {
     const dayPeriods = ttShuffle(lessonPeriods);
     ttShuffle(coverageSubjects).forEach(subject => {
@@ -26958,10 +27703,120 @@ function ttDivisionGroupSubjects(key){
   ttDivisionGroupsForClass(key).forEach(g => g.members.forEach(m => set.add(m.subject)));
   return set;
 }
+// Division groups of the SAME shape (same subjects+divisions, count and type) defined in
+// several streams of one form are lined up so they start at the SAME day+period in all of
+// those streams. Anything that cannot be lined up is topped up per stream by the pass below.
+function ttDivisionGroupSig(g){
+  return `${g.perWeek}|${g.lessonType}|` + g.members.map(m => `${m.subject}@${m.division}`).sort().join(',');
+}
+function ttPlaceDivisionClusters(keys, validKeys, result){
+  const clusters = {};
+  keys.forEach(key => {
+    if(!validKeys.has(key)) return;
+    const seen = {};
+    ttDivisionGroupsForClass(key).forEach(g => {
+      if(!g.perWeek) return;
+      const sig = ttDivisionGroupSig(g);
+      const n = seen[sig] = (seen[sig] || 0) + 1;
+      const cid = `${String(key).split('||')[0]}#${n}#${sig}`;
+      (clusters[cid] = clusters[cid] || []).push({ key, g });
+    });
+  });
+  Object.keys(clusters).forEach(cid => {
+    const entries = clusters[cid];
+    if(entries.length < 2) return;
+    const g0 = entries[0].g, len = TT_LESSON_LENGTH[g0.lessonType] || 1, perWeek = g0.perWeek;
+    const keySet = new Set(entries.map(e => e.key));
+    entries.forEach(e => {
+      if(!timetableData[e.key]) timetableData[e.key] = {};
+      TIMETABLE_DAYS.forEach(d => { if(!timetableData[e.key][d]) timetableData[e.key][d] = {}; });
+      e.subjOf = new Set(e.g.members.map(m => m.subject));
+    });
+    const blocks = [];
+    for(let i = 0; i < timetablePeriods.length; i++){
+      const blk = timetablePeriods.slice(i, i + len);
+      if(blk.length === len && blk.every(p => !p.isBreak)) blocks.push(blk);
+    }
+    const cellAt = (k, day, pid) => timetableData[k][day][pid];
+    const holds = (e, day, blk) => blk.every(p => { const c = cellAt(e.key, day, p.id); const ds = c && (c.divisions || (c.subject ? [c] : [])); return ds && ds.length && ds.every(d => e.subjOf.has(d.subject)) && e.subjOf.size === new Set(ds.map(d => d.subject)).size; });
+    let have = 0; const usedDays = {};
+    TIMETABLE_DAYS.forEach(day => {
+      const taken = new Set();
+      blocks.forEach(blk => {
+        if(blk.some(p => taken.has(p.id))) return;
+        if(entries.every(e => holds(e, day, blk))){ have++; usedDays[day] = (usedDays[day] || 0) + 1; blk.forEach(p => taken.add(p.id)); }
+      });
+    });
+    let need = perWeek - have, noTeacher = 0;
+    const slotFree = (day, blk) => entries.every(e => blk.every(p => {
+      const c = cellAt(e.key, day, p.id);
+      if(c && c.subject) return false;
+      if(timetableClassTimeOffAt(day, p.id, e.key) === 'unavailable') return false;
+      return e.g.members.every(m => timetableSubjectTimeOffAt(day, p.id, m.subject) !== 'unavailable' && !ttNoFollowClash(e.key, day, p.id, m.subject, blk.map(x => x.id)));
+    }));
+    const personOk = (name, day, blk) => blk.every(p => timetableTeacherTimeOffAt(day, p.id, name) !== 'unavailable' && !ttTeacherBusyOutside(day, p.id, name, keySet));
+    // a different teacher for every division of every stream
+    // A division with no free teacher keeps the common slot but is left "Without teacher".
+    const pickTeachers = (day, blk) => {
+      const used = new Set(), out = new Map(); let missing = 0;
+      for(const e of entries){
+        const list = [];
+        for(const m of e.g.members){
+          if(!(m.coTeachers || []).filter(Boolean).every(n => personOk(n, day, blk))) return null;
+          let t = null;
+          if(m.teacher) t = (!used.has(m.teacher) && personOk(m.teacher, day, blk)) ? m.teacher : null;
+          const el = teachersList.filter(x => (x.subjects || []).includes(m.subject)).map(teacherFullName);
+          if(t === null && !m.teacher) t = !el.length ? '' : (el.find(n => !used.has(n) && personOk(n, day, blk)) || null);
+          if(t === null){ t = ''; missing++; }
+          if(t) used.add(t);
+          list.push(t);
+        }
+        out.set(e.key, list);
+      }
+      return { out, missing };
+    };
+    while(need > 0){
+      const days = ttShuffle(TIMETABLE_DAYS).sort((a, b) => (usedDays[a] || 0) - (usedDays[b] || 0));
+      let done = false, best = null;
+      for(const day of days){
+        for(const blk of ttShuffle(blocks)){
+          if(!slotFree(day, blk)) continue;
+          const r = pickTeachers(day, blk);
+          if(!r) continue;
+          if(!best || r.missing < best.r.missing) best = { day, blk, r };
+          if(r.missing === 0) break;
+        }
+        if(best && best.r.missing === 0) break;
+      }
+      if(best){
+        const { day, blk, r } = best, ts = r.out;
+        {
+          entries.forEach(e => {
+            const tl = ts.get(e.key);
+            blk.forEach(p => {
+              timetableData[e.key][day][p.id] = e.g.members.length > 1
+                ? { subject:e.g.members[0].subject, teacher:tl[0], divisions: e.g.members.map((m, i) => ({ division:m.division, subject:m.subject, teacher:tl[i] })) }
+                : { subject:e.g.members[0].subject, teacher:tl[0] };
+            });
+            result.placed += len;
+          });
+          usedDays[day] = (usedDays[day] || 0) + 1;
+          noTeacher += r.missing; done = true;
+        }
+      }
+      if(!done) break;
+      need--;
+    }
+    if(noTeacher) result.failed.push(`${entries.map(e => timetableClassKeyLabel(e.key)).join(' + ')} \u2014 ${g0.members.map(m => m.subject).join(' + ')}: ${noTeacher} division lesson(s) left without a teacher (every division in every stream needs its own teacher at the same time)`);
+    if(need > 0) result.failed.push(`${entries.map(e => timetableClassKeyLabel(e.key)).join(' + ')} \u2014 ${g0.members.map(m => `${m.subject} (${m.division})`).join(' + ')}: ${need} of ${perWeek} could not start at the same time in every stream`);
+  });
+}
 function ttPlaceDivisionGroups(onlyKey){
   const result = { placed:0, groups:0, failed:[] };
   const validKeys = new Set(timetableClasses().map(timetableClassKey));
   const keys = onlyKey ? [onlyKey] : Array.from(validKeys);
+  { const gradeKeys = onlyKey ? Array.from(validKeys).filter(k => String(k).split('||')[0] === String(onlyKey).split('||')[0]) : keys;
+    ttPlaceDivisionClusters(gradeKeys, validKeys, result); }
   keys.forEach(key => {
     if(!validKeys.has(key)) return;
     const groups = ttDivisionGroupsForClass(key);
@@ -27054,17 +27909,27 @@ function ttDivisionGroupMessage(r){
   if(r.failed.length) m += `\nNo common free slot (class + teachers) for:\n - ${r.failed.slice(0, 8).join('\n - ')}${r.failed.length > 8 ? `\n - \u2026and ${r.failed.length - 8} more` : ''}`;
   return m;
 }
-// ---- Parallel subject groups: same start time in EVERY stream of a form -------
-// Computer Studies / Agriculture / Business Studies, and History and Government /
-// Geography, are taught at the same time. For each form this places them in common
-// day+period slots: every stream of the form has its group lesson in the SAME slot
-// (a stream that offers two subjects of the group splits the cell between them, each
-// with its own teacher). Subjects set up as divisions or joint lessons are left to
-// those passes. Safe to re-run: it only tops up the slots still missing.
+// ---- Same start time in EVERY stream of a form (subjects without divisions) ----
+// Geography, History and Government, Agriculture, Business Studies and Computer
+// Studies are each taught at the SAME day+period in every stream that offers them.
+// Each stream still gets its own ordinary cell - cells are only ever shared
+// (split between subjects) when the user DEFINED divisions for that class; lessons
+// set up as divisions or joint lessons are left to their own passes.
+// Safe to re-run: it only tops up the slots still missing.
 function ttParallelSubjectsOf(classObj, key){
   const skip = new Set(ttDivisionGroupSubjects(key));
   (ttLessonsList || []).forEach(l => { if((l.classKeys || []).length > 1 && l.classKeys.includes(key) && l.subject) skip.add(l.subject); });
   return (classObj.subjects || []).filter(sj => ttExclusiveGroupOf(sj) >= 0 && !skip.has(sj));
+}
+// Subjects this class takes as a JOINT lesson (one lesson ticked for several streams).
+// They are placed only by ttPlaceJointLessons, so they start at the same time in every
+// stream, and the per-class fill must never add extra copies of them at other times.
+function ttJointSubjectsOf(key){
+  const set = new Set();
+  (ttLessonsList || []).forEach(l => {
+    if(l.subject && (l.classKeys || []).length > 1 && l.classKeys.includes(key) && (parseInt(l.perWeek, 10) || 0) > 0) set.add(l.subject);
+  });
+  return set;
 }
 function ttPlaceParallelSubjectGroups(onlyGrade){
   const result = { placed:0, groups:0, failed:[] };
@@ -27073,56 +27938,49 @@ function ttPlaceParallelSubjectGroups(onlyGrade){
   if(!lessonPeriods.length) return result;
   const grades = Array.from(new Set(classes.map(c => c.grade))).filter(g => !onlyGrade || g === onlyGrade);
   grades.forEach(grade => {
-    const streams = classes.filter(c => c.grade === grade);
-    TT_EXCLUSIVE_TEACHER_GROUPS.forEach((_, gi) => {
-      const members = streams.map(c => {
-        const key = timetableClassKey(c);
-        return { c, key, idx: classesList.findIndex(x => x.grade === c.grade && x.stream === c.stream),
-                 subs: ttParallelSubjectsOf(c, key).filter(sj => ttExclusiveGroupOf(sj) === gi) };
-      }).filter(m => m.subs.length);
-      if(!members.length) return;
+    const streams = classes.filter(c => c.grade === grade).map(c => {
+      const key = timetableClassKey(c);
+      return { c, key, idx: classesList.findIndex(x => x.grade === c.grade && x.stream === c.stream), subs: ttParallelSubjectsOf(c, key) };
+    });
+    const subjects = Array.from(new Set(streams.flatMap(m => m.subs)));
+    // most widely taught subject first, so the biggest set of streams gets its common slots first
+    subjects.sort((x, y) => streams.filter(m => m.subs.includes(y)).length - streams.filter(m => m.subs.includes(x)).length);
+    subjects.forEach(sj => {
+      const members = streams.filter(m => m.subs.includes(sj));
       members.forEach(m => {
         if(!timetableData[m.key]) timetableData[m.key] = {};
         TIMETABLE_DAYS.forEach(d => { if(!timetableData[m.key][d]) timetableData[m.key][d] = {}; });
       });
       let perWeek = 0;
-      members.forEach(m => m.subs.forEach(sj => { const w = ttSubjectWeeklyLessonsForClass(sj, m.c); perWeek = Math.max(perWeek, w === null ? 3 : w); }));
+      members.forEach(m => { const w = ttSubjectWeeklyLessonsForClass(sj, m.c); perWeek = Math.max(perWeek, w === null ? 3 : w); });
       if(!perWeek) return;
       const cellAt = (m, day, pid) => timetableData[m.key][day][pid];
-      const holds = (m, day, pid) => {
-        const c = cellAt(m, day, pid); if(!c) return false;
-        const list = (Array.isArray(c.divisions) && c.divisions.length > 1) ? c.divisions.map(d => d.subject) : [c.subject];
-        return list.length === m.subs.length && list.every(sj => m.subs.includes(sj));
-      };
+      const holds = (m, day, pid) => { const c = cellAt(m, day, pid); return !!(c && c.subject === sj && !(Array.isArray(c.divisions) && c.divisions.length > 1)); };
       let have = 0; const usedDays = {};
       TIMETABLE_DAYS.forEach(day => lessonPeriods.forEach(p => {
         if(members.every(m => holds(m, day, p.id))){ have++; usedDays[day] = (usedDays[day] || 0) + 1; }
       }));
       let need = perWeek - have, noTeacher = 0;
-      const slotFree = (day, p) => members.every(m => {
+      const slotFree = (day, p) => timetableSubjectTimeOffAt(day, p.id, sj) !== 'unavailable' && members.every(m => {
         const c = cellAt(m, day, p.id);
         if(c && c.subject) return false;
         if(timetableClassTimeOffAt(day, p.id, m.key) === 'unavailable') return false;
-        return m.subs.every(sj => timetableSubjectTimeOffAt(day, p.id, sj) !== 'unavailable' && !ttNoFollowClash(m.key, day, p.id, sj));
+        return !ttNoFollowClash(m.key, day, p.id, sj);
       });
-      // One DIFFERENT teacher per stream+subject for this slot (a teacher can't be in two
-      // streams at once). A stream with no free eligible teacher keeps the slot (so the
-      // start time stays common) but is left "Without teacher" and counted in `missing`.
+      // A DIFFERENT teacher in every stream (nobody can be in two streams at once); a stream
+      // with no free eligible teacher keeps the common slot but is left "Without teacher".
       const pickTeachers = (day, p) => {
         const out = new Map(), used = new Set(); let missing = 0;
         for(const m of members){
-          for(const sj of m.subs){
-            const assigned = m.idx >= 0 ? getClassSubjectTeacher(m.idx, sj) : '';
-            const eligible = teachersList.filter(t => (t.subjects || []).includes(sj)).map(teacherFullName);
-            const cands = Array.from(new Set([assigned].concat(eligible).filter(Boolean)));
-            const t = cands.find(n =>
-              !used.has(n) &&
-              timetableTeacherTimeOffAt(day, p.id, n) !== 'unavailable' &&
-              !timetableTeacherConflict(day, p.id, n, m.key) &&
-              !ttExclusiveConflict(n, sj, grade));
-            if(t){ used.add(t); out.set(m.key + '|' + sj, t); }
-            else { out.set(m.key + '|' + sj, ''); if(cands.length) missing++; }
-          }
+          const assigned = m.idx >= 0 ? getClassSubjectTeacher(m.idx, sj) : '';
+          const eligible = teachersList.filter(t => (t.subjects || []).includes(sj)).map(teacherFullName);
+          const cands = Array.from(new Set([assigned].concat(eligible).filter(Boolean)));
+          const t = cands.find(n => !used.has(n) &&
+            timetableTeacherTimeOffAt(day, p.id, n) !== 'unavailable' &&
+            !timetableTeacherConflict(day, p.id, n, m.key) &&
+            !ttExclusiveConflict(n, sj, grade));
+          if(t){ used.add(t); out.set(m.key, t); }
+          else { out.set(m.key, ''); if(cands.length) missing++; }
         }
         return { out, missing };
       };
@@ -27130,39 +27988,30 @@ function ttPlaceParallelSubjectGroups(onlyGrade){
       TIMETABLE_DAYS.forEach(day => lessonPeriods.forEach(p => allSlots.push({ day, p })));
       while(need > 0){
         const order = ttShuffle(allSlots).sort((a, b) => (usedDays[a.day] || 0) - (usedDays[b.day] || 0));
-        let done = false, best = null;
+        let best = null;
         for(const { day, p } of order){
           if(!slotFree(day, p)) continue;
           const r = pickTeachers(day, p);
           if(!best || r.missing < best.r.missing) best = { day, p, r };
           if(r.missing === 0) break;
         }
-        if(best){
-          const { day, p, r } = best, ts = r.out;
-          members.forEach(m => {
-            const parts = m.subs.map(sj => ({ division: sj, subject: sj, teacher: ts.get(m.key + '|' + sj) || '' }));
-            timetableData[m.key][day][p.id] = parts.length > 1
-              ? { subject: parts[0].subject, teacher: parts[0].teacher, divisions: parts }
-              : { subject: parts[0].subject, teacher: parts[0].teacher };
-            result.placed++;
-          });
-          if(r.missing) noTeacher += r.missing;
-          usedDays[day] = (usedDays[day] || 0) + 1;
-          done = true;
-        }
-        if(!done) break;
+        if(!best) break;
+        const { day, p, r } = best;
+        members.forEach(m => { timetableData[m.key][day][p.id] = { subject: sj, teacher: r.out.get(m.key) || '' }; result.placed++; });
+        noTeacher += r.missing;
+        usedDays[day] = (usedDays[day] || 0) + 1;
         need--;
       }
       result.groups++;
-      if(noTeacher) result.failed.push(`${grade}: ${Array.from(new Set(members.flatMap(m => m.subs))).join(' / ')} \u2014 ${noTeacher} stream lesson(s) left without a teacher (not enough different teachers for these subjects)`);
-      if(need > 0) result.failed.push(`${grade}: ${Array.from(new Set(members.flatMap(m => m.subs))).join(' / ')} — ${need} of ${perWeek} not placed (no common free slot for all streams)`);
+      if(noTeacher) result.failed.push(`${grade} ${sj}: ${noTeacher} stream lesson(s) left without a teacher (each stream needs its own teacher at the same time)`);
+      if(need > 0) result.failed.push(`${grade} ${sj}: ${need} of ${perWeek} not placed (no common free slot for all streams)`);
     });
   });
   return result;
 }
 function ttParallelGroupMessage(r){
   if(!r || !r.groups) return '';
-  let m = `\n\nParallel subjects (Geography / History and Government, Agriculture / Business Studies / Computer Studies): placed at the same time in every stream of the form.`;
+  let m = `\n\nSubjects taught at the same time in every stream (Geography, History and Government, Agriculture, Business Studies, Computer Studies): placed in common slots.`;
   if(r.failed.length) m += `\nNo common free slot for:\n - ${r.failed.slice(0, 8).join('\n - ')}`;
   return m;
 }
@@ -27206,18 +28055,24 @@ function runAutoFillWholeTimetable(clearFirst){
       alert(msg);
       return;
     }
-    const c = classes[index];
-    const r = autoFillClassTimetable(c);
-    if(r.emptyReason === 'noSubjects'){ noSubjClasses.push(`${c.grade} ${c.stream}`); }
-    else { totalPlaced += r.placed; totalSkipped += r.skipped; }
-    index++;
+    // Work in ~40ms slices and repaint once per slice (not once per class), so the
+    // progress bar stays smooth and the whole timetable is ready much sooner.
+    const t0 = Date.now();
+    let c;
+    do {
+      c = classes[index];
+      const r = autoFillClassTimetable(c);
+      if(r.emptyReason === 'noSubjects'){ noSubjClasses.push(`${c.grade} ${c.stream}`); }
+      else { totalPlaced += r.placed; totalSkipped += r.skipped; }
+      index++;
+    } while(index < total && Date.now() - t0 < 40);
     ttGenProcessing = {
       pct: Math.round((index/total)*100),
       label: 'Generating timetable…',
       sub: `Placing lessons — ${c.grade} ${c.stream} (${index}/${total})`,
     };
     render();
-    setTimeout(step, 90);
+    setTimeout(step, 0);
   }
   setTimeout(step, 150);
 }
@@ -28550,8 +29405,8 @@ function renderTimetableStreamsAscGrid(c){
       const room = ttCellClassroomLabel(l.subject, c);
       if(room) zones[rowOf('classroom')].push(`<div class="tt-s-mid" style="${styleOf('classroom')}">${esc(room)}</div>`);
     }
-    if(l.teacher && L.teacher.enabled){
-      zones[rowOf('teacher')].push(`<div class="tt-s-foot tt-s-teacher" style="color:#000;${styleOf('teacher')}">${ttTeacherLinesHtml(l.teacher)}</div>`);
+    if(ttTchOrNone(l.teacher, l.subject) && L.teacher.enabled){
+      zones[rowOf('teacher')].push(`<div class="tt-s-foot tt-s-teacher" style="color:#000;${styleOf('teacher')}">${ttTeacherLinesHtml(ttTchOrNone(l.teacher, l.subject))}</div>`);
     } else if(!L.class.enabled){
       zones[2].push(`<div class="tt-s-foot tt-s-plain">${esc(classText)}</div>`);
     }
@@ -28564,7 +29419,7 @@ function renderTimetableStreamsAscGrid(c){
       const label = ttProgramPrintLabel(l.subject) || (L.subject.fullName ? l.subject : ttShortSubjectName(l.subject));
       zones[0].push(`<div class="tt-s-sub" style="${styleOf('subject')}">${esc(label)}</div>`);
     }
-    if(l.teacher && L.teacher.enabled) zones[1].push(`<div class="tt-s-mid tt-s-teacher" style="${styleOf('teacher')}">${ttTeacherLinesHtml(l.teacher)}</div>`);
+    if(ttTchOrNone(l.teacher, l.subject) && L.teacher.enabled) zones[1].push(`<div class="tt-s-mid tt-s-teacher" style="${styleOf('teacher')}">${ttTeacherLinesHtml(ttTchOrNone(l.teacher, l.subject))}</div>`);
     if(L.group.enabled && l.division) zones[2].push(`<div class="tt-s-foot tt-s-plain" style="${styleOf('group')}">${esc(l.division)}</div>`);
     return `<div class="tt-s-part">${zonesHtml(zones)}</div>`;
   };
@@ -28888,7 +29743,7 @@ function renderTimetableSummaryGrid(){
   };
   const splitPart = (c, l) => {
     const code = String(ttSummarySubjectText(l.subject) || '');
-    const tch = ttSummaryTeacherParts(l.teacher).map(x => `<span>${esc(x)}</span>`).join('');
+    const tch = ttSummaryTeacherParts(ttTchOrNone(l.teacher, l.subject)).map(x => `<span>${esc(x)}</span>`).join('');
     const grp = (L.group && L.group.enabled && l.division) ? esc(l.division) : '';
     return `<div class="tt-sm-sp"><div class="tt-sm-sp-sub" style="${ttLessonFontOnlyStyle('subject')}">${esc(code)}</div><div class="tt-sm-sp-tch" style="${ttLessonFontOnlyStyle('teacher')}">${tch}</div><div class="tt-sm-sp-grp" style="${ttLessonFontOnlyStyle('group')}">${grp}</div></div>`;
   };
@@ -28899,7 +29754,7 @@ function renderTimetableSummaryGrid(){
     return `<div class="tt-sm-in">
       <div class="tt-sm-sub ${code.length > 6 ? 'tt-sm-side' : ''}" style="${ttLessonFontOnlyStyle('subject')}">${esc(code)}</div>
       ${lab ? `<div class="tt-sm-vt tt-sm-lab">${esc(lab)}</div>` : ''}
-      <div class="tt-sm-low">${teacherHtml(teacher)}${room ? `<span class="tt-sm-vt tt-sm-room" style="${ttLessonFontOnlyStyle('classroom')}">${esc(room)}</span>` : ''}</div>
+      <div class="tt-sm-low">${teacherHtml(ttTchOrNone(teacher, subject))}${room ? `<span class="tt-sm-vt tt-sm-room" style="${ttLessonFontOnlyStyle('classroom')}">${esc(room)}</span>` : ''}</div>
     </div>`;
   };
 
@@ -29383,7 +30238,7 @@ function ttPdfDrawGroupedCell(doc, divisions, x, y, w, h, opts){
   const n = divisions.length || 1, ph = h / n;
   // text lines of one part, per field
   const linesOf = (l, f) => f === 'subject' ? [String(ttGroupSubjectText(l.subject) || '').toUpperCase()].filter(Boolean)
-                                              : ttGroupTeacherLines(l.teacher).map(t => String(t).toUpperCase());
+                                              : ttGroupTeacherLines(ttTchOrNone(l.teacher, l.subject)).map(t => String(t).toUpperCase());
   const fields = ['subject','teacher'].filter(f => G[f].enabled);
   // one shared size per field across every non-blocked part of the cell
   const size = {};
@@ -29578,8 +30433,8 @@ function buildStreamsTimetablePdf(classes){
         const ascSubjectLabel = subject && !cellTimeOff && ttLessonPrintSetup.subject.enabled
           ? (ttProgramPrintLabel(subject) || (ttLessonPrintSetup.subject.fullName ? subject : ttShortSubjectName(subject)))
           : "";
-        const ascTeacherLabel = teacher && !cellTimeOff && ttLessonPrintSetup.teacher.enabled
-          ? ttTeacherLines(teacher).join("\n").toUpperCase()
+        const ascTeacherLabel = ttTchOrNone(teacher, subject) && !cellTimeOff && ttLessonPrintSetup.teacher.enabled
+          ? ttTeacherLines(ttTchOrNone(teacher, subject)).join("\n").toUpperCase()
           : "";
         const ascClassroomIsHome = subject && ttCellClassroomType(subject) === "Home classroom";
         const ascLab = (subject && !cellTimeOff && span > 1) ? ttDoubleLessonLab(subject) : "";
@@ -29993,7 +30848,7 @@ function buildSummaryTimetablePdf(){
     const cx = x + w/2;
     // teacher (last, first) and room: rotated, along the bottom — each in its own Print-setup font
     const lowItems = [];
-    ttSummaryTeacherParts(teacher).forEach(t => lowItems.push({ t:String(t).toUpperCase(), f:tchF }));
+    ttSummaryTeacherParts(ttTchOrNone(teacher, subject)).forEach(t => lowItems.push({ t:String(t).toUpperCase(), f:tchF }));
     if(room) lowItems.push({ t:String(room).toUpperCase(), f:roomF });
     const lowMax = h * 0.5;
     const step = Math.min(7, (w - 2) / Math.max(lowItems.length, 1));
@@ -30313,8 +31168,8 @@ function buildWholeTimetablePdf(){
         const subjectLabel = subject && (!lps || lps.subject.enabled)
           ? (ttProgramPrintLabel(subject) || (lps && !lps.subject.fullName ? ttShortSubjectName(subject) : subject))
           : "";
-        const teacherLabel = teacher && (!lps || lps.teacher.enabled)
-          ? (lps && !lps.teacher.fullName ? ttShortTeacherName(teacher) : ttTwoNames(teacher))
+        const teacherLabel = ttTchOrNone(teacher, subject) && (!lps || lps.teacher.enabled)
+          ? (!teacher ? TT_NO_TEACHER : (lps && !lps.teacher.fullName ? ttShortTeacherName(teacher) : ttTwoNames(teacher)))
           : "";
         const cellTimeOff = subject ? ttCombineTimeOffStates(
           timetableTeacherTimeOffAt(day, p.id, teacher),
@@ -34855,127 +35710,219 @@ function renderRegistration(){
 }
 
 
-function renderLessonSharingTab(){
-  const filteredList = lessonSharingFilterGrade ? lessonSharingList.filter(l => l.grade === lessonSharingFilterGrade) : lessonSharingList;
-  const subjectOpts = academicRows.map(r => `<option value="${r.subject}" ${lessonSharingFormData.subject===r.subject?'selected':''}>${r.subject}</option>`).join('');
-  const gradeOpts = (academicsParent === '844' ? ['Form 4'] : academicsParent === 'cbc' ? CBC_GRADE_OPTIONS : GRADE_OPTIONS).map(g => `<option value="${g}" ${lessonSharingFormData.grade===g?'selected':''}>${g}</option>`).join('');
-  const teacherOpts = teachersList.map(t => `<option value="${teacherFullName(t)}" ${lessonSharingFormData.teacher===teacherFullName(t)?'selected':''}>${teacherFullName(t)}</option>`).join('');
-
-  const gradeLinkRow = `
-    <div class="class-tab-row" style="margin-bottom:16px;">
-      ${(academicsParent === '844' ? ["Form 4"] : academicsParent === 'cbc' ? ["Grade 10","Grade 11","Grade 12"] : ["Grade 10","Grade 11","Grade 12","Form 4"]).map(g => `
-        <button class="class-tab-cell ${lessonSharingFilterGrade===g?'active':''}" onclick="openLessonSharingForGrade('${g}')">
-          ${g.toUpperCase()}
-        </button>
-      `).join('')}
-    </div>
-  `;
-
-  // Opening a grade lists its streams; picking a stream opens that stream's subject table.
-  const grStreams = lessonSharingFilterGrade ? lsgStreamsForGrade(lessonSharingFilterGrade) : [];
-  if(lessonSharingFilterStream && !grStreams.includes(lessonSharingFilterStream)) lessonSharingFilterStream = "";
-  const streamRow = (lessonSharingFilterGrade && grStreams.length) ? `
-    <div class="section-label" style="margin:0 0 8px;">${lsgEsc(lessonSharingFilterGrade)} \u2014 Streams</div>
-    <div class="class-tab-row" style="margin-bottom:16px;">
-      ${grStreams.map(st => `
-        <button class="class-tab-cell ${lessonSharingFilterStream===st?'active':''}" onclick="openLessonSharingStream('${lsgEsc(st).replace(/'/g,"\\'")}')">
-          ${lsgEsc(lessonSharingFilterGrade.toUpperCase())} ${lsgEsc(String(st).toUpperCase())}
-        </button>
-      `).join('')}
-    </div>
-  ` : '';
-
-  const header = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div class="section-label" style="margin-bottom:0;">Shared Lessons (${filteredList.length})</div>
-        ${lessonSharingFilterGrade ? `
-          <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--blue-dark);background:var(--blue-tint);border-radius:0;padding:4px 10px;">
-            ${lessonSharingFilterGrade}${lessonSharingFilterStream ? ' \u00b7 ' + lsgEsc(lessonSharingFilterStream) : ''}
-            <i class="fa-solid fa-xmark" style="cursor:pointer;" onclick="clearLessonSharingFilterGrade()" title="Clear filter"></i>
-          </span>
-        ` : ''}
-      </div>
-      <button type="button" class="btn-primary" style="width:auto;padding:9px 18px;font-size:13px;" onclick="toggleAddLessonSharingForm()">
-        <i class="fa-solid ${showAddLessonSharingForm ? 'fa-xmark' : 'fa-plus'}"></i> ${showAddLessonSharingForm ? 'Cancel' : 'Share a Lesson'}
-      </button>
-    </div>
-  `;
-
-  const form = showAddLessonSharingForm ? `
-    <div class="panel settings-card" style="margin-bottom:20px;">
-      <form onsubmit="submitAddLessonSharing(event)">
-        <div class="form-grid-2">
-          <label class="field"><span>Shared by (Teacher)</span>
-            <select id="lshare_teacher" onchange="lessonSharingFormData.teacher=this.value">
-              <option value="" ${!lessonSharingFormData.teacher?'selected':''}>Select teacher</option>
-              ${teacherOpts}
-            </select>
-          </label>
-          <label class="field"><span>Subject&nbsp;<span class="req">*</span></span>
-            <select id="lshare_subject" onchange="lessonSharingFormData.subject=this.value">
-              <option value="" ${!lessonSharingFormData.subject?'selected':''} disabled>Select Subject</option>
-              ${subjectOpts}
-            </select>
-          </label>
-          <label class="field"><span>Grade / Class</span>
-            <select id="lshare_grade" onchange="lessonSharingFormData.grade=this.value">
-              <option value="" ${!lessonSharingFormData.grade?'selected':''}>All classes</option>
-              ${gradeOpts}
-            </select>
-          </label>
-          <label class="field"><span>Resource link (optional)</span>
-            <input id="lshare_link" type="text" placeholder="e.g. Google Drive / OneDrive link" value="${lessonSharingFormData.link}" oninput="lessonSharingFormData.link=this.value">
-          </label>
-          <label class="field" style="grid-column:1 / -1;"><span>Title&nbsp;<span class="req">*</span></span>
-            <input id="lshare_title" type="text" placeholder="e.g. Photosynthesis - Diagram & Worksheet" value="${lessonSharingFormData.title}" oninput="lessonSharingFormData.title=this.value">
-          </label>
-          <label class="field" style="grid-column:1 / -1;"><span>Notes</span>
-            <textarea id="lshare_notes" rows="3" placeholder="What's covered, how to use it, prerequisites..." oninput="lessonSharingFormData.notes=this.value">${lessonSharingFormData.notes}</textarea>
-          </label>
-        </div>
-        <div class="wizard-nav" style="padding:16px 0 0;border-top:none;justify-content:flex-end;">
-          <button type="submit" class="btn-primary" style="width:auto;padding:11px 22px;">
-            <i class="fa-solid fa-floppy-disk"></i> Share Lesson
-          </button>
-        </div>
-      </form>
-    </div>
-  ` : '';
-
-  const rows = filteredList.map(l => `
-    <div class="student-row">
-      <div>
-        <div class="name">${l.title}</div>
-        <div class="guardian">${l.subject}${l.grade ? ' · ' + l.grade : ' · All classes'}${l.teacher ? ' · ' + l.teacher : ''}${l.sharedOn ? ' · ' + l.sharedOn : ''}</div>
-        ${l.notes ? `<div class="guardian" style="margin-top:2px;">${l.notes}</div>` : ''}
-      </div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        ${l.link ? `<a href="${l.link}" target="_blank" rel="noopener" class="link-btn" onclick="event.stopPropagation();" title="Open resource"><i class="fa-solid fa-arrow-up-right-from-square"></i>&nbsp;Open</a>` : ''}
-        <button class="link-btn danger" onclick="deleteLessonSharing(${l.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('') || `<div class="empty" style="padding:24px;">${lessonSharingFilterGrade ? `No lessons shared for ${lessonSharingFilterGrade} yet.` : 'No lessons shared yet. Use "Share a Lesson" to post one for other teachers.'}</div>`;
-
-  let gradeTable = '';
-  if(lessonSharingFilterGrade){
-    if(!grStreams.length) gradeTable = renderLessonSharingGradeTable(lessonSharingFilterGrade);   // grade has no streams yet: show the grade table directly
-    else if(lessonSharingFilterStream) gradeTable = renderLessonSharingGradeTable(lsgScopeKey(lessonSharingFilterGrade, lessonSharingFilterStream));
-    else gradeTable = `<div class="panel" style="margin-bottom:24px;"><div class="empty" style="padding:24px;">Select a stream above to view and manage ${lsgEsc(lessonSharingFilterGrade)} subjects and teachers.</div></div>`;
-  }
-  return `
-    <div class="lsg-compact">
-    ${gradeLinkRow}
-    ${streamRow}
-    ${gradeTable}
-    ${header}
-    ${form}
-    <div class="panel">
-      <div class="list-scroll">${rows}</div>
-    </div>
-    </div>
-  `;
+// ---- Academics > Lesson Sharing: TEACHER'S LESSONS ALLOCATIONS SUMMARY ----
+// One block of rows per teacher (every teacher in Manage Teachers), one row per
+// subject. Subjects come from the teacher's record automatically; extra ones
+// can be added from a drop-down. "Select" opens a check-box list of streams:
+// Individual (each stream taught on its own) or Joint (streams taught together).
+// Picked streams show as codes (10N, 10E ...) in the matching column and
+// NO OF LESSONS is read from Academics > Lessons Allocation.
+let lessonAllocations = {};  // "Teacher||Subject" -> { individual:[classKey], joint:[[classKey,..],..], extra:bool }
+let laEdit = null;           // { key, individual:[], joint:[] } - the row being edited
+let laModal = null;          // { mode:'individual'|'joint', sel:[] } - open stream picker
+let laScope = null;          // null = all teachers (Academics); a name = only that teacher (teacher dashboard)
+function laArg(v){ return "decodeURIComponent('" + encodeURIComponent(v).replace(/'/g, '%27') + "')"; }
+function laKey(tName, subject){ return String(tName || '').trim() + '||' + String(subject || '').trim(); }
+function laStore(key){ return lessonAllocations[key] || { individual:[], joint:[] }; }
+function laSplit(key){ const i = String(key).indexOf('||'); return { g: key.slice(0, i), s: key.slice(i + 2) }; }
+function laClass(classKey){ const { g, s } = laSplit(classKey); return classesList.find(c => c.grade === g && c.stream === s) || null; }
+// 10N, 10E, 10W ... (grade number + the shortest stream prefix that is unique in that grade)
+function laClassCode(classKey){
+  const { g, s } = laSplit(classKey);
+  const num = (g.match(/\d+/) || [g.replace(/\s+/g, '').slice(0, 2)])[0];
+  const me = String(s).trim(), pre = (x, n) => x.replace(/\s+/g, '').slice(0, n).toUpperCase();
+  const sibs = classesList.filter(c => c.grade === g).map(c => String(c.stream || '').trim()).filter(Boolean);
+  let n = 1; while(n < me.length && sibs.some(o => o !== me && pre(o, n) === pre(me, n))) n++;
+  return num + pre(me, n);
 }
+function laWeekly(subject, classKey){ const c = laClass(classKey); return c ? ttSubjectWeeklyLessonsForClass(subject, c) : null; }
+// Individual streams add up; a joint group is one lesson shared by its streams, so it counts once.
+function laLessons(subject, ind, joint){
+  let total = 0, any = false;
+  (ind || []).forEach(k => { any = true; total += laWeekly(subject, k) || 0; });
+  (joint || []).forEach(g => { if(!g.length) return; any = true; total += Math.max(...g.map(k => laWeekly(subject, k) || 0)); });
+  return any ? total : null;
+}
+// Joint lessons already set up for this teacher + subject (Lessons list: one lesson
+// shared by several classes) are picked up automatically, so they show as joint here too.
+function laAutoJoint(tName, subject){
+  const t = String(tName || '').trim().toLowerCase(), sub = String(subject || '').trim().toLowerCase(), out = [], seen = new Set();
+  const order = classesList.map(c => c.grade + '||' + c.stream);
+  (ttLessonsList || []).forEach(l => {
+    if(String(l.subject || '').trim().toLowerCase() !== sub) return;
+    if(![l.teacher].concat(l.coTeachers || []).some(x => String(x || '').trim().toLowerCase() === t)) return;
+    const keys = [...new Set((l.classKeys || []).filter(k => order.includes(k)))];
+    if(keys.length < 2) return;
+    keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    const sig = keys.join('|'); if(!seen.has(sig)){ seen.add(sig); out.push(keys); }
+  });
+  return out;
+}
+// manual joint groups + automatic ones (skipping any group already listed)
+function laJointExtras(key, manual){
+  const { g, s } = laSplit(key), have = new Set((manual || []).map(x => x.join('|')));
+  return laAutoJoint(g, s).filter(x => !have.has(x.join('|')));
+}
+function laTeacherSubjects(t){
+  const nm = teacherFullName(t), seen = new Set(), out = [];
+  const add = (s, extra) => { s = String(s || '').trim(); if(s && !seen.has(s.toLowerCase())){ seen.add(s.toLowerCase()); out.push({ subject:s, extra }); } };
+  (t.subjects || []).forEach(s => add(s, false));
+  Object.keys(lessonAllocations).forEach(k => { const { g, s } = laSplit(k); if(g === nm && lessonAllocations[k].extra) add(s, true); });
+  return out;
+}
+function laRefresh(){
+  const host = document.getElementById('la-host');
+  if(!host){ render(); return; }
+  const sc = host.querySelector('.bsms-table-scroll');
+  const x = sc ? sc.scrollLeft : 0, y = sc ? sc.scrollTop : 0, wy = window.scrollY;
+  host.innerHTML = renderLessonAllocationsInner();
+  const sc2 = host.querySelector('.bsms-table-scroll');
+  if(sc2){ sc2.scrollLeft = x; sc2.scrollTop = y; }
+  window.scrollTo(window.scrollX, wy);
+}
+function laStartEdit(key, quiet){
+  const st = laStore(key);
+  laEdit = { key, individual:[...(st.individual || [])], joint:(st.joint || []).map(g => [...g]) };
+  laModal = null;
+  if(!quiet) laRefresh();
+}
+function laSave(key){
+  if(!laEdit || laEdit.key !== key) return;
+  laCommitPending();
+  const st = lessonAllocations[key] || (lessonAllocations[key] = {});
+  st.individual = [...laEdit.individual];
+  st.joint = laEdit.joint.filter(g => g.length).map(g => [...g]);
+  laEdit = null; laModal = null; laRefresh();
+}
+function laDelete(key){
+  const st = lessonAllocations[key];
+  if(!confirm(st && st.extra ? 'Remove this subject row?' : 'Clear all streams for this subject?')) return;
+  if(st && st.extra) delete lessonAllocations[key]; else lessonAllocations[key] = { individual:[], joint:[] };
+  if(laEdit && laEdit.key === key) laEdit = null;
+  laModal = null; laRefresh();
+}
+function laAddSubject(tName, subject){
+  subject = String(subject || '').trim(); if(!subject) return;
+  const key = laKey(tName, subject);
+  if(!lessonAllocations[key]) lessonAllocations[key] = { individual:[], joint:[], extra:true };
+  laRefresh();
+}
+function laOpenSelect(key){
+  if(!laEdit || laEdit.key !== key) laStartEdit(key, true);
+  laModal = { mode:'individual', sel:[] }; laRefresh();
+}
+// Streams ticked on the Joint tab are kept as a joint group (needs 2+) when you
+// switch tab, press Done or Save - no separate button press required.
+function laCommitPending(){
+  if(laEdit && laModal && laModal.mode === 'joint' && laModal.sel.length >= 2){
+    const order = classesList.map(c => c.grade + '||' + c.stream);
+    laEdit.joint.push([...laModal.sel].sort((a, b) => order.indexOf(a) - order.indexOf(b)));
+  }
+  if(laModal) laModal.sel = [];
+}
+function laSetMode(m){ if(!laModal) return; laCommitPending(); laModal.mode = m; laRefresh(); }
+function laCloseModal(){ laCommitPending(); laModal = null; laRefresh(); }
+function laToggleInd(k, on){ if(!laEdit) return; const s = new Set(laEdit.individual); on ? s.add(k) : s.delete(k); laEdit.individual = [...s]; laRefresh(); }
+function laRemoveInd(k){ laToggleInd(k, false); }
+function laToggleSel(k, on){ if(!laModal) return; const s = new Set(laModal.sel); on ? s.add(k) : s.delete(k); laModal.sel = [...s]; laRefresh(); }
+function laAddJoint(){
+  if(!laEdit || !laModal || laModal.sel.length < 2) return;
+  const order = classesList.map(c => c.grade + '||' + c.stream);
+  laEdit.joint.push([...laModal.sel].sort((a, b) => order.indexOf(a) - order.indexOf(b)));
+  laModal.sel = []; laRefresh();
+}
+function laRemoveJoint(i){ if(laEdit){ laEdit.joint.splice(i, 1); laRefresh(); } }
+function laPickerHtml(subject, teacher){
+  const m = laModal, e = laEdit;
+  const auto = laJointExtras(e.key, e.joint);
+  const inJoint = k => e.joint.some(g => g.includes(k)) || auto.some(g => g.includes(k));
+  const grades = [...new Set(classesList.filter(c => c.stream).map(c => c.grade))];
+  const tab = (id, label) => `<button type="button" onclick="laSetMode('${id}')" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;padding:7px 18px;border:1px solid #2f5fa8;border-radius:0;${m.mode === id ? 'background:#2f5fa8;color:#fff;' : 'background:#fff;color:#2f5fa8;'}">${label}</button>`;
+  const list = grades.map(g => {
+    const boxes = classesList.filter(c => c.grade === g && c.stream).map(c => {
+      const k = g + '||' + c.stream, ind = m.mode === 'individual';
+      const checked = ind ? e.individual.includes(k) : m.sel.includes(k);
+      const off = ind ? inJoint(k) : (e.individual.includes(k) || inJoint(k));
+      return `<label style="display:flex;gap:6px;align-items:center;font-size:13px;padding:3px 0;${off ? 'opacity:.45;' : 'cursor:pointer;'}"><input type="checkbox" data-k="${ssEsc(k)}" ${checked ? 'checked' : ''} ${off ? 'disabled' : ''} onchange="${ind ? 'laToggleInd' : 'laToggleSel'}(this.dataset.k, this.checked)"><b>${ssEsc(laClassCode(k))}</b><span style="color:var(--muted);">${ssEsc(c.stream)}</span></label>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#2f5fa8;margin-bottom:2px;">${ssEsc(g)}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0 12px;">${boxes}</div></div>`;
+  }).join('') || '<div class="empty" style="padding:14px;">No streams yet. Add classes/streams first.</div>';
+  const joint = m.mode === 'joint' ? `
+    <div style="border-top:1px solid #cbd5e1;padding-top:10px;margin-top:4px;">
+      <button type="button" class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;${m.sel.length < 2 ? 'opacity:.45;pointer-events:none;' : ''}" onclick="laAddJoint()">Add joint group${m.sel.length ? ' (' + m.sel.map(laClassCode).join(' + ') + ')' : ''}</button>
+      <span style="font-size:12px;color:var(--muted);margin-left:8px;">Tick two or more streams taught together.</span>
+      ${e.joint.length ? `<div style="margin-top:8px;font-size:13px;">${e.joint.map((g, i) => `<span style="display:inline-block;margin:0 6px 4px 0;padding:3px 8px;background:#e8effb;border:1px solid #2f5fa8;">${ssEsc(g.map(laClassCode).join(' + '))} <a style="cursor:pointer;color:#c0392b;font-weight:700;" onclick="laRemoveJoint(${i})">&times;</a></span>`).join('')}</div>` : ''}
+    </div>` : '';
+  return `<div style="position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;width:min(560px,100%);max-height:88vh;overflow:auto;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.3);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
+        <div><div style="font-weight:700;font-size:15px;">${ssEsc(subject)}</div><div style="font-size:12px;color:var(--muted);">${ssEsc(teacher)}</div></div>
+        <button type="button" class="btn-ghost" style="padding:6px 14px;" onclick="laCloseModal()">Done</button>
+      </div>
+      <div style="display:flex;gap:0;margin-bottom:12px;">${tab('individual', 'Individual streams')}${tab('joint', 'Joint streams')}</div>
+      ${list}${joint}
+    </div></div>`;
+}
+function renderLessonAllocationsInner(){
+  const noSel = 'user-select:none;-webkit-user-select:none;';
+  const allSubjects = ssSubjectOptions();
+  let n = 0, modal = '';
+  const shownTeachers = laScope ? teachersList.filter(t => tNameEq(teacherFullName(t), laScope)) : teachersList;
+  const body = shownTeachers.map(t => {
+    const nm = teacherFullName(t), subs = laTeacherSubjects(t);
+    const have = new Set(subs.map(s => s.subject.toLowerCase()));
+    const addOpts = '<option value="">+ Add subject</option>' + allSubjects.filter(s => !have.has(s.toLowerCase())).map(s => `<option value="${ssEsc(s)}">${ssEsc(s)}</option>`).join('');
+    const span = Math.max(subs.length, 1);
+    n++;
+    const first = `<td rowspan="${span}" style="text-align:center;vertical-align:top;padding:8px;">${n}.</td><td rowspan="${span}" style="vertical-align:top;padding:8px;"><div style="font-weight:700;text-transform:uppercase;">${ssEsc(nm)}</div><select style="margin-top:6px;width:100%;box-sizing:border-box;padding:4px;font-family:inherit;font-size:12px;border:1px solid #94a3b8;border-radius:0;" onchange="laAddSubject(${laArg(nm)}, this.value)">${addOpts}</select></td>`;
+    if(!subs.length) return `<tr style="${noSel}">${first}<td colspan="6" style="padding:8px;color:var(--muted);font-size:13px;">No subjects yet — add one from the drop-down, or assign subjects in Manage Teachers.</td></tr>`;
+    return subs.map((s, i) => {
+      const key = laKey(nm, s.subject), editing = laEdit && laEdit.key === key;
+      const src = editing ? laEdit : laStore(key);
+      const ind = src.individual || [], joint = src.joint || [];
+      const autoJ = laJointExtras(key, joint);
+      const lessons = laLessons(s.subject, ind, joint.concat(autoJ));
+      if(editing && laModal) modal = laPickerHtml(s.subject, nm);
+      const chip = (txt, rm) => `<span style="display:inline-block;margin:0 5px 3px 0;white-space:nowrap;">${ssEsc(txt)}${editing ? ` <a style="cursor:pointer;color:#c0392b;font-weight:700;" onclick="${rm}">&times;</a>` : ''}</span>`;
+      const act = (label, fn, on, cls) => `<button type="button" class="link-btn ${cls || ''}" style="${on ? '' : 'opacity:.4;pointer-events:none;'}" onclick="${fn}">${label}</button>`;
+      return `<tr style="${noSel}">${i === 0 ? first : ''}
+        <td style="padding:8px;font-weight:600;text-transform:uppercase;">${i + 1}. ${ssEsc(s.subject)}</td>
+        <td style="padding:8px;text-align:center;"><button type="button" class="link-btn" onclick="laOpenSelect(${laArg(key)})">Select</button></td>
+        <td style="padding:8px;">${ind.map(k => chip(laClassCode(k), `laRemoveInd(${laArg(k)})`)).join('')}</td>
+        <td style="padding:8px;">${joint.map((g, j) => chip(g.map(laClassCode).join('+'), `laRemoveJoint(${j})`)).join('')}${editing && laModal && laModal.mode === 'joint' && laModal.sel.length ? `<span style="display:inline-block;margin:0 5px 3px 0;white-space:nowrap;font-style:italic;color:#2f5fa8;">${ssEsc(laModal.sel.map(laClassCode).join('+'))}${laModal.sel.length < 2 ? ' (tick 2+)' : ''}</span>` : ''}${autoJ.map(g => `<span title="Joint lesson from the Lessons list" style="display:inline-block;margin:0 5px 3px 0;white-space:nowrap;">${ssEsc(g.map(laClassCode).join('+'))}</span>`).join('')}</td>
+        <td style="padding:8px;text-align:center;font-weight:700;">${lessons === null ? '' : lessons}</td>
+        <td style="padding:8px;white-space:nowrap;text-align:center;">${act('<i class="fa-solid fa-pen"></i>&nbsp;Edit', `laStartEdit(${laArg(key)})`, !editing)}${act('<i class="fa-solid fa-floppy-disk"></i>&nbsp;Save', `laSave(${laArg(key)})`, editing)}${act('<i class="fa-solid fa-trash"></i>&nbsp;Delete', `laDelete(${laArg(key)})`, true, 'danger')}</td>
+      </tr>`;
+    }).join('');
+  }).join('') || `<tr><td colspan="8" class="empty">${laScope ? 'No teacher record was found for this login, so there are no subjects to allocate.' : 'No teachers yet. Add them in Teachers &gt; Add New Teacher.'}</td></tr>`;
+  return `
+    <style>#la-host td,#la-host th{border:1px solid #cbd5e1;}</style>
+    <div style="text-align:center;font-weight:700;font-size:16px;letter-spacing:.3px;padding:14px 4px;">${laScope ? 'MY LESSONS ALLOCATION' : "TEACHER'S LESSONS ALLOCATIONS SUMMARY"}</div>
+    ${laScope ? '<div style="text-align:center;font-size:12px;color:var(--muted);margin:-8px 0 10px;">What you save here updates Academics &gt; Lesson Sharing immediately.</div>' : ''}
+    <div class="bsms-table-card"><div class="bsms-table-scroll">
+      <table class="bsms-table" style="width:100%;table-layout:fixed;min-width:980px;border-collapse:collapse;">
+        <thead>
+          <tr style="text-transform:uppercase;font-weight:700;">
+            <th rowspan="2" style="width:52px;text-align:center;">S/NO</th><th rowspan="2" style="width:17%;text-align:center;">Name</th><th rowspan="2" style="width:19%;text-align:center;">Subject</th>
+            <th colspan="3" style="text-align:center;">Stream</th><th rowspan="2" style="width:112px;text-align:center;">No of Lessons</th><th rowspan="2" style="width:200px;text-align:center;">Actions</th>
+          </tr>
+          <tr style="text-transform:uppercase;font-weight:700;"><th style="width:72px;text-align:center;">Select</th><th style="text-align:center;">Individual STRMS</th><th style="text-align:center;">Joint STRMS</th></tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div></div>${modal}`;
+}
+function renderLessonSharingTab(){
+  laScope = null;
+  return `<div id="la-host">${renderLessonAllocationsInner()}</div>`;
+}
+// Teacher dashboard: the same sheet, limited to the logged-in teacher. It reads and
+// writes the same lessonAllocations store, so Academics always shows what they filled.
+function renderMyLessonAllocations(){
+  laScope = currentUserName || '';
+  return `<div id="la-host">${renderLessonAllocationsInner()}</div>`;
+}
+document.addEventListener('mousedown', e => { if(e.detail > 1 && e.target.closest && e.target.closest('#la-host') && !e.target.closest('input[type=number],select')) e.preventDefault(); });
 
 
 function examsTabPlaceholder(title, note){
