@@ -22,13 +22,16 @@
 
   var pill=document.createElement('button');
   pill.type='button';
-  pill.style.cssText='position:fixed;left:10px;bottom:10px;z-index:2147483000;border:0;border-radius:999px;padding:6px 12px;font:600 12px Inter,sans-serif;cursor:pointer;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  pill.style.cssText='display:none;position:fixed;left:10px;bottom:10px;z-index:2147483000;border:0;border-radius:999px;padding:6px 12px;font:600 12px Inter,sans-serif;cursor:pointer;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)';
   function paint(){
     var m={off:['#6b7a99','Cloud: sign in'],ok:['#1a9b5a','Cloud: saved'],sync:['#e0900b','Cloud: saving…'],err:['#d63a3a','Cloud: error — retry']}[state];
     pill.style.background=m[0]; pill.textContent='☁ '+m[1].replace('Cloud: ','');
   }
-  function setState(s){ state=s; paint(); }
+  function setState(s){ state=s; paint(); try{ window.dispatchEvent(new Event('masms-cloud')); }catch(e){} }
   pill.onclick=function(){ if(!token||state==='err') openDialog(); else if(confirm('Sign out of cloud sync?')){ token=null; ready=false; try{localStorage.removeItem(TOKEN_KEY);}catch(e){} setState('off'); } };
+
+  // used by the top-bar / mobile menu "cloud" link
+  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: saving…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; } };
 
   function openDialog(){
     api('GET','/auth/status').catch(function(){return {};}).then(function(st){

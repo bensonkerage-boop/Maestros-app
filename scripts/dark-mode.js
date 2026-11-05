@@ -14,7 +14,7 @@
     // Surfaces that are already dark in light mode keep their navy look (their own colours are re-inverted)
     'html[data-theme="dark"] .login-page,html[data-theme="dark"] .sidebar,html[data-theme="dark"] .login-cert-frame{filter:invert(.92) hue-rotate(180deg)}',
     'html[data-theme="dark"] .sidebar img{filter:none}',
-    '#masmsThemeBtn{position:fixed;left:10px;bottom:46px;z-index:2147483000;width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;background:#152c58;color:#fff;font-size:16px;line-height:34px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .3s ease}',
+    '#masmsThemeBtn{display:none!important;position:fixed;left:10px;bottom:46px;z-index:2147483000;width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;background:#152c58;color:#fff;font-size:16px;line-height:34px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .3s ease}',
     '#masmsThemeBtn:hover{transform:rotate(25deg) scale(1.08)}',
     '@media print{html[data-theme="dark"],html[data-theme="dark"] img,html[data-theme="dark"] canvas{filter:none!important}#masmsThemeBtn{display:none}}'
   ].join('\n');
@@ -29,6 +29,7 @@
     if (animate){ el.classList.add('theme-anim'); win.setTimeout(function(){ el.classList.remove('theme-anim'); }, 600); }
     el.setAttribute('data-theme', theme);
     var b = win.document.getElementById('masmsThemeBtn');
+    try{ win.dispatchEvent(new win.Event('masms-theme')); }catch(e){}
     if (b){ b.textContent = theme === 'dark' ? '☀' : '☾'; b.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', String(theme === 'dark')); }
     return theme;
   }
@@ -37,6 +38,7 @@
   function init(){
     var d = win.document;
     if (!d.getElementById('masmsThemeCss')){ var st = d.createElement('style'); st.id = 'masmsThemeCss'; st.textContent = CSS; (d.head || d.documentElement).appendChild(st); }
+    win.MASMS_THEME = { toggle: toggle, current: function(){ return win.document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; } };
     apply(resolve(), false);                       // before first paint: no flash
     function mount(){
       if (d.getElementById('masmsThemeBtn')) return;

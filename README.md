@@ -41,8 +41,15 @@ npm test
 - Timetable auto-fill: double lessons never sit directly against another double (a break between them counts as a gap). It retries several arrangements first and only lets two doubles touch when the week has no other slot for them.
 - `qrcode.min.js` has no browser build on npm, so QR features stay disabled as before (the page tolerates it).
 
+## Finance notes
+- **Student Fee Accounts** is built from the live fee structure, payments, scholarships/discounts and fines (billed / paid / balance / status). Payments are matched to learners by admission number, so two learners with the same name never share payments. Arrears ageing counts days from the first day of the oldest unpaid term (from Settings term dates).
+- **Receipt (RCPT-) and voucher (PV-) numbers** and the cash-book opening balance are saved per school (`financeMeta`) and re-derived from the records on load, so numbers are never reissued after a reload or restore. Receipts/vouchers are cancelled, not deleted; only already-cancelled ones can be removed.
+- **Payroll** is monthly (pick the pay period). Basic + allowances = gross; NSSF (Year 4: Ksh 9,000 / 108,000 limits, 6% each side), SHIF 2.75% (min Ksh 300), Affordable Housing Levy 1.5% each side, then PAYE (monthly bands, Ksh 2,400 personal relief). Constants are at the top of the payroll block (`NSSF_TIER_*`, `SHIF_*`, `AHL_RATE`, `PAYE_BANDS`) - update them when rates change. Paid salaries post to the cash book, ledger and Income & Expenditure; statutory deductions sit in *Statutory Deductions Payable* until marked remitted. Payslip PDF per employee; *Payroll Statutory Summary* report.
+- **Budget & Variance** actuals fill in from logged expenses (see `BUDGET_EXPENSE_MAP`); a typed actual overrides.
+- Ledger / trial balance exclude cancelled receipts and vouchers, matching the cash book.
+
 ## Tests & tools
-- `npm test` – Jest: API/auth/data (18), dark mode (jsdom), double-lesson placement and welcome-password logic (run against the real source functions), and source checks (scripts parse, undefined-variable lint, regression for fixed bugs, build output)
+- `npm test` – Jest: API/auth/data (18), finance (payroll maths, ledger balance, counters, accounts/arrears), dark mode (jsdom), double-lesson placement and welcome-password logic (run against the real source functions), and source checks (scripts parse, undefined-variable lint, regression for fixed bugs, build output)
 - `npm run standalone` – writes `dist/MASMS_standalone.html` (patched app + dark mode) for the desktop wrapper
 - Dark mode: moon/sun button bottom-left, remembers the choice, follows the system setting on first visit
 

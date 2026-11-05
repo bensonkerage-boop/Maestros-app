@@ -732,6 +732,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     font-size:13px;width:150px;
   }
   .search-cell input::placeholder{color:rgba(219,234,254,0.6);}
+  .quick-cell{gap:14px;}
+  .quick-link{display:inline-flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;}
+  .quick-link:hover{text-decoration:underline;}
+  .quick-link i{color:rgba(219,234,254,0.9);font-size:13px;}
   .marks-over{border-color:#dc2626 !important;background:#fef2f2 !important;color:#b91c1c !important;outline:1px solid #dc2626;}
   .marks-warn{color:#b91c1c;font-size:11.5px;font-weight:700;line-height:1.3;}
   .login-cell{
@@ -2963,6 +2967,67 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .finance-tab-card.active{background:#0057FF;border-color:#0046D1;box-shadow:0 4px 14px rgba(0,87,255,0.32);}
   .finance-tab-card.active i,.finance-tab-card.active .lbl{color:#fff;}
 
+  /* Students / Teachers / Classes / Academics / Examinations cards:
+     identical size, spacing and colours to the Finance sub-tab cards above. */
+  .compact-tab-cards .reg-card-row,
+  .teacher-tab-cards .reg-card-row,
+  .bom-tab-cards .reg-card-row,
+  .exams-hub-cards.reg-card-row,
+  .reg-subject-tab-row{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:10px;margin-bottom:18px;
+  }
+  .compact-tab-cards .reg-card,
+  .teacher-tab-cards .reg-card,
+  .bom-tab-cards .reg-card,
+  .exams-hub-cards .reg-card,
+  .reg-subject-tab-card{
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;
+    background:#e6edff;
+    border:1px solid rgba(0,87,255,0.28);
+    border-radius:0;
+    padding:12px 14px;
+    font-family:inherit;text-align:left;cursor:pointer;
+    transition:.15s ease;
+    transform:none;
+  }
+  .compact-tab-cards .reg-card .reg-card-icon,
+  .teacher-tab-cards .reg-card .reg-card-icon,
+  .bom-tab-cards .reg-card .reg-card-icon,
+  .exams-hub-cards .reg-card .reg-card-icon{
+    width:auto;height:auto;background:none;border-radius:0;
+    color:#0057FF;font-size:15px;display:block;
+  }
+  .reg-subject-tab-card i{color:#0057FF;font-size:15px;}
+  .compact-tab-cards .reg-card .reg-card-label,
+  .teacher-tab-cards .reg-card .reg-card-label,
+  .bom-tab-cards .reg-card .reg-card-label,
+  .exams-hub-cards .reg-card .reg-card-label,
+  .reg-subject-tab-card .lbl{font-weight:700;font-size:12.5px;color:var(--text);line-height:1.3;}
+  .compact-tab-cards .reg-card .reg-card-sub,
+  .teacher-tab-cards .reg-card .reg-card-sub,
+  .bom-tab-cards .reg-card .reg-card-sub,
+  .exams-hub-cards .reg-card .reg-card-sub{display:none;}
+  .compact-tab-cards .reg-card:hover,
+  .teacher-tab-cards .reg-card:hover,
+  .bom-tab-cards .reg-card:hover,
+  .exams-hub-cards .reg-card:hover,
+  .reg-subject-tab-card:hover{background:#dce7ff;border-color:rgba(0,87,255,0.28);box-shadow:0 4px 12px rgba(0,87,255,0.18);transform:none;}
+  .compact-tab-cards .reg-card.active,
+  .teacher-tab-cards .reg-card.active,
+  .bom-tab-cards .reg-card.active,
+  .exams-hub-cards .reg-card.active,
+  .reg-subject-tab-card.active{background:#0057FF;border-color:#0046D1;box-shadow:0 4px 14px rgba(0,87,255,0.32);}
+  .compact-tab-cards .reg-card.active .reg-card-icon,
+  .compact-tab-cards .reg-card.active .reg-card-label,
+  .teacher-tab-cards .reg-card.active .reg-card-icon,
+  .teacher-tab-cards .reg-card.active .reg-card-label,
+  .bom-tab-cards .reg-card.active .reg-card-icon,
+  .bom-tab-cards .reg-card.active .reg-card-label,
+  .exams-hub-cards .reg-card.active .reg-card-icon,
+  .exams-hub-cards .reg-card.active .reg-card-label,
+  .reg-subject-tab-card.active i,.reg-subject-tab-card.active .lbl{color:#fff;}
+
   /* Receive Payment: payment-method chip selector */
   .rp-method-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
   .rp-method-option{
@@ -3478,6 +3543,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .receipt-items-table th.num, .receipt-items-table td.num{text-align:right;}
 
   /* Excel-style grid table used for Marks Entry: visible cell boundary lines. */
+  .las-title{margin:16px 0 10px;text-align:center;font-size:17px;font-weight:800;letter-spacing:.01em;color:var(--text);}
+  .las-table{width:100%;min-width:980px;border-collapse:collapse;font-size:13px;color:var(--text);}
+  .las-table th,.las-table td{border:1px solid var(--text);padding:6px 8px;text-align:left;vertical-align:middle;}
+  .las-table th{text-align:center;font-weight:600;font-size:12.5px;line-height:1.25;background:transparent;}
+  .las-table td.num{text-align:center;width:56px;}
+  .las-table .las-up{text-transform:uppercase;}
+  .las-table .las-actions-h{text-align:center;vertical-align:bottom;}
+  .las-table td.las-act{width:62px;padding:0;text-align:center;}
+  .las-btn{width:100%;border:0;background:transparent;color:var(--text);font:inherit;padding:6px 8px;cursor:pointer;text-align:left;}
+  .las-btn:hover:not(:disabled){background:rgba(30,58,138,.08);text-decoration:underline;}
+  .las-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .las-btn.las-save:not(:disabled){font-weight:700;color:#15803d;}
+  .las-btn.las-del{color:#b91c1c;}
+  .las-input{width:100%;min-width:130px;box-sizing:border-box;padding:5px 6px;font:inherit;border:1px solid var(--border);background:var(--surface,#fff);color:var(--text);}
+  .las-editing td{background:rgba(250,204,21,.12);}
   .excel-table{width:100%;border-collapse:collapse;font-size:13.5px;}
   .excel-table th{background:transparent;color:#000;text-align:left;padding:9px 12px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--border);}
   .excel-table td{padding:8px 12px;border:1px solid var(--border);color:var(--text);}
@@ -4795,7 +4875,7 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
     // Surfaces that are already dark in light mode keep their navy look (their own colours are re-inverted)
     'html[data-theme="dark"] .login-page,html[data-theme="dark"] .sidebar,html[data-theme="dark"] .login-cert-frame{filter:invert(.92) hue-rotate(180deg)}',
     'html[data-theme="dark"] .sidebar img{filter:none}',
-    '#masmsThemeBtn{position:fixed;left:10px;bottom:46px;z-index:2147483000;width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;background:#152c58;color:#fff;font-size:16px;line-height:34px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .3s ease}',
+    '#masmsThemeBtn{display:none!important;position:fixed;left:10px;bottom:46px;z-index:2147483000;width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;background:#152c58;color:#fff;font-size:16px;line-height:34px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .3s ease}',
     '#masmsThemeBtn:hover{transform:rotate(25deg) scale(1.08)}',
     '@media print{html[data-theme="dark"],html[data-theme="dark"] img,html[data-theme="dark"] canvas{filter:none!important}#masmsThemeBtn{display:none}}'
   ].join('\n');
@@ -4810,6 +4890,7 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
     if (animate){ el.classList.add('theme-anim'); win.setTimeout(function(){ el.classList.remove('theme-anim'); }, 600); }
     el.setAttribute('data-theme', theme);
     var b = win.document.getElementById('masmsThemeBtn');
+    try{ win.dispatchEvent(new win.Event('masms-theme')); }catch(e){}
     if (b){ b.textContent = theme === 'dark' ? '☀' : '☾'; b.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', String(theme === 'dark')); }
     return theme;
   }
@@ -4818,6 +4899,7 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
   function init(){
     var d = win.document;
     if (!d.getElementById('masmsThemeCss')){ var st = d.createElement('style'); st.id = 'masmsThemeCss'; st.textContent = CSS; (d.head || d.documentElement).appendChild(st); }
+    win.MASMS_THEME = { toggle: toggle, current: function(){ return win.document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; } };
     apply(resolve(), false);                       // before first paint: no flash
     function mount(){
       if (d.getElementById('masmsThemeBtn')) return;
@@ -6317,11 +6399,102 @@ function renderAbsenceReasonField(admissionNumber, dateISO, note){
 // "Patrick Kimani"s or two "Peter Otieno"s in this roster) are never mixed
 // up when messaging guardians. `student` is the display name, derived once
 // below from the roster so it always matches the actual record.
+// `invoices` is rebuilt from the live fee structure, payments, adjustments
+// and fines by refreshInvoices() (once per render) — it is never typed in.
 const invoices = [];
-invoices.forEach(inv => {
-  const s = studentByAdmissionNumber(inv.admissionNumber);
-  inv.student = s ? fullName(s) : "Unknown student";
-});
+let invoicesDirty = true;
+
+// Groups active payments by admission number so a student's payments are
+// found by the unique key. A payment saved without an admission number
+// falls back to the student's name, but only when that name belongs to
+// exactly one learner (two "Peter Otieno"s must never share payments).
+function buildPaymentIndex(){
+  const byAdm = new Map(), byName = new Map(), nameCount = new Map();
+  students.forEach(s => { const n = fullName(s); nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+  const push = (m, k, p) => { if(!m.has(k)) m.set(k, []); m.get(k).push(p); };
+  activePayments().forEach(p => {
+    const adm = String(p.admissionNo || '').trim();
+    if(adm) push(byAdm, adm, p); else push(byName, String(p.student || '').trim(), p);
+  });
+  return {
+    for(s){
+      const adm = String(s.admissionNumber || '').trim();
+      const n = fullName(s);
+      const list = adm && byAdm.has(adm) ? byAdm.get(adm).slice() : [];
+      if(nameCount.get(n) === 1 && byName.has(n)) list.push(...byName.get(n));
+      return list;
+    }
+  };
+}
+const sumPaymentAmounts = list => list.reduce((t, p) => t + parseAmountKsh(p.amount), 0);
+
+// One student's fee position: what's billed (fee structure + fines −
+// scholarships/discounts), what's been paid, and the balance. A negative
+// balance is an overpayment (credit).
+function studentAccountSummary(s, pidx, term){
+  const type = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
+  const gross = feeStructureItems
+    .filter(f => f.grade === s.grade && (!term || f.term === term) && (!f.studentType || f.studentType === type))
+    .reduce((t, f) => t + parseAmountKsh(f.amount), 0);
+  const adjustments = studentTotalAdjustments(s.admissionNumber);
+  const fines = studentTotalLibraryFines(s.admissionNumber) + studentTotalLabFines(s.admissionNumber);
+  const expected = Math.max(gross + fines - adjustments, 0);
+  const paid = sumPaymentAmounts(pidx.for(s).filter(p => !term || !p.term || p.term === term));
+  return { gross, fines, adjustments, expected, paid, balance: expected - paid };
+}
+
+// Term fees fall due on the first day of term (from the school's term
+// dates; the standard dates are the fallback).
+function feeTermStartDate(term){
+  const year = parseInt(getSchoolProfile(currentSchool).academicYear, 10) || new Date().getFullYear();
+  const td = termDates && termDates[year] && termDates[year][term];
+  if(td && td.start){ const d = new Date(td.start + 'T00:00:00'); if(!isNaN(d.getTime())) return d; }
+  const d = new Date(`${FEE_TERM_START_DATES[term] || '05 Jan'} ${year}`);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+// How long the student's oldest unpaid fees have been due. Each term's
+// payment clears that term first; scholarships, un-termed payments and any
+// term overpayment then clear the oldest terms in order. The first term
+// still unpaid sets the due date.
+function studentOverdueSince(s, pidx){
+  const type = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
+  const pays = pidx.for(s);
+  let extra = studentTotalAdjustments(s.admissionNumber) + sumPaymentAmounts(pays.filter(p => !p.term));
+  const rem = {};
+  FEE_TERM_OPTIONS.forEach(t => {
+    const due = feeStructureItems
+      .filter(f => f.grade === s.grade && f.term === t && (!f.studentType || f.studentType === type))
+      .reduce((a, f) => a + parseAmountKsh(f.amount), 0);
+    rem[t] = due - sumPaymentAmounts(pays.filter(p => p.term === t));
+    if(rem[t] < 0){ extra += -rem[t]; rem[t] = 0; }
+  });
+  for(const t of FEE_TERM_OPTIONS){
+    const use = Math.min(extra, rem[t]); rem[t] -= use; extra -= use;
+  }
+  const oldest = FEE_TERM_OPTIONS.find(t => rem[t] > 0.5);
+  if(!oldest) return { days: 0, term: '' };
+  const days = Math.floor((Date.now() - feeTermStartDate(oldest).getTime()) / 86400000);
+  return { days: Math.max(days, 0), term: oldest };
+}
+
+function refreshInvoices(){
+  if(!invoicesDirty) return invoices;
+  invoicesDirty = false;
+  const pidx = buildPaymentIndex();
+  invoices.length = 0;
+  students.forEach(s => {
+    const a = studentAccountSummary(s, pidx, "");
+    if(a.expected <= 0 && a.paid <= 0) return; // nothing billed or paid: no fee record
+    let status = "Paid";
+    if(a.balance > 0.5) status = studentOverdueSince(s, pidx).days > 30 ? "Overdue" : "Pending";
+    invoices.push({
+      admissionNumber: s.admissionNumber, student: fullName(s), grade: s.grade,
+      billed: a.expected, paid: a.paid, balance: a.balance,
+      amount: Math.round(Math.max(a.balance, 0)).toLocaleString('en-KE'), status,
+    });
+  });
+  return invoices;
+}
 
 // Looks up a student's grade/class for an invoice, via admission number
 // (falls back to a name match for any invoice missing one).
@@ -6336,6 +6509,7 @@ let acctClassFilter = "";
 function setAcctSearch(v){ acctSearch = v; render(); }
 function setAcctClassFilter(v){ acctClassFilter = v; render(); }
 function filteredAccountInvoices(){
+  refreshInvoices();
   const q = acctSearch.trim().toLowerCase();
   return invoices.filter(inv => {
     const matchesSearch = !q || inv.student.toLowerCase().includes(q);
@@ -6372,14 +6546,8 @@ function clearArrearsFilters(){
   render();
 }
 
-// No per-invoice due date is tracked in this data set, so "outstanding
-// period" is derived deterministically from the admission number (stable
-// across renders, unlike Math.random) purely to give the filter something
-// consistent to bucket on.
-function arrearsOutstandingDays(admissionNumber){
-  const n = parseInt(String(admissionNumber).replace(/[^0-9]/g,''), 10) || 0;
-  return (n * 37) % 120;
-}
+// "Outstanding period" is real: days since the first day of the oldest
+// term whose fees are still unpaid (see studentOverdueSince).
 function arrearsOutstandingBucket(days){
   if(days <= 30) return "0-30 days";
   if(days <= 60) return "31-60 days";
@@ -6391,22 +6559,12 @@ function arrearsOutstandingBucket(days){
 // applied) — one row per student who owes money for arrearsTermFilter
 // (or across all terms, when no term is chosen).
 function computeFeeArrears(){
+  const pidx = buildPaymentIndex();
   return students.map(s => {
-    const studentType = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
-    const grossExpected = feeStructureItems
-      .filter(f => f.grade === s.grade && (!arrearsTermFilter || f.term === arrearsTermFilter) &&
-        (!f.studentType || f.studentType === studentType))
-      .reduce((sum, f) => sum + parseAmountKsh(f.amount), 0);
     // Scholarships/discounts/waivers reduce what's actually owed, while
     // library fines add to it, so arrears reflect the true amount payable.
-    const adjustments = studentTotalAdjustments(s.admissionNumber);
-    const fines = studentTotalLibraryFines(s.admissionNumber) + studentTotalLabFines(s.admissionNumber);
-    const expected = Math.max(grossExpected + fines - adjustments, 0);
-    const paid = activePayments()
-      .filter(p => p.student === fullName(s) && (!arrearsTermFilter || !p.term || p.term === arrearsTermFilter))
-      .reduce((sum, p) => sum + parseAmountKsh(p.amount), 0);
-    const balance = expected - paid;
-    const days = arrearsOutstandingDays(s.admissionNumber);
+    const { expected, paid, balance } = studentAccountSummary(s, pidx, arrearsTermFilter);
+    const days = balance > 0.5 ? studentOverdueSince(s, pidx).days : 0;
     return {
       admissionNumber: s.admissionNumber,
       student: fullName(s),
@@ -6438,6 +6596,7 @@ function computeClassStreamCollection(){
   });
   return Object.values(groups).map(g => {
     let tuition = 0, operations = 0, mif = 0, totalPaid = 0;
+    const pidx = buildPaymentIndex();
     g.students.forEach(s => {
       const studentType = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
       feeStructureItems
@@ -6448,9 +6607,7 @@ function computeClassStreamCollection(){
           else if(f.category === 'Medical / Insurance') mif += amt;
           else operations += amt;
         });
-      totalPaid += activePayments()
-        .filter(p => p.student === fullName(s))
-        .reduce((sum,p) => sum + parseAmountKsh(p.amount), 0);
+      totalPaid += sumPaymentAmounts(pidx.for(s));
     });
     const feesCharged = tuition + operations + mif;
     const balance = Math.max(feesCharged - totalPaid, 0);
@@ -6499,6 +6656,7 @@ function filteredFeeArrears(){
 }
 
 function renderFinanceAccountsTab(){
+  refreshInvoices();
   const statusClass = { Paid:"status-paid", Pending:"status-pending", Overdue:"status-overdue" };
   const filtered = filteredAccountInvoices();
   const rows = filtered.map(inv => `
@@ -6507,7 +6665,9 @@ function renderFinanceAccountsTab(){
       <td style="color:var(--muted);">${studentGradeForInvoice(inv)||'—'}</td>
       <td style="color:var(--muted);">${smsGuardianPhone(inv.admissionNumber)}</td>
       <td style="color:var(--muted);">${smsGuardianEmail(inv.admissionNumber)}</td>
-      <td style="color:var(--muted);">${inv.amount}</td>
+      <td style="color:var(--muted);">${formatKsh(inv.billed)}</td>
+      <td style="color:var(--muted);">${formatKsh(inv.paid)}</td>
+      <td style="font-weight:700;color:${inv.balance>0.5?'var(--rose)':'var(--green)'};">${inv.balance < -0.5 ? 'Credit ' + formatKsh(-inv.balance) : formatKsh(Math.max(inv.balance,0))}</td>
       <td><span class="pill-status ${statusClass[inv.status]}">${inv.status}</span></td>
       <td style="white-space:nowrap;">
         <button class="link-btn" onclick="openContactEditModal(${students.findIndex(s => s.admissionNumber === inv.admissionNumber)})" title="Edit contact"><i class="fa-solid fa-pen"></i></button>
@@ -6515,7 +6675,7 @@ function renderFinanceAccountsTab(){
         <button class="link-btn" onclick="openParentFeeStatement('${inv.admissionNumber.replace(/'/g,"\\'")}')" title="Fee statement (print/PDF)"><i class="fa-solid fa-file-invoice"></i> Statement</button>
       </td>
     </tr>
-  `).join('') || `<tr><td colspan="7" class="empty">No students match your search/filter.</td></tr>`;
+  `).join('') || `<tr><td colspan="9" class="empty">${invoices.length ? 'No students match your search/filter.' : 'No fee records yet — add the fee structure and learners, then payments will show here.'}</td></tr>`;
   const collected = invoices.filter(i=>i.status==="Paid").length;
   const outstanding = invoices.filter(i=>i.status!=="Paid").length;
   const classOptions = [...new Set(students.map(s => s.grade).filter(Boolean))];
@@ -6549,14 +6709,15 @@ function renderFinanceAccountsTab(){
   return `
     ${toolbar}
     <div class="stat-cards">
-      <div class="stat-card"><div class="lbl">Collected this term</div><div class="val">Ksh 8,420,000</div></div>
-      <div class="stat-card"><div class="lbl">Outstanding</div><div class="val" style="color:var(--rose);">Ksh 675,000</div></div>
+      <div class="stat-card"><div class="lbl">Total billed</div><div class="val">${formatKsh(invoices.reduce((t,i)=>t+i.billed,0))}</div></div>
+      <div class="stat-card"><div class="lbl">Collected</div><div class="val" style="color:var(--green);">${formatKsh(invoices.reduce((t,i)=>t+i.paid,0))}</div></div>
+      <div class="stat-card"><div class="lbl">Outstanding</div><div class="val" style="color:var(--rose);">${formatKsh(invoices.reduce((t,i)=>t+Math.max(i.balance,0),0))}</div></div>
       <div class="stat-card"><div class="lbl">Accounts fully paid</div><div class="val">${collected}/${invoices.length}</div></div>
     </div>
     <div class="panel" style="overflow:hidden;">
       <div class="streams-scroll">
         <table>
-          <thead><tr><th>Student</th><th>Class</th><th>Phone</th><th>Email</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Student</th><th>Class</th><th>Phone</th><th>Email</th><th>Billed</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -6882,7 +7043,7 @@ function buildStudentFeeLedger(student){
       entries.push({ dateStr, sortDate: new Date(dateStr), description: `${term} Fees`, debit: due, credit: 0 });
     }
   });
-  activePayments().filter(p => p.student === fullName(student)).forEach(p => {
+  buildPaymentIndex().for(student).forEach(p => {
     const parsed = new Date(p.date);
     entries.push({
       dateStr: String(p.date).split(',')[0].trim(),
@@ -7866,7 +8027,7 @@ function personalizeFeeSms(text, student, amount){
 function openSmsModal(){
   const list = filteredAccountInvoices();
   smsSelected = {};
-  list.forEach(inv => { smsSelected[inv.admissionNumber] = true; });
+  list.forEach(inv => { if(inv.status !== 'Paid') smsSelected[inv.admissionNumber] = true; });
   smsMessage = FEE_SMS_DEFAULT_TEMPLATE;
   feeEmailSubject = FEE_EMAIL_DEFAULT_SUBJECT;
   feeMsgMode = "sms";
@@ -8146,7 +8307,7 @@ let feeStructureItems = [
 // different voteheads.
 let fsStudentType = "Boarders";
 let paymentsLog = [];
-let nextReceiptNo = 1003;
+let nextReceiptNo = 1;
 function newReceiptNo(){ return "RCPT-" + String(nextReceiptNo++).padStart(6,"0"); }
 let incomeEntries = [];
 let expenseEntries = [];
@@ -8155,7 +8316,7 @@ let expenseEntries = [];
 // issuedVoucherNumbers permanently records every number ever handed out —
 // deleting or editing an expense later never frees its number back up, so
 // a given voucher number can never be issued a second time.
-let nextVoucherNo = 3; // next number to hand out; PV-001 and PV-002 above are already spoken for
+let nextVoucherNo = 1; // next number to hand out
 let issuedVoucherNumbers = new Set(expenseEntries.map(e => e.voucherNo).filter(Boolean));
 function generateVoucherNo(){
   let voucherNo;
@@ -8167,6 +8328,25 @@ function generateVoucherNo(){
   return voucherNo;
 
 }
+// Receipt / voucher counters and the cash-book opening balance belong to
+// each school and must survive a reload, a backup restore and a school
+// switch — otherwise numbers restart and receipts/vouchers get duplicated.
+// The counters are also re-derived from the records themselves (highest
+// number ever issued + 1) so an older save that never stored them is safe.
+function collectFinanceMeta(){
+  return { nextReceiptNo, nextVoucherNo, issuedVoucherNumbers: [...issuedVoucherNumbers], cashOpeningBalance };
+}
+function applyFinanceMeta(m){
+  m = (m && typeof m === 'object') ? m : {};
+  const numOf = v => parseInt(String(v || '').replace(/\D/g, ''), 10) || 0;
+  cashOpeningBalance = Number(m.cashOpeningBalance) || 0;
+  const rMax = paymentsLog.reduce((mx, p) => Math.max(mx, numOf(p.receiptNo)), 0);
+  nextReceiptNo = Math.max(Number(m.nextReceiptNo) || 1, rMax + 1);
+  issuedVoucherNumbers = new Set([...(Array.isArray(m.issuedVoucherNumbers) ? m.issuedVoucherNumbers : []), ...expenseEntries.map(e => e.voucherNo).filter(Boolean)]);
+  const vMax = [...issuedVoucherNumbers].reduce((mx, v) => Math.max(mx, numOf(v)), 0);
+  nextVoucherNo = Math.max(Number(m.nextVoucherNo) || 1, vMax + 1);
+}
+
 // ---- Cancelling receipts & vouchers: a wrong or excess payment is never
 // deleted outright — it's marked Cancelled with a reason and who cleared
 // it, so the receipt/voucher number stays permanently retired and the
@@ -9111,7 +9291,7 @@ const SCHOOL_EMPTY_KEYS = [
   "clubJoined", "clubMembers", "clubPatrons", "clubAttendance", "clubAttendanceDate", "clubAttendanceSaved",
   "messages", "attendanceRecords", "attendanceNotes", "attendanceDayMeta",
   "feeAdjustments", "parentPortalNotifications", "lastSentFeeSms", "feeStructureItems",
-  "paymentsLog", "incomeEntries", "expenseEntries", "budgetItems", "payrollEntries",
+  "paymentsLog", "incomeEntries", "expenseEntries", "budgetItems", "payrollEntries", "financeMeta",
   "libraryBooks", "libraryLoans", "libraryLostDamaged", "libraryFines",
   "storeItems", "storeMovements", "storeRequisitions", "storeSuppliers",
   "labItems", "labUsageLog", "labIncidents", "labRequisitions", "labFines",
@@ -9139,7 +9319,7 @@ const SCHOOL_SCOPED_KEYS = [...SCHOOL_EMPTY_KEYS, ...SCHOOL_DEFAULTED_KEYS];
 const SCHOOL_OBJECT_SHAPED_KEYS = new Set([
   "clubJoined","clubMembers","clubPatrons","clubAttendance","clubAttendanceDate","clubAttendanceSaved",
   "attendanceRecords","attendanceNotes","attendanceDayMeta","boardingRollCalls","lessonSharingGradeData","lessonAllocations","syllabusCoverageData","syllabusCoverageJustSaved",
-  "syllabusCoverageChecked","gradeSupervisors","classSubjectTeachers","subjectPapersEnabled",
+  "syllabusCoverageChecked","gradeSupervisors","classSubjectTeachers","subjectPapersEnabled","financeMeta",
   "publishSubjectAssignments","subjectPaperRatios","marksMaxMarks","marksData","marksRemarks",
   "marksTeacherComments","marksTasks","marksTaskData","studentPhotos","timetableData","timetableTeacherTimeOff",
 ]);
@@ -9171,7 +9351,7 @@ function snapshotSchoolData(name){
     clubJoined, clubMembers, clubPatrons, clubAttendance, clubAttendanceDate, clubAttendanceSaved,
     messages, attendanceRecords, attendanceNotes, attendanceDayMeta,
     feeAdjustments, parentPortalNotifications, lastSentFeeSms, feeStructureItems,
-    paymentsLog, incomeEntries, expenseEntries, budgetItems, payrollEntries,
+    paymentsLog, incomeEntries, expenseEntries, budgetItems, payrollEntries, financeMeta: collectFinanceMeta(),
     libraryBooks, libraryLoans, libraryLostDamaged, libraryFines,
     storeItems, storeMovements, storeRequisitions, storeSuppliers,
     labItems, labUsageLog, labIncidents, labRequisitions, labFines,
@@ -9204,6 +9384,8 @@ function loadSchoolData(name){
   messages = d.messages; attendanceRecords = d.attendanceRecords; attendanceNotes = d.attendanceNotes; attendanceDayMeta = d.attendanceDayMeta;
   feeAdjustments = d.feeAdjustments; parentPortalNotifications = d.parentPortalNotifications; lastSentFeeSms = d.lastSentFeeSms; feeStructureItems = d.feeStructureItems;
   paymentsLog = d.paymentsLog; incomeEntries = d.incomeEntries; expenseEntries = d.expenseEntries; budgetItems = d.budgetItems; payrollEntries = d.payrollEntries;
+  applyFinanceMeta(d.financeMeta);
+  normalizePayroll();
   libraryBooks = d.libraryBooks; libraryLoans = d.libraryLoans; libraryLostDamaged = d.libraryLostDamaged; libraryFines = d.libraryFines;
   storeItems = d.storeItems || []; storeMovements = d.storeMovements || []; storeRequisitions = d.storeRequisitions || []; storeSuppliers = d.storeSuppliers || [];
   labItems = d.labItems || []; labUsageLog = d.labUsageLog || []; labIncidents = d.labIncidents || []; labRequisitions = d.labRequisitions || []; labFines = d.labFines || [];
@@ -12738,6 +12920,31 @@ function renderSchoolSelect(){
 
 function go(key){ if(!canAccessModule(key)) return; active = key; render(); }
 
+// ---- Top-bar quick links: dark/light mode + cloud sign-in (mobile: in the three-dots menu) ----
+function quickIsDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function quickThemeLabel(){ return quickIsDark() ? 'Light mode' : 'Dark mode'; }
+function quickThemeIcon(){ return quickIsDark() ? 'fa-sun' : 'fa-moon'; }
+function quickCloudLabel(){ return window.MASMS_CLOUD ? window.MASMS_CLOUD.label() : ''; }
+function quickToggleTheme(){
+  if(window.MASMS_THEME){ window.MASMS_THEME.toggle(); return; }
+  // fallback if the dark-mode module is missing: flip the theme attribute directly
+  const el = document.documentElement, next = el.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  el.setAttribute('data-theme', next); try{ localStorage.setItem('masmsTheme', next); }catch(_e){}
+  refreshQuickLinks();
+}
+function quickCloudClick(){ if(window.MASMS_CLOUD) window.MASMS_CLOUD.click(); }
+function quickLinksHtml(){
+  return `
+    <a href="#" class="quick-link" onclick="quickToggleTheme();return false;" title="Switch between dark and light mode"><i class="fa-solid ${quickThemeIcon()}"></i><span>${quickThemeLabel()}</span></a>
+    ${window.MASMS_CLOUD ? `<a href="#" class="quick-link" onclick="quickCloudClick();return false;" title="Cloud sync"><i class="fa-solid fa-cloud"></i><span>${quickCloudLabel()}</span></a>` : ''}`;
+}
+function refreshQuickLinks(){
+  const c = document.getElementById('quickLinksCell'); if(c) c.innerHTML = quickLinksHtml();
+  if(typeof mSheet !== 'undefined' && mSheet === 'menu' && typeof renderMobileChrome === 'function'){ try{ renderMobileChrome(); }catch(_e){} }
+}
+window.addEventListener('masms-theme', refreshQuickLinks);
+window.addEventListener('masms-cloud', refreshQuickLinks);
+
 function renderTopbarRight(){
   const el = document.getElementById('topbarRight');
   if(!el) return;
@@ -12754,6 +12961,7 @@ function renderTopbarRight(){
       <i class="fa-solid fa-magnifying-glass" style="cursor:pointer;" onclick="globalSearch()"></i>
       <input id="topbarSearchInput" type="text" placeholder="${t('searchPlaceholder')}" onkeydown="if(event.key==='Enter') globalSearch(event)">
     </div>
+    <div class="topbar-cell quick-cell" id="quickLinksCell">${quickLinksHtml()}</div>
     <button class="topbar-cell login-cell" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false" title="${currentUserName}">
       <i class="fa-solid fa-circle-user"></i> ${currentUserName}
       <i class="fa-solid fa-chevron-down" style="margin-left:4px;font-size:11px;"></i>
@@ -13289,13 +13497,35 @@ const SYLLABUS_COVERAGE_REMARKS = [
   "Learners absenteeism",
 ];
 
-function renderTeacherSyllabusCoverageTab(){
+// A teacher records pages per class stream they teach (so the Academics summary can
+// show every stream). Subjects with no class assignment keep one subject-level row.
+// rowId = subject                  -> key `${teacher}||${subject}`            (legacy / unassigned)
+// rowId = subject@@grade|stream    -> key `${teacher}||${subject}@@grade|stream`
+function scClassRowId(subject, grade, stream){ return `${subject}@@${grade}|${stream}`; }
+function teacherSyllabusItems(){
   const rec = currentTeacherRecord();
-  const subjects = (rec && rec.subjects) || [];
-  if(!subjects.length){
+  const items = [];
+  const assigned = new Set();
+  let byClass = {};
+  try{ byClass = teacherSubjectClassSubjects(); }catch(e){}
+  Object.keys(byClass).map(Number).sort((x, y) => x - y).forEach(i => {
+    const c = classesList[i]; if(!c) return;
+    byClass[i].forEach(subject => {
+      assigned.add(subject);
+      items.push({ rowId: scClassRowId(subject, c.grade, c.stream), subject, cls: classDisplayName(c) });
+    });
+  });
+  ((rec && rec.subjects) || []).forEach(subject => { if(!assigned.has(subject)) items.push({ rowId: subject, subject, cls: "All classes" }); });
+  items.sort((x, y) => x.subject.localeCompare(y.subject) || x.cls.localeCompare(y.cls));
+  return items;
+}
+function renderTeacherSyllabusCoverageTab(){
+  const items = teacherSyllabusItems();
+  if(!items.length){
     return `<div class="panel"><div class="empty" style="padding:40px 24px;">No subjects assigned yet, so there's nothing to track coverage for. Ask an administrator to assign subjects to you under Registration &gt; Teachers.</div></div>`;
   }
-  const rows = subjects.map((subject, i) => {
+  const rows = items.map((it, i) => {
+    const subject = it.rowId;
     const rowRec = getSyllabusCoverageRecord(subject);
     const pct = syllabusCoveragePct(subject);
     const safeSubject = subject.replace(/'/g,"\\'");
@@ -13303,7 +13533,8 @@ function renderTeacherSyllabusCoverageTab(){
     return `
       <tr>
         <td style="text-align:center;font-weight:600;">${i + 1}</td>
-        <td style="font-weight:600;">${subject}</td>
+        <td style="font-weight:600;">${tEsc(it.subject)}</td>
+        <td>${tEsc(it.cls)}</td>
         <td>
           <input id="syl_total_${i}" type="text" inputmode="numeric" value="${rowRec.totalPages}" placeholder="e.g. 120"
             style="width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:0;font-family:inherit;font-size:13px;"
@@ -13324,7 +13555,7 @@ function renderTeacherSyllabusCoverageTab(){
           <select id="syl_remarks_${i}"
             style="width:100%;min-width:170px;padding:6px 8px;border:1px solid var(--border);border-radius:0;font-family:inherit;font-size:13px;"
             onchange="setSyllabusCoverageField('${safeSubject}', 'remarks', this.value)">
-            <option value="" ${!rowRec.remarks ? 'selected' : ''}>Select a reason…</option>
+            <option value="" ${!rowRec.remarks ? 'selected' : ''}>Reason for any delay…</option>
             ${SYLLABUS_COVERAGE_REMARKS.map(r => `<option value="${r.replace(/"/g,'&quot;')}" ${rowRec.remarks===r?'selected':''}>${r}</option>`).join('')}
           </select>
         </td>
@@ -13344,22 +13575,23 @@ function renderTeacherSyllabusCoverageTab(){
     <div class="panel" style="overflow:hidden;">
       <div class="panel-header"><h3>Syllabus Coverage</h3></div>
       <div class="streams-scroll">
-        <table style="width:100%;min-width:850px;">
+        <table style="width:100%;min-width:950px;">
           <thead>
             <tr>
               <th>S/NO</th>
-              <th>NAME</th>
+              <th>SUBJECT</th>
+              <th>CLASS</th>
               <th>TOTAL NO OF PAGES TO BE COVERED</th>
               <th>NO OF PAGES COVERED</th>
               <th>% SYLLABUS COVERAGE</th>
-              <th>REMARKS</th>
+              <th>REASON FOR DELAY</th>
               <th>ACTION</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <p style="margin:0;padding:14px 24px 18px;font-size:12px;color:var(--muted);">Enter the total pages in the syllabus and how many you've covered so far — the percentage updates automatically. Click Save on a row to confirm it.</p>
+      <p style="margin:0;padding:14px 24px 18px;font-size:12px;color:var(--muted);">Enter the total pages in the syllabus and how many you've covered so far for each class you teach &mdash; the percentage updates automatically and feeds the Academics &gt; Syllabus Coverage summary (its Remarks are generated from the percentage). Click Save on a row to confirm it.</p>
     </div>
   `;
 }
@@ -19978,6 +20210,7 @@ function generateStreamListsReport(){
 }
 
 function generateFeeRegisterReport(){
+  refreshInvoices();
   classListPreview = buildClassListPreview({
     heading: "Fee Register",
     gradeLine: `All Classes · ${invoices.length} invoices`,
@@ -22265,6 +22498,7 @@ function closeStudentProfile(){
 // Finds this student's fee invoice by admission number and returns a
 // short display string. Falls back gracefully when no invoice is on file.
 function studentFeeBalanceDisplay(s){
+  refreshInvoices();
   const inv = invoices.find(inv => inv.admissionNumber === s.admissionNumber) || invoices.find(inv => inv.student === fullName(s));
   if(!inv) return "No fee record on file";
   return inv.status === "Paid" ? "Fully paid" : `${inv.amount} · ${inv.status}`;
@@ -23722,7 +23956,7 @@ let lessonsAllocationData = {
   CBC: defaultLessonsAllocationRows(),
   "844": defaultLessonsAllocation844(), // { "Form 1": [...], "Form 2": [...], "Form 3": [...], "Form 4": [...] }
 };
-function setLessonsAllocationCurriculum(sys){ lessonsAllocationCurriculum = sys; render(); }
+function setLessonsAllocationCurriculum(sys){ if(typeof lasDiscardIfNew === 'function') lasDiscardIfNew(); lessonsAllocationCurriculum = sys; render(); }
 function setLessonsAllocationForm844(form){ lessonsAllocationForm844 = form; render(); }
 // Resolves to the correct editable rows array for the sheet currently on
 // screen: the single CBC list, or the 8-4-4 list for whichever Form is
@@ -23731,23 +23965,75 @@ function getLessonsAllocationRows(sys){
   if(sys === "844") return lessonsAllocationData["844"][lessonsAllocationForm844];
   return lessonsAllocationData.CBC;
 }
+// ---- Weekly Subject Lessons Allocations Summary (boxed sheet) ----------------
+// Rows are read-only text. Edit turns ONE row into inputs (a draft copy);
+// Save validates and commits the draft; Delete removes the row. Cancel
+// (or Save-less Edit of a brand-new blank row) discards the draft.
+let lasEdit = null; // { sys, form, idx, isNew, draft:{...} }
+function lasEditingHere(sys, idx){
+  return !!lasEdit && lasEdit.sys === sys && lasEdit.form === lessonsAllocationForm844 && lasEdit.idx === idx;
+}
+function lasDiscardIfNew(){
+  if(lasEdit && lasEdit.isNew){
+    const rows = lasEdit.sys === "844" ? (lessonsAllocationData["844"][lasEdit.form] || []) : lessonsAllocationData.CBC;
+    if(rows[lasEdit.idx] && !rows[lasEdit.idx].subject) rows.splice(lasEdit.idx, 1);
+  }
+  lasEdit = null;
+}
 function addLessonsAllocationRow(sys){
-  getLessonsAllocationRows(sys).push({ subject:"", code:"", singles:0, doubles:0, totalLessons:0, classType:"Home classroom", doubleRoom:"" });
+  lasDiscardIfNew();
+  const rows = getLessonsAllocationRows(sys);
+  rows.push({ subject:"", code:"", singles:0, doubles:0, totalLessons:0, classType:"Home classroom", doubleRoom:"" });
+  const idx = rows.length - 1;
+  lasEdit = { sys, form: lessonsAllocationForm844, idx, isNew:true, draft: Object.assign({}, rows[idx]) };
+  render();
+}
+function editLessonsAllocationRow(sys, idx){
+  if(lasEdit && !lasEditingHere(sys, idx)) lasDiscardIfNew();
+  const row = getLessonsAllocationRows(sys)[idx];
+  if(!row) return;
+  lasEdit = { sys, form: lessonsAllocationForm844, idx, isNew:false, draft: Object.assign({}, row) };
+  render();
+}
+function cancelLessonsAllocationEdit(){ lasDiscardIfNew(); render(); }
+function saveLessonsAllocationRow(sys, idx){
+  if(!lasEditingHere(sys, idx)) return;
+  const d = lasEdit.draft;
+  const name = String(d.subject || "").trim();
+  if(!name){ alert("Enter the subject name before saving."); return; }
+  const rows = getLessonsAllocationRows(sys);
+  if(rows.some((r, i) => i !== idx && String(r.subject || "").trim().toLowerCase() === name.toLowerCase())){
+    alert("“" + name + "” is already in this sheet. Edit that row instead.");
+    return;
+  }
+  const code = String(d.code || "").trim().toUpperCase() || lessonsSubjectShortCode(name);
+  const singles = Math.max(0, Number(d.singles) || 0), doubles = Math.max(0, Number(d.doubles) || 0);
+  rows[idx] = Object.assign({}, rows[idx], {
+    subject: name, code, singles, doubles, totalLessons: singles + doubles * 2,
+    classType: d.classType || "", doubleRoom: doubles > 0 ? (d.doubleRoom || "") : ""
+  });
+  lasEdit = null;
   render();
 }
 function removeLessonsAllocationRow(sys, idx){
+  const row = getLessonsAllocationRows(sys)[idx];
+  if(!row) return;
+  const label = row.subject ? "“" + row.subject + "”" : "this blank row";
+  if(!confirm("Delete " + label + " from the weekly lessons allocation?")) return;
+  if(lasEdit) lasEdit = null;
   getLessonsAllocationRows(sys).splice(idx, 1);
   render();
 }
+// Edits go to the draft only; nothing changes in the sheet until Save.
 function updateLessonsAllocationField(sys, idx, field, value){
-  const row = getLessonsAllocationRows(sys)[idx];
-  if(!row) return;
+  if(!lasEditingHere(sys, idx)) return;
+  const d = lasEdit.draft;
   if(field === "singles" || field === "doubles"){
-    row[field] = Number(value) || 0;
-    row.totalLessons = (row.singles||0) + (row.doubles||0) * 2;
+    d[field] = Number(value) || 0;
+    d.totalLessons = (d.singles||0) + (d.doubles||0) * 2;
     render();
   } else {
-    row[field] = value;
+    d[field] = value;
   }
 }
 function lessonsAllocationOptionsHtml(selected, max){
@@ -23760,47 +24046,53 @@ function lessonsAllocationOptionsHtml(selected, max){
 }
 function renderLessonsAllocationTable(sys){
   const rows = getLessonsAllocationRows(sys);
-  const bodyRows = rows.map((r, idx) => `
-    <tr>
-      <td class="num" style="color:var(--muted);">${idx+1}</td>
-      <td><input type="text" class="grade-band-input" style="width:230px;" placeholder="Subject name"
-        value="${(r.subject||'').replace(/"/g,'&quot;')}"
-        oninput="updateLessonsAllocationField('${sys}', ${idx}, 'subject', this.value)"></td>
-      <td><input type="text" class="grade-band-input" style="width:110px;text-transform:uppercase;" placeholder="Code" maxlength="8"
-        value="${(r.code||'').replace(/"/g,'&quot;')}"
-        oninput="updateLessonsAllocationField('${sys}', ${idx}, 'code', this.value)"></td>
-      <td style="font-weight:700;text-align:center;">${r.totalLessons || 0}</td>
-      <td>
-        <select class="exam-field-input" style="width:80px;" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'singles', this.value)">
-          ${lessonsAllocationOptionsHtml(r.singles, 15)}
-        </select>
-      </td>
-      <td>
-        <select class="exam-field-input" style="width:150px;" title="Venue for this subject's single-period lessons" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'classType', this.value)">
-          <option value="" ${!r.classType?'selected':''} disabled>Select class\u2026</option>
-          ${LESSON_SINGLE_CLASS_OPTIONS.map(c => `<option value="${c}" ${r.classType===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-      </td>
-      <td>
-        <select class="exam-field-input" style="width:80px;" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'doubles', this.value)">
-          ${lessonsAllocationOptionsHtml(r.doubles, 8)}
-        </select>
-      </td>
-      <td>
-        <select class="exam-field-input" style="width:150px;" title="Lab/room for this subject's double-period lessons, auto-picked from Classrooms" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'doubleRoom', this.value)">
-          <option value="" ${!r.doubleRoom?'selected':''}>Select room\u2026</option>
-          ${ttRooms.map(room => `<option value="${room}" ${r.doubleRoom===room?'selected':''}>${room}</option>`).join('')}
-        </select>
-      </td>
-      <td><button type="button" class="link-btn danger" title="Remove subject" onclick="removeLessonsAllocationRow('${sys}', ${idx})"><i class="fa-solid fa-trash"></i></button></td>
-    </tr>
-  `).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">No subjects added yet. Click "Add Subject" to start.</td></tr>`;
+  const q = v => String(v == null ? "" : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const busy = !!lasEdit;
+  const bodyRows = rows.map((r, idx) => {
+    const ed = lasEditingHere(sys, idx);
+    const d = ed ? lasEdit.draft : r;
+    const act = (label, handler, enabled, cls) => `<td class="las-act"><button type="button" class="las-btn ${cls||''}" ${enabled?`onclick="${handler}"`:'disabled'}>${label}</button></td>`;
+    const actions =
+      act(ed ? "Cancel" : "Edit", ed ? "cancelLessonsAllocationEdit()" : `editLessonsAllocationRow('${sys}', ${idx})`, true) +
+      act("Save", `saveLessonsAllocationRow('${sys}', ${idx})`, ed, "las-save") +
+      act("Delete", `removeLessonsAllocationRow('${sys}', ${idx})`, true, "las-del");
+    if(!ed){
+      return `<tr>
+        <td class="num">${idx+1}.</td>
+        <td class="las-up">${q(r.subject)}</td>
+        <td class="las-up">${q(r.code)}</td>
+        <td>${Number(r.totalLessons)||0}</td>
+        <td>${Number(r.singles)||0}</td>
+        <td class="las-up">${q(r.classType)}</td>
+        <td>${Number(r.doubles)||0}</td>
+        <td class="las-up">${q(r.doubleRoom)}</td>
+        ${actions}
+      </tr>`;
+    }
+    return `<tr class="las-editing">
+      <td class="num">${idx+1}.</td>
+      <td><input type="text" class="las-input" placeholder="Subject name" value="${q(d.subject)}" oninput="updateLessonsAllocationField('${sys}', ${idx}, 'subject', this.value)"></td>
+      <td><input type="text" class="las-input" style="text-transform:uppercase;" placeholder="Code" maxlength="8" value="${q(d.code)}" oninput="updateLessonsAllocationField('${sys}', ${idx}, 'code', this.value)"></td>
+      <td style="font-weight:700;">${Number(d.totalLessons)||0}</td>
+      <td><select class="las-input" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'singles', this.value)">${lessonsAllocationOptionsHtml(d.singles, 15)}</select></td>
+      <td><select class="las-input" title="Venue for this subject's single-period lessons" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'classType', this.value)">
+        <option value="" ${!d.classType?'selected':''} disabled>Select class…</option>
+        ${LESSON_SINGLE_CLASS_OPTIONS.map(c => `<option value="${q(c)}" ${d.classType===c?'selected':''}>${q(c)}</option>`).join('')}
+      </select></td>
+      <td><select class="las-input" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'doubles', this.value)">${lessonsAllocationOptionsHtml(d.doubles, 8)}</select></td>
+      <td><select class="las-input" title="Lab/room for this subject's double-period lessons" onchange="updateLessonsAllocationField('${sys}', ${idx}, 'doubleRoom', this.value)">
+        <option value="" ${!d.doubleRoom?'selected':''}>Select room…</option>
+        ${ttRooms.map(room => `<option value="${q(room)}" ${d.doubleRoom===room?'selected':''}>${q(room)}</option>`).join('')}
+      </select></td>
+      ${actions}
+    </tr>`;
+  }).join('') || `<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px;">No subjects added yet. Click "Add Subject" to start.</td></tr>`;
 
   const totalWeeklyLessons = rows.reduce((sum, r) => sum + (Number(r.totalLessons)||0), 0);
   const formTabsHtml = sys === "844" ? `
       <div class="subject-tab-row" style="padding:12px 20px 0;">
         ${EIGHT44_FORMS.map(form => `
-          <div class="subject-tab-cell${form===lessonsAllocationForm844?' active':''}" onclick="setLessonsAllocationForm844('${form}')">${form}</div>
+          <div class="subject-tab-cell${form===lessonsAllocationForm844?' active':''}" onclick="lasDiscardIfNew();setLessonsAllocationForm844('${form}')">${form}</div>
         `).join('')}
       </div>
   ` : "";
@@ -23808,19 +24100,25 @@ function renderLessonsAllocationTable(sys){
   return `
     <div class="panel" style="overflow:hidden;margin-bottom:20px;">
       <div class="panel-header">
-        <h3 style="font-size:15px;">${sys === "844" ? `8-4-4 — ${lessonsAllocationForm844}` : "CBC"} — Weekly Lessons Allocation</h3>
+        <h3 style="font-size:15px;">${sys === "844" ? `8-4-4 — ${lessonsAllocationForm844}` : "CBC"}</h3>
         <button type="button" class="link-btn" style="margin-left:14px;" title="Push these subjects + short codes into Timetable > Subjects" onclick="syncTimetableSubjectsFromLessonAllocation()"><i class="fa-solid fa-arrows-rotate"></i>&nbsp;Sync to Timetable</button>
         <button type="button" class="link-btn" style="margin-left:auto;" onclick="addLessonsAllocationRow('${sys}')"><i class="fa-solid fa-plus"></i>&nbsp;Add Subject</button>
       </div>
       ${formTabsHtml}
-      <p style="margin:0;padding:12px 20px 0;font-size:12px;color:var(--muted);">Total Lessons updates automatically as Singles + (Double &times; 2). Pick the number of single and double periods each subject gets per week, the class/venue for its singles, and the lab for its doubles (auto-picked from Classrooms).</p>
-      <div class="streams-scroll">
-        <table class="excel-table" style="min-width:1000px;">
-          <thead><tr><th class="num" style="width:60px;">S/No</th><th>Subject</th><th>Subject Short Code</th><th>Total Lessons</th><th>Singles</th><th>Class</th><th>Double</th><th>Lab / Room</th><th style="width:50px;"></th></tr></thead>
+      <h2 class="las-title">WEEKLY SUBJECT LESSONS ALLOCATIONS SUMMARY</h2>
+      <div class="streams-scroll" style="padding:0 20px;">
+        <table class="las-table">
+          <thead>
+            <tr>
+              <th class="num">S/NO</th><th>SUBJECT</th><th>SHORT<br>CODE</th><th>TOTAL<br>LESSONS</th><th>SINGLES</th>
+              <th>CLASS</th><th>DOUBLE<br>LESSONS</th><th>LAB\\ROOM</th><th colspan="3" class="las-actions-h">ACTIONS</th>
+            </tr>
+          </thead>
           <tbody>${bodyRows}</tbody>
         </table>
       </div>
-      <div style="padding:12px 20px;font-size:12.5px;font-weight:700;color:var(--text);border-top:1px solid var(--border);">Total weekly lessons: ${totalWeeklyLessons}</div>
+      <p style="margin:0;padding:12px 20px 0;font-size:12px;color:var(--muted);">Total Lessons = Singles + (Double Lessons &times; 2). Click <b>Edit</b> on a row, change it, then <b>Save</b>. Nothing in the sheet changes until you save.</p>
+      <div style="padding:12px 20px;font-size:12.5px;font-weight:700;color:var(--text);">Total weekly lessons: ${totalWeeklyLessons}</div>
     </div>
   `;
 }
@@ -23993,6 +24291,7 @@ function renderCalendarModule(){
 // teacher records under Dashboard > My Subjects > Syllabus Coverage.
 // =====================================================================
 const SC_TABS = [
+  { key:"summary", label:"Summary", icon:"fa-table-list" },
   { key:"overview", label:"Overview", icon:"fa-gauge-high" },
   { key:"subject", label:"By Subject", icon:"fa-book-open" },
   { key:"teacher", label:"By Teacher", icon:"fa-chalkboard-user" },
@@ -24000,7 +24299,7 @@ const SC_TABS = [
   { key:"attention", label:"Behind / Not Submitted", icon:"fa-triangle-exclamation" },
   { key:"remarks", label:"Remarks Analysis", icon:"fa-comment-dots" },
 ];
-let scTab = "overview";
+let scTab = "summary";
 let scThreshold = 50;
 let scCurrent = { title:"", headers:[], rows:[] };
 function setScTab(k){ scTab = k; render(); }
@@ -24013,8 +24312,16 @@ function scRows(){
     const name = teacherFullName(t);
     (t.subjects || []).forEach(subject => {
       const rec = syllabusCoverageData[`${name}||${subject}`] || {};
-      const total = Number(rec.totalPages) || 0;
-      const covered = Math.min(Number(rec.coveredPages) || 0, total || Infinity);
+      let total = Number(rec.totalPages) || 0;
+      let covered = Math.min(Number(rec.coveredPages) || 0, total || Infinity);
+      // per-class records (`${name}||${subject}@@grade|stream`) add on top
+      const pfx = `${name}||${subject}@@`;
+      Object.keys(syllabusCoverageData).forEach(k => {
+        if(k.indexOf(pfx) !== 0) return;
+        const cr = syllabusCoverageData[k] || {}, ct = Number(cr.totalPages) || 0;
+        if(!ct) return;
+        total += ct; covered += Math.min(Number(cr.coveredPages) || 0, ct);
+      });
       rows.push({ teacher:name, subject, departments:(t.department || []), total, covered: total ? covered : 0,
         pct: total ? covered / total * 100 : 0, submitted: total > 0, remarks: rec.remarks || "" });
     });
@@ -24060,8 +24367,132 @@ function scTable(headers, rows, htmlRows){
 }
 const scTd = 'padding:8px 12px;border-top:1px solid var(--border);font-size:13px;';
 
+
+// ---- Subject Syllabus Coverage Summary (Subject / Grade / Stream sheet) ----
+// REMARKS are generated from the percentage coverage (nothing typed by hand).
+// Highest band first; edit the wording here to change it everywhere.
+const SC_REMARK_BANDS = [
+  { min:100, text:"Syllabus fully covered" },
+  { min:90,  text:"Excellent - syllabus almost complete" },
+  { min:75,  text:"Very good progress - on course to finish" },
+  { min:60,  text:"Good progress - maintain the pace" },
+  { min:50,  text:"Fair - half covered, increase the pace" },
+  { min:40,  text:"Below average - plan catch-up lessons" },
+  { min:0,   text:"Poor - urgent intervention needed" },
+];
+function scRemarkFor(pct, hasData){
+  if(!hasData) return "Not yet recorded";
+  const p = Math.round(Number(pct) * 100) / 100;
+  return (SC_REMARK_BANDS.find(b => p >= b.min) || SC_REMARK_BANDS[SC_REMARK_BANDS.length - 1]).text;
+}
+function scGradeShort(g){ return String(g || "").replace(/^(grade|form)\s*/i, "").trim() || String(g || ""); }
+function scStreamShort(name){
+  const st = (typeof streams !== "undefined" ? streams : []).find(x => x && x.name === name);
+  return (st && st.short) || autoStreamShortName(name) || String(name || "");
+}
+// Stamped when the summary is generated/downloaded (local time).
+function scNowStamp(){
+  const d = new Date(), pad = n => String(n).padStart(2, "0");
+  const mon = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"][d.getMonth()];
+  return `${pad(d.getDate())} ${mon} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+// One block per subject + grade; one row per stream of that grade.
+function scSummaryBlocks(){
+  const map = new Map();
+  classesList.forEach((c, idx) => (c.subjects || []).forEach(subject => {
+    const key = subject + "||" + c.grade;
+    if(!map.has(key)) map.set(key, { subject, grade:c.grade, rows:[] });
+    const teacher = getClassSubjectTeacher(idx, subject);
+    const rec = teacher ? (syllabusCoverageData[`${teacher}||${scClassRowId(subject, c.grade, c.stream)}`] || {}) : {};
+    const total = Number(rec.totalPages) || 0;
+    const covered = total ? Math.min(Number(rec.coveredPages) || 0, total) : 0;
+    map.get(key).rows.push({ stream:c.stream, short:scStreamShort(c.stream), teacher, total, covered,
+      notCovered: total ? total - covered : 0, pct: total ? covered / total * 100 : 0, has: total > 0 });
+  }));
+  const blocks = [...map.values()].sort((a, b) => a.subject.localeCompare(b.subject) || String(a.grade).localeCompare(String(b.grade), undefined, { numeric:true }));
+  blocks.forEach(b => {
+    const withData = b.rows.filter(r => r.has);
+    const t = withData.reduce((n, r) => n + r.total, 0), cv = withData.reduce((n, r) => n + r.covered, 0);
+    b.has = withData.length > 0; b.pct = t ? cv / t * 100 : 0;
+    const missing = b.rows.filter(r => !r.has).map(r => r.short);
+    b.remarks = scRemarkFor(b.pct, b.has) + (b.has && missing.length ? ` (${missing.join(', ')} not recorded)` : "");
+  });
+  return blocks;
+}
+function scSummaryTitleLines(){ return { title:"SUBJECT SYLLABUS COVERAGE SUMMARY", date:"DATE: " + scNowStamp() }; }
+const SC_SUMMARY_HEAD = ["S/NO","SUBJECT","GRADE","STREAM","TOTAL PAGES","COVERED","NOT COVERED","PERCENTAGE COVERAGE","REMARKS"];
+function scSummaryHtml(blocks){
+  const L = scSummaryTitleLines();
+  const cell = "border:1px solid var(--text);padding:5px 8px;";
+  const body = blocks.map((b, bi) => b.rows.map((r, ri) => `<tr>
+      ${ri === 0 ? `<td rowspan="${b.rows.length}" style="${cell}text-align:right;vertical-align:top;width:56px;">${bi + 1}.</td>
+        <td rowspan="${b.rows.length}" style="${cell}vertical-align:top;text-transform:uppercase;">${tEsc(b.subject)}</td>
+        <td rowspan="${b.rows.length}" style="${cell}text-align:center;vertical-align:top;">${tEsc(scGradeShort(b.grade))}</td>` : ""}
+      <td style="${cell}text-align:center;">${tEsc(r.short)}</td>
+      <td style="${cell}text-align:center;">${r.has ? r.total : ""}</td>
+      <td style="${cell}text-align:center;">${r.has ? r.covered : ""}</td>
+      <td style="${cell}text-align:center;">${r.has ? r.notCovered : ""}</td>
+      <td style="${cell}text-align:center;">${r.has ? r.pct.toFixed(1) + "%" : ""}</td>
+      ${ri === 0 ? `<td rowspan="${b.rows.length}" style="${cell}vertical-align:middle;min-width:190px;">${tEsc(b.remarks)}</td>` : ""}
+    </tr>`).join("")).join("");
+  return `<div class="panel" style="padding:18px 20px 22px;overflow-x:auto;">
+      <div style="text-align:center;font-weight:800;font-size:17px;">${L.title}</div>
+      <div style="text-align:center;font-weight:800;font-size:15px;margin:4px 0 12px;">${L.date}</div>
+      <table style="width:100%;min-width:900px;border-collapse:collapse;font-size:13px;color:var(--text);">
+        <thead><tr>${SC_SUMMARY_HEAD.map(h => `<th style="${cell}text-align:center;font-weight:600;font-size:12.5px;background:transparent;">${h}</th>`).join("")}</tr></thead>
+        <tbody>${body || `<tr><td colspan="9" style="${cell}text-align:center;color:var(--muted);padding:26px;">No classes with subjects yet. Add them under Classes, then teachers record pages under My Subjects &gt; Syllabus Coverage.</td></tr>`}</tbody>
+      </table>
+      <p style="margin:12px 0 0;font-size:12px;color:var(--muted);">Remarks are filled in automatically from the percentage coverage of the subject in that grade. The date is stamped again when you download.</p>
+    </div>`;
+}
+function scSummaryPdf(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  const L = scSummaryTitleLines(), W = doc.internal.pageSize.getWidth();
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(10); doc.text(String(currentSchool || 'School').toUpperCase(), W / 2, 28, { align:'center' });
+  doc.setFontSize(14); doc.text(L.title, W / 2, 46, { align:'center' });
+  doc.setFontSize(11); doc.text(L.date, W / 2, 63, { align:'center' });
+  const mid = { halign:'center', valign:'middle' }, body = [];
+  scSummaryBlocks().forEach((b, bi) => b.rows.forEach((r, ri) => {
+    const row = [];
+    if(ri === 0){
+      row.push({ content:(bi + 1) + '.', rowSpan:b.rows.length, styles:{ halign:'right', valign:'top' } });
+      row.push({ content:b.subject.toUpperCase(), rowSpan:b.rows.length, styles:{ valign:'top' } });
+      row.push({ content:scGradeShort(b.grade), rowSpan:b.rows.length, styles:{ halign:'center', valign:'top' } });
+    }
+    row.push({ content:r.short, styles:mid });
+    row.push({ content:r.has ? String(r.total) : '', styles:mid });
+    row.push({ content:r.has ? String(r.covered) : '', styles:mid });
+    row.push({ content:r.has ? String(r.notCovered) : '', styles:mid });
+    row.push({ content:r.has ? r.pct.toFixed(1) + '%' : '', styles:mid });
+    if(ri === 0) row.push({ content:b.remarks, rowSpan:b.rows.length, styles:{ valign:'middle' } });
+    body.push(row);
+  }));
+  doc.autoTable({ startY:76, head:[SC_SUMMARY_HEAD], body, theme:'grid',
+    styles:{ fontSize:9, cellPadding:4, lineColor:[0,0,0], lineWidth:0.5, textColor:[0,0,0] },
+    headStyles:{ fillColor:[255,255,255], textColor:[0,0,0], fontStyle:'normal', halign:'center', lineColor:[0,0,0], lineWidth:0.5 },
+    columnStyles:{ 0:{ cellWidth:40 }, 8:{ cellWidth:170 } } });
+  doc.save('Subject_Syllabus_Coverage_Summary.pdf');
+}
+function scSummaryExcel(){
+  const L = scSummaryTitleLines(), aoa = [[L.title], [L.date], [], SC_SUMMARY_HEAD], merges = [{ s:{r:0,c:0}, e:{r:0,c:8} }, { s:{r:1,c:0}, e:{r:1,c:8} }];
+  scSummaryBlocks().forEach((b, bi) => {
+    const start = aoa.length;
+    b.rows.forEach((r, ri) => aoa.push([ri === 0 ? bi + 1 : "", ri === 0 ? b.subject.toUpperCase() : "", ri === 0 ? scGradeShort(b.grade) : "", r.short,
+      r.has ? r.total : "", r.has ? r.covered : "", r.has ? r.notCovered : "", r.has ? Number(r.pct.toFixed(1)) / 100 : "", ri === 0 ? b.remarks : ""]));
+    if(b.rows.length > 1) [0, 1, 2, 8].forEach(c => merges.push({ s:{r:start,c}, e:{r:start + b.rows.length - 1, c} }));
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!merges'] = merges;
+  ws['!cols'] = [{wch:6},{wch:30},{wch:8},{wch:8},{wch:12},{wch:10},{wch:13},{wch:20},{wch:42}];
+  for(let r = 4; r < aoa.length; r++){ const c = ws[XLSX.utils.encode_cell({ r, c:7 })]; if(c && typeof c.v === 'number') c.z = '0.0%'; }
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Coverage Summary');
+  XLSX.writeFile(wb, 'Subject_Syllabus_Coverage_Summary.xlsx');
+}
+
 function scDownloadPdf(){
   if(typeof window.jspdf === 'undefined'){ alert("PDF library couldn't load. Check your internet connection and try again."); return; }
+  if(scTab === 'summary'){ scSummaryPdf(); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
   const info = (()=>{ try{ return getCurrentTermInfo(); }catch(e){ return {}; } })();
@@ -24073,6 +24504,7 @@ function scDownloadPdf(){
 }
 function scDownloadExcel(){
   if(typeof XLSX === 'undefined'){ alert("Excel library couldn't load. Check your internet connection and try again."); return; }
+  if(scTab === 'summary'){ scSummaryExcel(); return; }
   const ws = XLSX.utils.aoa_to_sheet([scCurrent.headers, ...scCurrent.rows]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, scCurrent.title.slice(0, 30));
@@ -24089,7 +24521,9 @@ function renderSyllabusCoverageReports(){
   const overall = totalPages ? coveredPages / totalPages * 100 : 0;
   let body = '';
 
-  if(scTab === 'overview'){
+  if(scTab === 'summary'){
+    body = scSummaryHtml(scSummaryBlocks());
+  } else if(scTab === 'overview'){
     const kpi = (lbl, val, note) => `<div class="stat-card"><div class="lbl">${lbl}</div><div class="val">${val}</div>${note ? `<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${note}</div>` : ''}</div>`;
     const bySubj = scAggregate(rows, r => r.subject);
     const behind = rows.filter(r => r.submitted && scStatus(r, expected).label === 'Behind').length;
@@ -42481,8 +42915,9 @@ const INCOME_SOURCE_OPTIONS = [
   "Boarding income", "School Bus", "Other income",
 ];
 const EXPENSE_CATEGORY_OPTIONS = [
-  "Food", "Utilities", "Teaching materials", "Repair & Maintenance",
-  "Transport", "School Bus", "Co-curricular", "Administration", "Salaries/Wages", "Other expenses",
+  "Food", "Electricity", "Water", "Utilities", "Teaching materials", "Repair & Maintenance",
+  "Transport", "School Bus", "Co-curricular", "Administration", "ICT", "Departmental budgets",
+  "Salaries/Wages", "Other expenses",
 ];
 // Payment methods offered on the Cash Book receipt/payment forms.
 
@@ -42736,6 +43171,11 @@ function recordPayment(e){
   const student = studentInput.value.trim();
   const amount = amountInput.value.trim();
   if(!student || !amount){ (student?amountInput:studentInput).focus(); return; }
+  if(parseAmountKsh(amount) <= 0){ alert("Enter an amount greater than zero."); amountInput.focus(); return; }
+  // The same M-Pesa / bank transaction code can only be receipted once.
+  const txnCode = txnInput.value.trim().toLowerCase();
+  const dup = txnCode && activePayments().find(p => String(p.transactionCode || '').trim().toLowerCase() === txnCode);
+  if(dup){ alert(`Transaction code ${txnInput.value.trim()} was already receipted on ${dup.receiptNo} (${dup.student}). Check it isn't a duplicate, or cancel that receipt first.`); txnInput.focus(); return; }
 
   const payment = {
     receiptNo: newReceiptNo(),
@@ -42786,28 +43226,71 @@ function formatKsh(n){
 }
 
 // ---- Statutory payroll deductions (Kenya) ----
-// NSSF (2013 Act, Tier I/II bands): 6% of pensionable pay from the
-// employee, matched by a 6% employer contribution.
-//  - Tier I:  6% of basic pay up to the Lower Earnings Limit.
-//  - Tier II: 6% of basic pay between the Lower and Upper Earnings Limits.
-// NHIF/SHIF: 2.75% of basic pay (statutory minimum Ksh 300).
-const NSSF_TIER_I_LIMIT = 8000;    // Lower Earnings Limit
-const NSSF_TIER_II_LIMIT = 72000;  // Upper Earnings Limit
+// NSSF (Year 4, from 1 Feb 2026): 6% of pensionable pay from the employee,
+// matched by 6% from the employer.
+//  - Tier I:  6% of pay up to the Lower Earnings Limit (Ksh 9,000).
+//  - Tier II: 6% of pay between the Lower and Upper Earnings Limits
+//             (Ksh 9,000 - Ksh 108,000). Maximum 6,480 each side.
+// SHIF (replaced NHIF in Oct 2024): 2.75% of gross pay, minimum Ksh 300.
+// Affordable Housing Levy: 1.5% of gross from the employee, matched 1.5%
+// by the employer. NSSF, SHIF and the levy are deducted before PAYE.
+// PAYE: monthly bands below, less the Ksh 2,400 personal relief.
+const NSSF_TIER_I_LIMIT = 9000;    // Lower Earnings Limit
+const NSSF_TIER_II_LIMIT = 108000; // Upper Earnings Limit
 const NSSF_RATE = 0.06;            // 6% employee, 6% matched by employer
-const NHIF_RATE = 0.0275;          // 2.75% of basic pay
-const NHIF_MIN = 300;
+const SHIF_RATE = 0.0275;          // 2.75% of gross pay
+const SHIF_MIN = 300;
+const NHIF_RATE = SHIF_RATE;       // legacy names kept for older code paths
+const NHIF_MIN = SHIF_MIN;
+const AHL_RATE = 0.015;            // Affordable Housing Levy, each side
+const PAYE_PERSONAL_RELIEF = 2400;
+const PAYE_BANDS = [               // [width of band, rate] on monthly taxable pay
+  [24000, 0.10], [8333, 0.25], [467667, 0.30], [300000, 0.325], [Infinity, 0.35],
+];
+const payR2 = n => Math.round(n * 100) / 100;
 
 function calcNssf(basicPay){
   const tier1Pay = Math.min(basicPay, NSSF_TIER_I_LIMIT);
   const tier2Pay = Math.max(0, Math.min(basicPay, NSSF_TIER_II_LIMIT) - NSSF_TIER_I_LIMIT);
-  const tier1 = tier1Pay * NSSF_RATE;
-  const tier2 = tier2Pay * NSSF_RATE;
-  return { tier1, tier2, employee: tier1 + tier2, employer: tier1 + tier2 };
+  const tier1 = payR2(tier1Pay * NSSF_RATE);
+  const tier2 = payR2(tier2Pay * NSSF_RATE);
+  return { tier1, tier2, employee: payR2(tier1 + tier2), employer: payR2(tier1 + tier2) };
 }
 
-function calcNhif(basicPay){
-  return basicPay > 0 ? Math.max(basicPay * NHIF_RATE, NHIF_MIN) : 0;
+function calcShif(grossPay){
+  return grossPay > 0 ? payR2(Math.max(grossPay * SHIF_RATE, SHIF_MIN)) : 0;
 }
+const calcNhif = calcShif;
+
+function calcPaye(taxablePay){
+  let left = Math.max(taxablePay, 0), tax = 0;
+  for(const [width, rate] of PAYE_BANDS){
+    const slice = Math.min(left, width);
+    tax += slice * rate; left -= slice;
+    if(left <= 0) break;
+  }
+  return payR2(Math.max(tax - PAYE_PERSONAL_RELIEF, 0));
+}
+
+// Full monthly payslip for one employee. Every figure is rounded to cents
+// so the ledger postings below always balance exactly.
+function calcPayslip(basic, allowances){
+  basic = Number(basic) || 0; allowances = Number(allowances) || 0;
+  const gross = payR2(basic + allowances);
+  const nssf = calcNssf(gross);
+  const shif = calcShif(gross);
+  const ahlEmployee = payR2(gross * AHL_RATE), ahlEmployer = ahlEmployee;
+  const taxable = Math.max(payR2(gross - nssf.employee - shif - ahlEmployee), 0);
+  const paye = calcPaye(taxable);
+  const totalDeductions = payR2(paye + nssf.employee + shif + ahlEmployee);
+  const net = payR2(gross - totalDeductions);
+  const employerCosts = payR2(nssf.employer + ahlEmployer);
+  // Everything owed to KRA / NSSF / SHA for this employee (both sides).
+  const statutoryTotal = payR2(totalDeductions + employerCosts);
+  return { basic, allowances, gross, nssf, shif, ahlEmployee, ahlEmployer, taxable, paye,
+           totalDeductions, net, employerCosts, statutoryTotal };
+}
+
 
 const NUM_WORDS_ONES = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
   "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
@@ -43195,7 +43678,15 @@ function renderFinanceReceiveTab(){
   `;
 }
 
-function removePaymentRecord(i){ paymentsLog.splice(i,1); render(); }
+// A receipt is cancelled, not deleted, so its number stays on record. Only
+// an already-cancelled receipt may be removed; the number stays retired.
+function removePaymentRecord(i){
+  const p = paymentsLog[i];
+  if(!p) return;
+  if(p.status !== 'Cancelled'){ alert("Cancel this receipt first (with a reason) — receipts that were never cancelled stay on record."); return; }
+  if(!confirm(`Remove cancelled receipt ${p.receiptNo} from the list? Its number will never be reused.`)) return;
+  paymentsLog.splice(i,1); render();
+}
 
 function renderFinanceReceiptsTab(){
   const rows = paymentsLog.map((p,i) => `
@@ -43210,7 +43701,7 @@ function renderFinanceReceiptsTab(){
       <td>
         <button class="link-btn" onclick="previewReceipt(paymentsLog[${i}])" style="margin-right:10px;" title="Print / export this receipt"><i class="fa-solid fa-print"></i>&nbsp;Receipt</button>
         ${p.status!=='Cancelled' ? `<button class="link-btn" style="color:#dc2626;margin-right:10px;" onclick="openCancelModal('receipt', ${i})"><i class="fa-solid fa-ban"></i>&nbsp;Cancel</button>` : ''}
-        <button class="link-btn danger" onclick="removePaymentRecord(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+        ${p.status==='Cancelled' ? `<button class="link-btn danger" onclick="removePaymentRecord(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>` : ''}
       </td>
     </tr>
   `).join('') || `<tr><td colspan="8" class="empty">No receipts issued yet.</td></tr>`;
@@ -43274,7 +43765,13 @@ function addExpenseEntry(e){
   // is made, showing the serial number that was just issued.
   previewVoucher(entry);
 }
-function removeExpenseEntry(i){ expenseEntries.splice(i,1); render(); }
+function removeExpenseEntry(i){
+  const e = expenseEntries[i];
+  if(!e) return;
+  if(e.status !== 'Cancelled'){ alert("Cancel this voucher first (with a reason) — vouchers that were never cancelled stay on record."); return; }
+  if(!confirm(`Remove cancelled voucher ${e.voucherNo || ''} from the list? Its number will never be reused.`)) return;
+  expenseEntries.splice(i,1); render();
+}
 
 let voucherPreview = null; // data for the currently open payment voucher preview modal
 
@@ -43572,8 +44069,39 @@ function downloadVoucherPdf(){
 const BUDGET_ITEM_OPTIONS = [
   "Food", "Electricity", "Water", "Administration", "Repairs",
   "Co-curricular", "ICT", "Departmental budgets",
-  "Teaching & Learning Materials", "Transport", "Other",
+  "Teaching & Learning Materials", "Transport", "Salaries & Wages", "Other",
 ];
+// Which logged-expense categories count toward each budget line, so the
+// "actual" figure fills itself in from Income & Expenditure > Log expense.
+const BUDGET_EXPENSE_MAP = {
+  "Food":["Food"], "Electricity":["Electricity"], "Water":["Water"], "Administration":["Administration"],
+  "Repairs":["Repair & Maintenance"], "Co-curricular":["Co-curricular"], "ICT":["ICT"],
+  "Departmental budgets":["Departmental budgets"], "Teaching & Learning Materials":["Teaching materials"],
+  "Transport":["Transport","School Bus"], "Salaries & Wages":["Salaries/Wages"], "Other":["Other expenses","Utilities"],
+};
+// Actual spend for a budget line: a figure typed in by hand wins (e.g. for
+// spending not yet logged); otherwise it is the total of the matching
+// logged expenses (plus gross pay + employer costs for Salaries & Wages).
+function budgetActual(b){
+  if(b.spent > 0) return { amount: b.spent, manual: true };
+  const cats = (BUDGET_EXPENSE_MAP[b.category] || [b.category]).map(c => c.toLowerCase());
+  let amount = activeExpenses().filter(e => cats.includes(String(e.category || '').toLowerCase())).reduce((t, e) => t + parseAmountKsh(e.amount), 0);
+  if(b.category === 'Salaries & Wages') amount += paidPayrollLines().reduce((t, l) => t + l.slip.gross + l.slip.employerCosts, 0);
+  return { amount, manual: false };
+}
+function editBudgetItem(i){
+  const b = budgetItems[i];
+  if(!b) return;
+  const a = prompt(`Budget amount for ${b.category} (Ksh):`, b.allocated);
+  if(a === null) return;
+  const alloc = Number(String(a).replace(/[^0-9.]/g, '')) || 0;
+  if(alloc <= 0){ alert("Enter a budget amount greater than zero."); return; }
+  const m = prompt(`Actual spend override (Ksh). Leave blank to use the expenses logged under ${b.category}:`, b.spent > 0 ? b.spent : '');
+  if(m === null) return;
+  b.allocated = alloc;
+  b.spent = Number(String(m).replace(/[^0-9.]/g, '')) || 0;
+  render();
+}
 
 function addBudgetItem(e){
   e.preventDefault();
@@ -43584,6 +44112,7 @@ function addBudgetItem(e){
   const allocated = Number(String(allocatedInput.value).replace(/[^0-9.]/g,'')) || 0;
   const spent = Number(String(actualInput.value).replace(/[^0-9.]/g,'')) || 0;
   if(!category || !allocated){ (category?allocatedInput:itemInput).focus(); return; }
+  if(budgetItems.some(b => b.category === category)){ alert(`${category} is already in the budget — use Edit on its card instead.`); return; }
   budgetItems.push({ category, allocated, spent });
   itemInput.value = ""; allocatedInput.value = ""; actualInput.value = "";
   render();
@@ -43594,16 +44123,23 @@ function renderFinanceBudgetTab(){
   const itemOpts = BUDGET_ITEM_OPTIONS.map(o => `<option value="${o}">${o}</option>`).join('');
 
   const cards = budgetItems.map((b,i) => {
-    const pct = b.allocated > 0 ? Math.min(100, Math.round((b.spent / b.allocated) * 100)) : 0;
-    const over = b.spent > b.allocated;
+    const act = budgetActual(b);
+    const variance = b.allocated - act.amount;
+    const pct = b.allocated > 0 ? Math.min(100, Math.round((act.amount / b.allocated) * 100)) : 0;
+    const over = act.amount > b.allocated;
     return `
       <div class="panel settings-card" style="margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
           <strong style="font-size:13.5px;">${b.category}</strong>
-          <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <span style="font-size:12.5px;color:${over?'var(--rose)':'var(--muted)'};font-weight:700;">
-              Ksh ${b.spent.toLocaleString()} / Ksh ${b.allocated.toLocaleString()}
+              Actual ${formatKsh(act.amount)} / Budget ${formatKsh(b.allocated)}
             </span>
+            <span style="font-size:12.5px;font-weight:800;color:${variance<0?'var(--rose)':'var(--green)'};" title="Budget minus actual">
+              ${variance<0 ? 'Over by ' + formatKsh(-variance) : 'Variance ' + formatKsh(variance)}
+            </span>
+            <span style="font-size:11px;color:var(--muted);">${act.manual ? 'manual actual' : 'from logged expenses'}</span>
+            <button class="link-btn" onclick="editBudgetItem(${i})" title="Edit"><i class="fa-solid fa-pen"></i></button>
             <button class="link-btn danger" onclick="removeBudgetItem(${i})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
@@ -43613,13 +44149,13 @@ function renderFinanceBudgetTab(){
   }).join('') || `<div class="empty">No budget categories set yet.</div>`;
 
   const totalAllocated = budgetItems.reduce((s,b)=>s+b.allocated,0);
-  const totalSpent = budgetItems.reduce((s,b)=>s+b.spent,0);
+  const totalSpent = budgetItems.reduce((s,b)=>s+budgetActual(b).amount,0);
 
   return `
     <div class="stat-cards">
-      <div class="stat-card"><div class="lbl">Total allocated</div><div class="val">Ksh ${totalAllocated.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="lbl">Total spent</div><div class="val">Ksh ${totalSpent.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="lbl">Remaining</div><div class="val" style="color:${totalAllocated-totalSpent<0?'var(--rose)':'var(--green)'};">Ksh ${(totalAllocated-totalSpent).toLocaleString()}</div></div>
+      <div class="stat-card"><div class="lbl">Total allocated</div><div class="val">${formatKsh(totalAllocated)}</div></div>
+      <div class="stat-card"><div class="lbl">Total spent</div><div class="val">${formatKsh(totalSpent)}</div></div>
+      <div class="stat-card"><div class="lbl">Remaining</div><div class="val" style="color:${totalAllocated-totalSpent<0?'var(--rose)':'var(--green)'};">${formatKsh(totalAllocated-totalSpent)}</div></div>
     </div>
 
     <div class="panel settings-card" style="margin-bottom:20px;">
@@ -43634,8 +44170,8 @@ function renderFinanceBudgetTab(){
         <label class="field"><span>Budget Amount&nbsp;<span class="req">*</span></span>
           <input id="bud_allocated" type="text" placeholder="e.g. Ksh 400,000">
         </label>
-        <label class="field"><span>Actual Amount</span>
-          <input id="bud_actual" type="text" placeholder="e.g. Ksh 210,000">
+        <label class="field"><span>Actual Amount (optional)</span>
+          <input id="bud_actual" type="text" placeholder="Leave blank to take it from logged expenses">
         </label>
         <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Add to budget</button>
       </form>
@@ -43645,56 +44181,234 @@ function renderFinanceBudgetTab(){
   `;
 }
 
+// ---- Payroll records: monthly entries with a pay period ----
+let payrollPeriod = new Date().toISOString().slice(0, 7); // month shown in the Payroll tab (yyyy-mm)
+function normalizePayroll(){
+  const cm = new Date().toISOString().slice(0, 7);
+  payrollEntries.forEach((p, i) => {
+    if(!p.period) p.period = cm;
+    if(p.allowances === undefined) p.allowances = 0;
+    if(!p.id) p.id = 'PR-' + Date.now().toString(36) + '-' + i;
+    p.status = p.status === 'Paid' ? 'Paid' : 'Pending';
+    p.remitted = !!p.remitted && p.status === 'Paid';
+  });
+}
+function payrollSlip(p){ return calcPayslip(parseAmountKsh(p.salary), parseAmountKsh(p.allowances)); }
+function payrollPeriodEnd(period){
+  const [y, m] = String(period || '').split('-').map(Number);
+  if(!y || !m) return '';
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+function payrollPeriodLabel(period){
+  const [y, m] = String(period || '').split('-').map(Number);
+  if(!y || !m) return period || '—';
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+// Paid payroll lines with their slip and the dates the money actually moved
+// (salary paid date; statutory remittance date once remitted).
+function paidPayrollLines(filter){
+  normalizePayroll();
+  const from = filter && filter.from, to = filter && filter.to;
+  return payrollEntries.filter(p => p.status === 'Paid').map(p => {
+    const slip = payrollSlip(p);
+    const date = p.paidDate || payrollPeriodEnd(p.period);
+    const remitDate = p.remitted ? (p.remittedDate || date) : '';
+    return { p, slip, date, remitDate, ref: 'PAY-' + p.period,
+             salaryIn: inFinanceReportRange(date, from, to),
+             remitIn: p.remitted && inFinanceReportRange(remitDate, from, to) };
+  });
+}
+
 function togglePayrollStatus(i){
   const p = payrollEntries[i];
   if(!p) return;
-  p.status = p.status === "Paid" ? "Pending" : "Paid";
+  if(p.status === 'Paid'){
+    if(p.remitted){ alert("This salary's statutory deductions were already remitted. Salary paid cannot be reversed."); return; }
+    if(!confirm(`Mark ${p.name}'s salary for ${payrollPeriodLabel(p.period)} as not paid? It will be taken out of the cash book and ledger.`)) return;
+    p.status = "Pending"; p.paidDate = "";
+  } else {
+    p.status = "Paid"; p.paidDate = new Date().toISOString().slice(0, 10);
+  }
   render();
 }
+function remitPayrollStatutory(i){
+  const p = payrollEntries[i];
+  if(!p || p.status !== 'Paid' || p.remitted) return;
+  const slip = payrollSlip(p);
+  if(!confirm(`Record remittance of ${formatKsh(slip.statutoryTotal)} (PAYE, NSSF, SHIF, housing levy) for ${p.name}, ${payrollPeriodLabel(p.period)}?`)) return;
+  p.remitted = true; p.remittedDate = new Date().toISOString().slice(0, 10);
+  render();
+}
+function remitPayrollPeriod(){
+  const due = payrollEntries.filter(p => p.period === payrollPeriod && p.status === 'Paid' && !p.remitted);
+  if(!due.length){ alert("Nothing to remit for this month — pay salaries first, or they are already remitted."); return; }
+  const total = due.reduce((t, p) => t + payrollSlip(p).statutoryTotal, 0);
+  if(!confirm(`Record remittance of ${formatKsh(total)} to KRA, NSSF and SHA for ${due.length} staff, ${payrollPeriodLabel(payrollPeriod)}?`)) return;
+  const today = new Date().toISOString().slice(0, 10);
+  due.forEach(p => { p.remitted = true; p.remittedDate = today; });
+  render();
+}
+function setPayrollPeriod(v){ if(v){ payrollPeriod = v; render(); } }
 
 function addPayrollEntry(e){
   e.preventDefault();
   const nameInput = document.getElementById('pr_name');
   const roleInput = document.getElementById('pr_role');
   const salaryInput = document.getElementById('pr_salary');
+  const allowInput = document.getElementById('pr_allowances');
   const name = nameInput.value.trim();
   const salary = salaryInput.value.trim();
-  if(!name || !salary){ (name?salaryInput:nameInput).focus(); return; }
-  payrollEntries.push({ name, role: roleInput.value.trim() || 'Staff', salary, status:"Pending" });
-  nameInput.value=""; roleInput.value=""; salaryInput.value="";
+  if(!name || parseAmountKsh(salary) <= 0){ (name?salaryInput:nameInput).focus(); return; }
+  normalizePayroll();
+  if(payrollEntries.some(p => p.period === payrollPeriod && p.name.trim().toLowerCase() === name.toLowerCase())){
+    alert(`${name} is already on the ${payrollPeriodLabel(payrollPeriod)} payroll.`); return;
+  }
+  payrollEntries.push({ id:'PR-' + Date.now().toString(36), name, role: roleInput.value.trim() || 'Staff', salary,
+    allowances: parseAmountKsh(allowInput.value), period: payrollPeriod, status:"Pending", remitted:false });
+  nameInput.value=""; roleInput.value=""; salaryInput.value=""; allowInput.value="";
   render();
 }
-function removePayrollEntry(i){ payrollEntries.splice(i,1); render(); }
+// Deleting is only for entries not yet paid — once paid, the salary is in
+// the cash book and ledger and the audit trail must stay.
+function removePayrollEntry(i){
+  const p = payrollEntries[i];
+  if(!p) return;
+  if(p.status === 'Paid'){ alert("A paid salary cannot be deleted. Mark it as not paid first (only possible before the statutory deductions are remitted)."); return; }
+  if(!confirm(`Remove ${p.name} from the ${payrollPeriodLabel(p.period)} payroll?`)) return;
+  payrollEntries.splice(i, 1);
+  render();
+}
+// Carries last month's staff list forward into the selected month so the
+// bursar doesn't re-type everyone each month. New entries start unpaid.
+function copyPayrollFromPrevious(){
+  normalizePayroll();
+  const earlier = [...new Set(payrollEntries.map(p => p.period).filter(per => per < payrollPeriod))].sort();
+  const src = earlier[earlier.length - 1];
+  if(!src){ alert("There is no earlier month to copy from."); return; }
+  const have = new Set(payrollEntries.filter(p => p.period === payrollPeriod).map(p => p.name.trim().toLowerCase()));
+  let added = 0;
+  payrollEntries.filter(p => p.period === src).forEach(p => {
+    if(have.has(p.name.trim().toLowerCase())) return;
+    payrollEntries.push({ id:'PR-' + Date.now().toString(36) + '-' + added, name:p.name, role:p.role, salary:p.salary,
+      allowances:p.allowances, period:payrollPeriod, status:'Pending', remitted:false });
+    added++;
+  });
+  alert(added ? `Copied ${added} staff from ${payrollPeriodLabel(src)}.` : `Everyone from ${payrollPeriodLabel(src)} is already listed.`);
+  render();
+}
+
+function downloadPayslipPdf(i){
+  const p = payrollEntries[i];
+  if(!p) return;
+  if(typeof window.jspdf === 'undefined'){ alert("PDF export isn't available right now (couldn't load the PDF library)."); return; }
+  const profile = getSchoolProfile(currentSchool);
+  const slip = payrollSlip(p);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 40; let y = 60;
+  const money = n => Number(n).toLocaleString('en-KE', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  if(profile.logo){ try{ doc.addImage(profile.logo, 'PNG', margin, y - 20, 40, 40); }catch(e){ /* unsupported image */ } }
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(30,63,120);
+  doc.text(currentSchool || 'School', pageWidth/2, y, { align:'center' });
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(71,85,105);
+  doc.text(`PAYSLIP - ${payrollPeriodLabel(p.period)}`, pageWidth/2, y+16, { align:'center' });
+  doc.setFontSize(10); doc.setTextColor(0,0,0);
+  doc.text(`Employee: ${p.name}`, margin, y+46);
+  doc.text(`Role: ${p.role || '—'}`, margin, y+60);
+  doc.text(`Salary status: ${p.status}${p.paidDate ? ' (' + p.paidDate + ')' : ''}`, pageWidth - margin, y+46, { align:'right' });
+  const boldRows = new Set([2, 8, 9]);
+  doc.autoTable({
+    startY: y + 76, margin:{ left:margin, right:margin },
+    head: [['Description', 'Amount (Ksh)']],
+    body: [
+      ['Basic pay', money(slip.basic)],
+      ['Allowances', money(slip.allowances)],
+      ['GROSS PAY', money(slip.gross)],
+      ['NSSF (employee)', money(slip.nssf.employee)],
+      ['SHIF', money(slip.shif)],
+      ['Affordable Housing Levy (employee)', money(slip.ahlEmployee)],
+      ['Taxable pay (gross less NSSF, SHIF, housing levy)', money(slip.taxable)],
+      [`PAYE (after personal relief of ${money(PAYE_PERSONAL_RELIEF)})`, money(slip.paye)],
+      ['TOTAL DEDUCTIONS', money(slip.totalDeductions)],
+      ['NET PAY', money(slip.net)],
+    ],
+    theme:'grid', styles:{ fontSize:9.5, cellPadding:5, lineWidth:0.6, lineColor:[0,0,0], textColor:[0,0,0] },
+    headStyles:{ fillColor:[30,63,120], textColor:255, fontStyle:'bold' },
+    columnStyles:{ 1:{ halign:'right' } },
+    didParseCell: d => { if(d.section === 'body' && boldRows.has(d.row.index)) d.cell.styles.fontStyle = 'bold'; },
+  });
+  doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 18, margin:{ left:margin, right:margin },
+    head: [['Employer contributions (not deducted from pay)', 'Amount (Ksh)']],
+    body: [['NSSF (employer)', money(slip.nssf.employer)], ['Affordable Housing Levy (employer)', money(slip.ahlEmployer)]],
+    theme:'grid', styles:{ fontSize:9.5, cellPadding:5, lineWidth:0.6, lineColor:[0,0,0], textColor:[0,0,0] },
+    headStyles:{ fillColor:[71,85,105], textColor:255, fontStyle:'bold' },
+    columnStyles:{ 1:{ halign:'right' } },
+  });
+  doc.save(`payslip-${String(p.name).replace(/[^A-Za-z0-9]+/g, '-')}-${p.period}.pdf`);
+}
 
 function renderFinancePayrollTab(){
-  const rows = payrollEntries.map((p,i) => {
-    const basicPay = parseAmountKsh(p.salary);
-    const nssf = calcNssf(basicPay);
-    const nhif = calcNhif(basicPay);
-    const netPay = basicPay - nssf.employee - nhif;
+  normalizePayroll();
+  const periods = [...new Set([...payrollEntries.map(p => p.period), payrollPeriod])].sort().reverse();
+  const staffNames = [...new Set([...teachersList.map(t => teacherFullName(t)), ...staffList.map(s => s.name)].filter(Boolean))];
+  const visible = payrollEntries.map((p, i) => ({ p, i })).filter(x => x.p.period === payrollPeriod);
+  const slips = visible.map(x => payrollSlip(x.p));
+  const sum = f => slips.reduce((t, s) => t + f(s), 0);
+  const paidLines = visible.filter(x => x.p.status === 'Paid');
+  const statutoryDue = paidLines.filter(x => !x.p.remitted).reduce((t, x) => t + payrollSlip(x.p).statutoryTotal, 0);
+
+  const rows = visible.map((x, k) => {
+    const { p, i } = x, s = slips[k];
     return `
     <tr>
       <td style="font-weight:600;">${p.name}</td>
       <td style="color:var(--muted);">${p.role}</td>
-      <td style="color:var(--muted);">${formatKsh(basicPay)}</td>
-      <td style="color:var(--muted);" title="Tier I: ${formatKsh(nssf.tier1)}  +  Tier II: ${formatKsh(nssf.tier2)}">${formatKsh(nssf.employee)}</td>
-      <td style="color:var(--muted);" title="Tier I: ${formatKsh(nssf.tier1)}  +  Tier II: ${formatKsh(nssf.tier2)}">${formatKsh(nssf.employer)}</td>
-      <td style="color:var(--muted);">${formatKsh(nhif)}</td>
-      <td style="font-weight:600;">${formatKsh(netPay)}</td>
+      <td style="color:var(--muted);">${formatKsh(s.basic)}</td>
+      <td style="color:var(--muted);">${formatKsh(s.allowances)}</td>
+      <td style="font-weight:600;">${formatKsh(s.gross)}</td>
+      <td style="color:var(--muted);">${formatKsh(s.paye)}</td>
+      <td style="color:var(--muted);" title="Tier I: ${formatKsh(s.nssf.tier1)}  +  Tier II: ${formatKsh(s.nssf.tier2)}. Employer matches: ${formatKsh(s.nssf.employer)}">${formatKsh(s.nssf.employee)}</td>
+      <td style="color:var(--muted);">${formatKsh(s.shif)}</td>
+      <td style="color:var(--muted);" title="Employer matches: ${formatKsh(s.ahlEmployer)}">${formatKsh(s.ahlEmployee)}</td>
+      <td style="font-weight:700;">${formatKsh(s.net)}</td>
       <td><span class="pill-status ${p.status==='Paid'?'status-paid':'status-pending'}">${p.status}</span></td>
-      <td><button class="link-btn" onclick="togglePayrollStatus(${i})">${p.status==='Paid'?'Mark pending':'Mark paid'}</button></td>
-      <td><button class="link-btn danger" onclick="removePayrollEntry(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button></td>
-    </tr>
-  `;
-  }).join('') || `<tr><td colspan="10" class="empty">No payroll entries yet.</td></tr>`;
+      <td>${p.status !== 'Paid' ? '<span style="color:var(--muted);font-size:12px;">—</span>' : p.remitted
+        ? `<span style="color:var(--green);font-weight:700;font-size:12px;" title="${p.remittedDate||''}">Remitted</span>`
+        : `<button class="link-btn" onclick="remitPayrollStatutory(${i})" title="${formatKsh(s.statutoryTotal)} due to KRA/NSSF/SHA">Mark remitted</button>`}</td>
+      <td style="white-space:nowrap;">
+        <button class="link-btn" onclick="togglePayrollStatus(${i})">${p.status==='Paid'?'Mark pending':'Mark paid'}</button>
+        <button class="link-btn" onclick="downloadPayslipPdf(${i})" title="Payslip PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        ${p.status !== 'Paid' ? `<button class="link-btn danger" onclick="removePayrollEntry(${i})"><i class="fa-solid fa-trash"></i></button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="13" class="empty">No payroll entries for ${payrollPeriodLabel(payrollPeriod)}.</td></tr>`;
 
   return `
+    <div class="panel settings-card" style="max-width:none;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;">
+      <label class="field" style="margin:0;min-width:170px;"><span>Pay period</span>
+        <input type="month" value="${payrollPeriod}" onchange="setPayrollPeriod(this.value)">
+      </label>
+      <div style="font-size:12.5px;color:var(--muted);">Viewing <strong>${payrollPeriodLabel(payrollPeriod)}</strong>${periods.length > 1 ? ` · other months: ${periods.filter(per => per !== payrollPeriod).slice(0,4).map(per => `<a href="#" onclick="setPayrollPeriod('${per}');return false;" style="color:var(--accent,#5b8def);font-weight:600;">${payrollPeriodLabel(per)}</a>`).join(', ')}` : ''}</div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" style="width:auto;padding:9px 14px;font-size:12.5px;" onclick="copyPayrollFromPrevious()"><i class="fa-solid fa-copy"></i> Copy staff from previous month</button>
+        <button type="button" class="btn-ghost" style="width:auto;padding:9px 14px;font-size:12.5px;" onclick="remitPayrollPeriod()"><i class="fa-solid fa-building-columns"></i> Remit statutory deductions</button>
+      </div>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="lbl">Staff</div><div class="val">${visible.length}</div></div>
+      <div class="stat-card"><div class="lbl">Gross pay</div><div class="val">${formatKsh(sum(s => s.gross))}</div></div>
+      <div class="stat-card"><div class="lbl">Net pay</div><div class="val">${formatKsh(sum(s => s.net))}</div></div>
+      <div class="stat-card"><div class="lbl">Statutory still to remit</div><div class="val" style="color:${statutoryDue>0?'var(--rose)':'var(--green)'};">${formatKsh(statutoryDue)}</div></div>
+    </div>
     <div class="two-col">
       <div class="panel settings-card">
         <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;">Add payroll entry</h3>
         <form onsubmit="addPayrollEntry(event)">
           <label class="field"><span>Staff name&nbsp;<span class="req">*</span></span>
-            <input id="pr_name" type="text" placeholder="Teacher name">
+            <input id="pr_name" type="text" list="pr_name_list" placeholder="Teacher name">
+            <datalist id="pr_name_list">${staffNames.map(n => `<option value="${n}">`).join('')}</datalist>
           </label>
           <label class="field"><span>Role</span>
             <input id="pr_role" type="text" placeholder="e.g. Mathematics Teacher">
@@ -43702,17 +44416,20 @@ function renderFinancePayrollTab(){
           <label class="field"><span>Basic Pay&nbsp;<span class="req">*</span></span>
             <input id="pr_salary" type="text" placeholder="e.g. Ksh 85,000">
           </label>
+          <label class="field"><span>Allowances (house, commuter, etc.)</span>
+            <input id="pr_allowances" type="text" placeholder="e.g. Ksh 10,000">
+          </label>
           <p style="margin:2px 0 12px;font-size:11px;color:var(--muted);">
-            NSSF (6% employee + 6% employer, Tier I up to Ksh ${NSSF_TIER_I_LIMIT.toLocaleString()}, Tier II up to Ksh ${NSSF_TIER_II_LIMIT.toLocaleString()}) and NHIF (2.75% of basic pay) are calculated automatically.
+            Added to <strong>${payrollPeriodLabel(payrollPeriod)}</strong>. Calculated automatically from gross pay: NSSF 6% (Tier I up to Ksh ${NSSF_TIER_I_LIMIT.toLocaleString()}, Tier II up to Ksh ${NSSF_TIER_II_LIMIT.toLocaleString()}), SHIF 2.75% (min Ksh ${SHIF_MIN}), Affordable Housing Levy 1.5%, then PAYE after NSSF/SHIF/levy relief and the Ksh ${PAYE_PERSONAL_RELIEF.toLocaleString()} personal relief. The employer also matches NSSF and the levy.
           </p>
           <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Add to payroll</button>
         </form>
       </div>
       <div class="panel" style="overflow:hidden;">
-        <div class="panel-header"><h3>Payroll (${payrollEntries.length})</h3></div>
+        <div class="panel-header"><h3>Payroll — ${payrollPeriodLabel(payrollPeriod)} (${visible.length})</h3></div>
         <div class="streams-scroll">
           <table>
-            <thead><tr><th>Name</th><th>Role</th><th>Basic Pay</th><th>NSSF (Employee)</th><th>NSSF (Employer)</th><th>NHIF</th><th>Net Pay</th><th>Status</th><th></th><th>Action</th></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Basic</th><th>Allowances</th><th>Gross</th><th>PAYE</th><th>NSSF</th><th>SHIF</th><th>Housing levy</th><th>Net Pay</th><th>Status</th><th>Statutory</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -43729,7 +44446,8 @@ function buildFinanceReportData(type){
       rows = [["S/No","Type","Grade","Term","Votehead","Amount"], ...feeStructureItems.map((f,idx)=>[idx+1,f.studentType||'—',f.grade,f.term,f.category,f.amount])];
       filename = "fee-structure"; break;
     case "accounts":
-      rows = [["S/No","Student","Amount","Status"], ...invoices.map((i,idx)=>[idx+1,i.student,i.amount,i.status])];
+      refreshInvoices();
+      rows = [["S/No","Admission","Student","Billed","Paid","Balance","Status"], ...invoices.map((i,idx)=>[idx+1,i.admissionNumber,i.student,i.billed,i.paid,i.balance,i.status])];
       filename = "student-fee-accounts"; break;
     case "arrears":
       rows = [["S/No","Admission","Student","Class","Boarding/Day","Expected","Paid","Balance"],
@@ -43758,16 +44476,50 @@ function buildFinanceReportData(type){
       rows = [["S/No","Receipt No","Student","Amount","Method","Date & Time","Status"], ...paymentsLog.filter(p=>inFinanceReportRange(p.date, financeReportFrom, financeReportTo)).map((p,idx)=>[idx+1,p.receiptNo,p.student,p.amount,p.method,p.date,p.status||'Active'])];
       filename = "receipts"; break;
     case "budget":
-      rows = [["S/No","ITEM","BUDGET","ACTUAL COST","VARIANCE"], ...budgetItems.map((b,idx)=>[idx+1, String(b.category||'').toUpperCase(), b.allocated, b.spent, b.allocated-b.spent])];
+      rows = [["S/No","ITEM","BUDGET","ACTUAL COST","VARIANCE","% USED"], ...budgetItems.map((b,idx)=>{ const a = budgetActual(b); return [idx+1, String(b.category||'').toUpperCase(), b.allocated, a.amount, b.allocated-a.amount, b.allocated ? `${(a.amount/b.allocated*100).toFixed(1)}%` : '—']; })];
       filename = "budget-variance"; break;
-    case "payroll":
-      rows = [["S/No","Name","Role","Basic Pay","NSSF (Employee)","NSSF (Employer)","NHIF","Net Pay","Status"], ...payrollEntries.map((p,idx)=>{
-        const basicPay = parseAmountKsh(p.salary);
-        const nssf = calcNssf(basicPay);
-        const nhif = calcNhif(basicPay);
-        return [idx+1, p.name, p.role, basicPay, nssf.employee, nssf.employer, nhif, basicPay-nssf.employee-nhif, p.status];
+    case "payroll": {
+      normalizePayroll();
+      const list = payrollEntries.slice().sort((a,b) => String(a.period).localeCompare(String(b.period)) || String(a.name).localeCompare(String(b.name)));
+      rows = [["S/No","Period","Name","Role","Basic Pay","Allowances","Gross Pay","PAYE","NSSF","SHIF","Housing Levy","Net Pay","Status"], ...list.map((p,idx) => {
+        const sl = payrollSlip(p);
+        return [idx+1, payrollPeriodLabel(p.period), p.name, p.role, sl.basic, sl.allowances, sl.gross, sl.paye, sl.nssf.employee, sl.shif, sl.ahlEmployee, sl.net, p.status];
       })];
       filename = "payroll"; break;
+    }
+    case "payrollStatutory": {
+      normalizePayroll();
+      const byPeriod = {};
+      payrollEntries.forEach(p => {
+        const sl = payrollSlip(p);
+        const g = byPeriod[p.period] || (byPeriod[p.period] = { staff:0, paye:0, nssf:0, shif:0, ahl:0, total:0, unremitted:0 });
+        g.staff++; g.paye += sl.paye; g.nssf += sl.nssf.employee + sl.nssf.employer; g.shif += sl.shif;
+        g.ahl += sl.ahlEmployee + sl.ahlEmployer; g.total += sl.statutoryTotal;
+        if(!(p.status === 'Paid' && p.remitted)) g.unremitted += sl.statutoryTotal;
+      });
+      rows = [["S/No","Period","Staff","PAYE (KRA)","NSSF (employee + employer)","SHIF (SHA)","Housing Levy (employee + employer)","Total statutory","Not yet remitted"]];
+      Object.keys(byPeriod).sort().forEach((per, idx) => {
+        const g = byPeriod[per];
+        rows.push([idx+1, payrollPeriodLabel(per), g.staff, payR2(g.paye), payR2(g.nssf), payR2(g.shif), payR2(g.ahl), payR2(g.total), payR2(g.unremitted)]);
+      });
+      filename = "payroll-statutory-summary"; break;
+    }
+    case "expenseByCategory": {
+      const byCat = {};
+      activeExpenses().filter(e => inFinanceReportRange(e.date, financeReportFrom, financeReportTo)).forEach(e => {
+        const g = byCat[e.category] || (byCat[e.category] = { count:0, total:0 });
+        g.count++; g.total += parseAmountKsh(e.amount);
+      });
+      paidPayrollLines({from:financeReportFrom, to:financeReportTo}).filter(l => l.salaryIn).forEach(l => {
+        const g = byCat["Salaries & Wages (payroll)"] || (byCat["Salaries & Wages (payroll)"] = { count:0, total:0 });
+        g.count++; g.total += l.slip.gross + l.slip.employerCosts;
+      });
+      const all = Object.keys(byCat).sort((a,b) => byCat[b].total - byCat[a].total);
+      const grand = all.reduce((t,k) => t + byCat[k].total, 0);
+      rows = [["S/No","Category","Entries","Amount","% of total"], ...all.map((k,idx) => [idx+1, k, byCat[k].count, payR2(byCat[k].total), grand ? `${(byCat[k].total/grand*100).toFixed(1)}%` : '0%'])];
+      rows.push(["", "TOTAL", all.reduce((t,k)=>t+byCat[k].count,0), payR2(grand), "100%"]);
+      filename = "expenditure-by-category"; break;
+    }
     case "dailyCashBook": {
       const today = new Date(); today.setHours(0,0,0,0);
       let running = cashOpeningBalance;
@@ -43839,12 +44591,14 @@ function buildFinanceReportData(type){
     }
     case "incomeExpenditure": {
       const inRange = d => inFinanceReportRange(d, financeReportFrom, financeReportTo);
-      const staffCosts = payrollEntries.reduce((s,p) => s + parseAmountKsh(p.salary), 0);
       let ledger = [];
       activePayments().filter(p=>inRange(p.date)).forEach(p => ledger.push({ date:p.date, voucherNo:p.receiptNo||'—', desc:`Fees collected - ${p.student}`, income:parseAmountKsh(p.amount), expense:0 }));
       incomeEntries.filter(i=>inRange(i.date)).forEach(i => ledger.push({ date:i.date, voucherNo:'—', desc:i.description ? `${i.source} - ${i.description}` : i.source, income:parseAmountKsh(i.amount), expense:0 }));
       activeExpenses().filter(e=>inRange(e.date)).forEach(e => ledger.push({ date:e.date, voucherNo:e.voucherNo||'—', desc:e.description ? `${e.category} - ${e.description}` : e.category, income:0, expense:parseAmountKsh(e.amount) }));
-      if(staffCosts) ledger.push({ date:'', voucherNo:'—', desc:'Staff salaries (payroll)', income:0, expense:staffCosts });
+      paidPayrollLines({from:financeReportFrom, to:financeReportTo}).filter(l => l.salaryIn).forEach(l => {
+        ledger.push({ date:l.date, voucherNo:l.ref, desc:`Staff salary - ${l.p.name} (gross)`, income:0, expense:l.slip.gross });
+        if(l.slip.employerCosts) ledger.push({ date:l.date, voucherNo:l.ref, desc:`Employer NSSF & housing levy - ${l.p.name}`, income:0, expense:l.slip.employerCosts });
+      });
       ledger.sort((a,b) => {
         const ta = new Date(a.date).getTime();
         const tb = new Date(b.date).getTime();
@@ -43888,13 +44642,14 @@ const FINANCE_REPORT_TITLES = {
   cashReceipts: "Cash Receipts", cashPayments: "Cash Payment", cashBalance: "Cash Balance",
   bankCashSummary: "Bank/Cash Summary",
   incomeExpenditure: "Income & Expenditure Statement", budget: "Budget & Variance", payroll: "Payroll",
+  payrollStatutory: "Payroll Statutory Summary (PAYE, NSSF, SHIF, Housing Levy)", expenseByCategory: "Expenditure by Category",
   generalLedger: "General Ledger", trialBalance: "Trial Balance",
 };
 // Types whose data is scoped by the From/To range picker in the Reports
 // tab — used to add a period line under the report title.
 const FINANCE_RANGE_AWARE_TYPES = new Set([
   "receipts","cashReceipts","cashPayments","cashBookRange","cashBalance",
-  "bankCashSummary","incomeExpenditure","generalLedger","trialBalance",
+  "bankCashSummary","incomeExpenditure","generalLedger","trialBalance","expenseByCategory",
 ]);
 function financeReportPeriodLabel(){
   if(!financeReportFrom && !financeReportTo) return "All dates";
@@ -43937,7 +44692,7 @@ function downloadFinanceReportPdf(type){
   }
   const profile = getSchoolProfile(currentSchool);
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+  const doc = new jsPDF({ orientation: rows[0].length > 9 ? 'landscape' : 'portrait', unit:'pt', format:'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 40;
   let y = 60;
@@ -43988,6 +44743,7 @@ function downloadFinanceReportPdf(type){
 }
 
 function renderFinanceReportsTab(){
+  refreshInvoices();
   const reportDefs = [
     { type:"feeStructure", label:"Fee Structure", icon:"fa-sitemap", desc:`${feeStructureItems.length} fee line items` },
     { type:"accounts", label:"Student Fee Accounts", icon:"fa-users", desc:`${invoices.length} student accounts` },
@@ -44007,6 +44763,8 @@ function renderFinanceReportsTab(){
     { type:"trialBalance", label:"Trial Balance", icon:"fa-scale-unbalanced", desc:`${financeTrialBalanceRows({from:financeReportFrom,to:financeReportTo}).length} accounts`, ranged:true },
     { type:"budget", label:"Budget & Variance", icon:"fa-chart-pie", desc:`${budgetItems.length} budget categories` },
     { type:"payroll", label:"Payroll", icon:"fa-money-check-dollar", desc:`${payrollEntries.length} payroll entries` },
+    { type:"payrollStatutory", label:"Payroll Statutory Summary", icon:"fa-landmark", desc:"PAYE, NSSF, SHIF & housing levy due by month" },
+    { type:"expenseByCategory", label:"Expenditure by Category", icon:"fa-chart-column", desc:"Where the money went, incl. payroll", ranged:true },
   ];
   const cards = reportDefs.map(r => `
     <div class="report-card">
@@ -44105,8 +44863,14 @@ function cashBookReceipts(){
 }
 function cashBookPayments(){
   const rows = [
-    ...activeExpenses().map(e => ({ date:e.date, voucherNo:e.voucherNo||'—', payee:e.category, description:e.description||'—', amount:parseAmountKsh(e.amount), method:e.method||'—', account:e.category })),
+    ...activeExpenses().map(e => ({ date:e.date, voucherNo:e.voucherNo||'—', payee:e.payeeName||e.category, description:e.description||'—', amount:parseAmountKsh(e.amount), method:e.method||'—', account:e.category })),
   ];
+  // Salaries actually paid (net pay) and statutory deductions actually
+  // remitted leave the cash book on the day they were recorded.
+  paidPayrollLines().forEach(l => {
+    if(l.slip.net > 0) rows.push({ date:l.date, voucherNo:l.ref, payee:l.p.name, description:`Net salary - ${payrollPeriodLabel(l.p.period)}`, amount:l.slip.net, method:'Bank', account:'Salaries & Wages' });
+    if(l.p.remitted && l.slip.statutoryTotal > 0) rows.push({ date:l.remitDate, voucherNo:'STAT-' + l.p.period, payee:'KRA / NSSF / SHA', description:`Statutory remittance - ${l.p.name}`, amount:l.slip.statutoryTotal, method:'Bank', account:'Statutory Deductions' });
+  });
   rows.sort((a,b) => {
     const da = new Date(a.date).getTime(), db = new Date(b.date).getTime();
     return (isNaN(da)?0:da) - (isNaN(db)?0:db);
@@ -44235,7 +44999,7 @@ function financeJournalEntries(filter){
     entries.push({ date:'', ref:'OB', description:'Opening balance brought forward', account:'Cash / Bank', debit: ob>0?ob:0, credit: ob<0?-ob:0 });
     entries.push({ date:'', ref:'OB', description:'Opening balance brought forward', account:'Opening Balances', debit: ob<0?-ob:0, credit: ob>0?ob:0 });
   }
-  paymentsLog.forEach(p => {
+  activePayments().forEach(p => {
     if(!inFinanceReportRange(p.date, from, to)) return;
     const amt = parseAmountKsh(p.amount);
     entries.push({ date:p.date, ref:p.receiptNo, description:`Fee payment - ${p.student}`, account:'Cash / Bank', debit:amt, credit:0 });
@@ -44247,18 +45011,30 @@ function financeJournalEntries(filter){
     entries.push({ date:i.date, ref:'—', description:i.source, account:'Cash / Bank', debit:amt, credit:0 });
     entries.push({ date:i.date, ref:'—', description:i.source, account:'Other Income', debit:0, credit:amt });
   });
-  expenseEntries.forEach(e => {
+  activeExpenses().forEach(e => {
     if(!inFinanceReportRange(e.date, from, to)) return;
     const amt = parseAmountKsh(e.amount);
-    entries.push({ date:e.date, ref:'—', description:e.category, account:e.category, debit:amt, credit:0 });
+    entries.push({ date:e.date, ref:e.voucherNo || '—', description:e.category, account:e.category, debit:amt, credit:0 });
     entries.push({ date:e.date, ref:'—', description:e.category, account:'Cash / Bank', debit:0, credit:amt });
   });
-  const paidPayroll = payrollEntries.filter(p => p.status === 'Paid');
-  if(paidPayroll.length){
-    const total = paidPayroll.reduce((s,p) => s + parseAmountKsh(p.salary), 0);
-    entries.push({ date:'', ref:'—', description:'Staff salaries (payroll)', account:'Salaries & Wages', debit:total, credit:0 });
-    entries.push({ date:'', ref:'—', description:'Staff salaries (payroll)', account:'Cash / Bank', debit:0, credit:total });
-  }
+  // Payroll: salary paid -> expense (gross + employer NSSF/levy), net pay out
+  // of cash, the balance owed to KRA/NSSF/SHA parked in a payable account;
+  // remitting that money later clears the payable out of cash.
+  paidPayrollLines(filter).forEach(l => {
+    const sl = l.slip, who = l.p.name;
+    if(l.salaryIn){
+      const d = `Salary - ${who} (${payrollPeriodLabel(l.p.period)})`;
+      entries.push({ date:l.date, ref:l.ref, description:d, account:'Salaries & Wages', debit:sl.gross, credit:0 });
+      if(sl.employerCosts) entries.push({ date:l.date, ref:l.ref, description:d, account:'Employer Statutory Contributions', debit:sl.employerCosts, credit:0 });
+      entries.push({ date:l.date, ref:l.ref, description:d, account:'Cash / Bank', debit:0, credit:sl.net });
+      entries.push({ date:l.date, ref:l.ref, description:d, account:'Statutory Deductions Payable', debit:0, credit:sl.statutoryTotal });
+    }
+    if(l.remitIn){
+      const d = `Statutory remittance - ${who} (${payrollPeriodLabel(l.p.period)})`;
+      entries.push({ date:l.remitDate, ref:'STAT-' + l.p.period, description:d, account:'Statutory Deductions Payable', debit:sl.statutoryTotal, credit:0 });
+      entries.push({ date:l.remitDate, ref:'STAT-' + l.p.period, description:d, account:'Cash / Bank', debit:0, credit:sl.statutoryTotal });
+    }
+  });
   entries.sort((a,b) => {
     const da = new Date(a.date).getTime(), db = new Date(b.date).getTime();
     return (isNaN(da)?-Infinity:da) - (isNaN(db)?-Infinity:db);
@@ -44412,10 +45188,13 @@ function renderFinanceIncomeExpenditureTab(){
     { label:"Fees collected", amount:feesCollected },
     ...incomeEntries.map(i => ({ label:i.source, amount:parseAmountKsh(i.amount) })),
   ];
-  const staffCosts = payrollEntries.reduce((s,p) => s + parseAmountKsh(p.salary), 0);
+  const payLines = paidPayrollLines();
+  const staffGross = payLines.reduce((t, l) => t + l.slip.gross, 0);
+  const staffEmployer = payLines.reduce((t, l) => t + l.slip.employerCosts, 0);
   const expenditureRows = [
     ...activeExpenses().map(e => ({ label:e.category, amount:parseAmountKsh(e.amount) })),
-    ...(staffCosts ? [{ label:"Staff salaries (payroll)", amount:staffCosts }] : []),
+    ...(staffGross ? [{ label:"Staff salaries (payroll, gross)", amount:staffGross }] : []),
+    ...(staffEmployer ? [{ label:"Employer NSSF & housing levy", amount:staffEmployer }] : []),
   ];
 
   const totalIncome = incomeRows.reduce((s,r)=>s+r.amount,0);
@@ -44449,7 +45228,7 @@ function renderFinanceIncomeExpenditureTab(){
       <td>
         <button class="link-btn" onclick="previewVoucherAt(${i})" style="margin-right:10px;"><i class="fa-solid fa-file-pdf"></i>&nbsp;Voucher</button>
         ${exp.status!=='Cancelled' ? `<button class="link-btn" style="color:#dc2626;margin-right:10px;" onclick="openCancelModal('voucher', ${i})"><i class="fa-solid fa-ban"></i>&nbsp;Cancel</button>` : ''}
-        <button class="link-btn danger" onclick="removeExpenseEntry(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+        ${exp.status==='Cancelled' ? `<button class="link-btn danger" onclick="removeExpenseEntry(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>` : ''}
       </td>
     </tr>
   `).join('') || `<tr><td colspan="9" class="empty">No expenses recorded yet.</td></tr>`;
@@ -51715,6 +52494,8 @@ function renderMobileChrome(){
       <div class="m-kebab-menu">
         <button onclick="mRefresh()"><i class="fa-solid fa-rotate"></i>Refresh view</button>
         <button onclick="mDesktopView()"><i class="fa-solid fa-desktop"></i>Desktop view</button>
+        <button onclick="quickToggleTheme()"><i class="fa-solid ${quickThemeIcon()}"></i>${quickThemeLabel()}</button>
+        ${window.MASMS_CLOUD ? `<button onclick="mCloseSheet();quickCloudClick()"><i class="fa-solid fa-cloud"></i>${quickCloudLabel()}</button>` : ''}
         <button onclick="mOpenSheet('account')"><i class="fa-solid fa-globe"></i>Language &amp; account</button>
         <button class="danger" onclick="mDoLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>Log out</button>
       </div></div>`;
@@ -51790,7 +52571,7 @@ function _scrollRestore(s){
     window.scrollTo(s.win[0], s.win[1]);
   }catch(_e){}
 }
-function render(){ const _snap = _focusSnapshot(), _sc = _scrollSnapshot(); __renderCore(); _focusRestore(_snap); _scrollRestore(_sc); }
+function render(){ invoicesDirty = true; const _snap = _focusSnapshot(), _sc = _scrollSnapshot(); __renderCore(); _focusRestore(_snap); _scrollRestore(_sc); }
 function __renderCore(){
   if(!canAccessModule(active)) active = firstAllowedModule();
   const active_focus = document.activeElement;
@@ -54095,6 +54876,7 @@ if(isLoggedIn){
       if(st === 'present') a.present++; else if(st === 'absent') a.absent++; else if(st === 'late') a.late++; else a.other++;
     });
     var fees = {};
+    refreshInvoices();
     invoices.forEach(function(inv){
       if(inv.status === 'Paid') return;
       var f = fees[inv.admissionNumber] || (fees[inv.admissionNumber] = { owed:0, overdue:false, status:inv.status });
