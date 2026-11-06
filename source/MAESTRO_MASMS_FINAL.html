@@ -3416,6 +3416,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .merit-empty-cell{color:var(--border);}
   .merit-total{font-weight:700;color:var(--navy);}
   .merit-mean{font-weight:700;color:var(--green);}
+  /* Sign-off boxes at the end of the merit list (Prepared by / Confirmed by) */
+  .merit-signoff{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;padding:6px 14px 26px;}
+  .merit-signoff-box{flex:1 1 170px;max-width:230px;border:1px solid var(--text);padding:8px 10px 6px;font-size:12px;color:var(--text);background:var(--card,transparent);}
+  .merit-signoff-box .so-head{font-weight:700;text-align:center;margin-bottom:6px;}
+  .merit-signoff-box .so-row{display:flex;align-items:center;gap:6px;min-height:34px;}
+  .merit-signoff-box .so-name{min-height:20px;}
+  .merit-signoff-box .so-sig img{max-height:30px;max-width:100%;object-fit:contain;}
+  .merit-signoff-box .so-role{text-align:center;margin-top:4px;}
 
   /* Letterhead shown above the class list table, mirroring the printed layout */
   .letterhead{padding:20px 24px 16px;}
@@ -5008,11 +5016,14 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
       theme: 'grid',
       styles: { font: 'times', fontSize: 9.5, cellPadding: 3, lineWidth: 0.6, lineColor: [0, 0, 0], textColor: [0, 0, 0], valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'normal', halign: 'left', lineWidth: 0.6, lineColor: [0, 0, 0] },
-      didDrawPage: function(){
-        doc.setFont('times', 'normal'); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
-        doc.text('Page ' + doc.internal.getCurrentPageInfo().pageNumber, pw - margin, ph - 16, { align: 'right' });
-      }
     });
+    var np = doc.internal.getNumberOfPages();
+    if(np > 1){
+      for(var pi = 1; pi <= np; pi++){
+        doc.setPage(pi); doc.setFont('times', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+        doc.text('Page ' + pi + ' of ' + np, pw / 2, ph - 14, { align: 'center' });
+      }
+    }
     doc.save(slug(school + '_' + title) + '_' + new Date().toISOString().slice(0, 10) + '.pdf');
   }
 
@@ -5234,8 +5245,14 @@ function teacherModuleKeys(){
 // standalone routes reached from Registration — they should be gated the
 // same way Registration itself is.
 const MODULE_ROLLUP = { classes:"registration", subjects:"registration", students:"registration", teachers:"registration" };
+// A school registered as "Day" (School Profile > Boarding Status) has no boarding at all: the module,
+// every boarding field and the dorm/house information stay hidden. "Boarding" and "Mixed" show them.
+function schoolHasBoarding(){
+  try{ return (getSchoolProfile(currentSchool).boardingStatus || "Day") !== "Day"; }catch(_e){ return true; }
+}
 function canAccessModule(key){
   const moduleKey = MODULE_ROLLUP[key] || key;
+  if(moduleKey === "boarding" && !schoolHasBoarding()) return false;
   // Optional modules a System Developer switched off for this school
   try{
     if(currentUserRole !== "System Developer" && SD_OPTIONAL_MODULES.some(m => m[0] === moduleKey) && !sdModuleOn(currentSchool, moduleKey)) return false;
@@ -6646,7 +6663,7 @@ function filteredFeeArrears(){
   return computeFeeArrears().filter(r => {
     if(arrearsGradeFilter && r.grade !== arrearsGradeFilter) return false;
     if(arrearsStreamFilter && r.stream !== arrearsStreamFilter) return false;
-    if(arrearsBoardingFilter && r.boardingStatus !== arrearsBoardingFilter) return false;
+    if(schoolHasBoarding() && arrearsBoardingFilter && r.boardingStatus !== arrearsBoardingFilter) return false;
     if(arrearsStatusFilter && r.status !== arrearsStatusFilter) return false;
     if(arrearsPeriodFilter && r.periodBucket !== arrearsPeriodFilter) return false;
     if(!isNaN(min) && r.balance < min) return false;
@@ -6740,7 +6757,7 @@ function renderFinanceArrearsTab(){
       <td style="font-weight:600;">${r.admissionNumber}</td>
       <td>${r.student}</td>
       <td style="color:var(--muted);">${r.className || '—'}</td>
-      <td style="color:var(--muted);">${r.boardingStatus || '—'}</td>
+      ${schoolHasBoarding() ? `<td style="color:var(--muted);">${r.boardingStatus || '—'}</td>` : ''}
       <td>${formatKsh(r.expected)}</td>
       <td>${formatKsh(r.paid)}</td>
       <td style="font-weight:700;color:var(--rose);">${formatKsh(r.balance)}</td>
@@ -6785,13 +6802,13 @@ function renderFinanceArrearsTab(){
             <option value="Partial payment" ${arrearsStatusFilter==='Partial payment'?'selected':''}>Partial payment</option>
           </select>
         </label>
-        <label class="field" style="min-width:140px;margin:0;"><span>Boarding/day</span>
+        ${schoolHasBoarding() ? `<label class="field" style="min-width:140px;margin:0;"><span>Boarding/day</span>
           <select onchange="setArrearsBoardingFilter(this.value)">
             <option value="">All</option>
             <option value="Boarder" ${arrearsBoardingFilter==='Boarder'?'selected':''}>Boarder</option>
             <option value="Day scholar" ${arrearsBoardingFilter==='Day scholar'?'selected':''}>Day scholar</option>
           </select>
-        </label>
+        </label>` : ''}
         <label class="field" style="min-width:150px;margin:0;"><span>Outstanding period</span>
           <select onchange="setArrearsPeriodFilter(this.value)">
             <option value="">All</option>
@@ -6819,7 +6836,7 @@ function renderFinanceArrearsTab(){
       <div class="panel-header"><h3>Arrears Report</h3></div>
       <div class="streams-scroll">
         <table>
-          <thead><tr><th>Admission</th><th>Student</th><th>Class</th><th>Boarding/Day</th><th>Expected</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead>
+          <thead><tr><th>Admission</th><th>Student</th><th>Class</th>${schoolHasBoarding() ? '<th>Boarding/Day</th>' : ''}<th>Expected</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -9783,6 +9800,7 @@ function sdExportPDF(){
       } catch(err){ /* skip if this particular image can't be embedded */ }
     }
   });
+  pdfPageNumbers(doc);
   doc.save("masms-registered-schools.pdf");
 }
 
@@ -11334,6 +11352,7 @@ function saDownloadPayPdf(){
   });
   body.push([{ content: "TOTAL AMOUNT PAYABLE TO ALL AGENTS", colSpan: 7, styles: { halign: "right", fontStyle: "bold" } }, { content: money(rows.reduce((t, r) => t + r.total, 0)), styles: { fontStyle: "bold" } }]);
   doc.autoTable({ startY: 22, head: [["S/NO","NAME","LIST OF SCHOOLS","AMOUNT PAID BY SCHOOL","BASIC PAY","COMMISSION %","COMMISSION EARNED","TOTAL PAID"]], body, theme: "grid", styles: { fontSize: 9, valign: "top" }, headStyles: { fillColor: [47,95,168] } });
+  pdfPageNumbers(doc);
   doc.save("masms-agents-total-pay.pdf");
 }
 function renderSdPricing(){
@@ -15086,7 +15105,6 @@ const SUBJECT_TABS = [
   { key:"pathways", label:"Pathways", icon:"fa-route" },
   { key:"tracks", label:"Track(s)", icon:"fa-diagram-project" },
   { key:"departments", label:"Departments / Groupings", icon:"fa-building-user" },
-  { key:"syllabus", label:"Syllabus Coverage", icon:"fa-clipboard-check" },
 ];
 let subjectTab = "compulsory";
 function setSubjectTab(key){ subjectTab = key; render(); }
@@ -16423,9 +16441,20 @@ function streamResultsComplete(exam, cls, stream){
   );
   if(!subjects.length) return false;
 
+  // Only learners who actually take a subject need a mark for it - a learner
+  // who did not choose an elective is not "missing" that subject's marks.
   return subjects.every(subject =>
-    list.every(s => combinedSubjectMark(term, exam, cls, subject, s.admissionNumber) !== undefined)
+    list.filter(s => studentTakesSubject(s, subject))
+        .every(s => combinedSubjectMark(term, exam, cls, subject, s.admissionNumber) !== undefined)
   );
+}
+// Publishing is only allowed once every stream that has learners shows the
+// green tick (all marks entered). Streams with no learners are ignored; if
+// there are no streams with learners, or no exam is chosen, it is not ready.
+function publishResultsReady(exam, cls){
+  if(!exam) return false;
+  const withLearners = activeStreamNames().filter(sn => studentsForGrade(cls, sn).length);
+  return withLearners.length > 0 && withLearners.every(sn => streamResultsComplete(exam, cls, sn));
 }
 function resetPublishSubjectAssignments(){ publishSubjectAssignments = {}; publishActionMenuOpen = false; render(); }
 
@@ -16558,6 +16587,7 @@ function runExamPublishProcessing(label, onDone){
 function openPublishConfirm(){
   if(!publishResultsContext || !publishResultsStep2) return;
   if(!publishResultsStep2.exam){ alert("Please select an exam before publishing."); return; }
+  if(!publishResultsReady(publishResultsStep2.exam, publishResultsContext.cls)){ alert("Every class must show a green tick (Complete) before results can be published."); return; }
   publishConfirmOpen = true;
   render();
 }
@@ -16572,6 +16602,7 @@ function confirmPublishResults(){
   const { term, cls } = publishResultsContext;
   const exam = publishResultsStep2.exam;
   if(!exam){ alert("Please select an exam before publishing."); return; }
+  if(!publishResultsReady(exam, cls)){ publishConfirmOpen = false; alert("Every class must show a green tick (Complete) before results can be published."); return render(); }
   publishConfirmOpen = false;
   runExamPublishProcessing("Processing exam results…", () => {
     const found = findExamGroup(term, exam);
@@ -16731,43 +16762,9 @@ function addEight44OrCbcElective(value){
   const list = createExamData.subjects;
   if(list.includes(value)) return false;
   if(createExamData.curriculum === "844"){
-    const group = eight44SubjectGroup(value);
-    if(group === "technical"){
-      // Either/or group: Agriculture, Business Studies and Computer Studies
-      // are mutually exclusive — picking one swaps out whichever of the
-      // three was already selected, rather than adding a second.
-      const existing = list.find(s => eight44SubjectGroup(s) === "technical");
-      if(existing){
-        const idx = list.indexOf(existing);
-        list.splice(idx, 1);
-        delete createExamData.maxMarks[existing];
-      } else if(list.length >= EIGHT44_MAX_SUBJECTS){
-        return false; // no existing pick to swap, and no room to add one
-      }
-    } else if(EIGHT44_HISTORY_GEOGRAPHY_EITHER.includes(value)){
-      // History and Government / Geography are their own either/or pair
-      // within Humanities — picking one swaps out the other rather than
-      // adding a second, the same mechanic as the technical group above.
-      const existing = list.find(s => EIGHT44_HISTORY_GEOGRAPHY_EITHER.includes(s));
-      if(existing){
-        const idx = list.indexOf(existing);
-        list.splice(idx, 1);
-        delete createExamData.maxMarks[existing];
-      } else {
-        const reserve = eight44GroupCount(list, "technical") === 0 ? 1 : 0;
-        if(list.length + reserve >= EIGHT44_MAX_SUBJECTS) return false;
-        if(eight44GroupCount(list, "humanity") >= EIGHT44_MAX_HUMANITIES) return false;
-      }
-    } else {
-      // Reserve one slot for the mandatory Agriculture/Business
-      // Studies/Computer Studies pick until one has actually been chosen,
-      // so Sciences/Humanities can never fill up all 8 slots and leave no
-      // room for it.
-      const reserve = eight44GroupCount(list, "technical") === 0 ? 1 : 0;
-      if(list.length + reserve >= EIGHT44_MAX_SUBJECTS) return false;
-      if(group === "science" && eight44GroupCount(list, "science") >= EIGHT44_MAX_SCIENCES) return false;
-      if(group === "humanity" && eight44GroupCount(list, "humanity") >= EIGHT44_MAX_HUMANITIES) return false;
-    }
+    // 8-4-4: which subjects are examinable differs from school to school, so
+    // there are no elective rules here - no min/max count, no Sciences/
+    // Humanities caps and no either/or groups. Any catalog subject can be added.
   } else if(examElectiveCount(list) >= EXAM_MAX_ELECTIVES){
     return false; // max 3 electives (Grade 10-12 CBC rule)
   }
@@ -16786,6 +16783,20 @@ function addExamSubjectFromPicker(selectEl){
   if(isExamCompulsorySubject(value)) return; // already pre-loaded, not offered in the picker
   if(createExamData.examType === "KCBE" && createExamData.subjects.length >= 7) return;
   addEight44OrCbcElective(value);
+  render();
+}
+// 8-4-4 only: add every catalog subject at once, or drop everything but the compulsory three.
+function addAllExam844Subjects(){
+  EIGHT44_ALL_SUBJECTS.forEach(sub => {
+    if(createExamData.subjects.includes(sub)) return;
+    createExamData.subjects.push(sub);
+    if(createExamData.maxMarks[sub] === undefined || createExamData.maxMarks[sub] === "") createExamData.maxMarks[sub] = 100;
+  });
+  render();
+}
+function clearExam844Subjects(){
+  createExamData.subjects.filter(sub => !isExamCompulsorySubject(sub)).forEach(sub => { delete createExamData.maxMarks[sub]; });
+  createExamData.subjects = createExamData.subjects.filter(isExamCompulsorySubject);
   render();
 }
 function removeExamSubjectSel(subject){
@@ -16821,73 +16832,7 @@ function submitCreateExam(){
     alert("Pick at least two exams to combine for a Consolidated Exam.");
     return;
   }
-  if(createExamData.curriculum === "844"){
-    const subs = createExamData.subjects;
-    const scienceCount = eight44GroupCount(subs, "science");
-    const humanityCount = eight44GroupCount(subs, "humanity");
-    const technicalCount = eight44GroupCount(subs, "technical");
-    if(subs.length < EIGHT44_MIN_SUBJECTS){
-      document.querySelector('.exam-setup-heading')?.scrollIntoView({block:'center'});
-      alert(`8-4-4 learners must sit a minimum of ${EIGHT44_MIN_SUBJECTS} subjects. Add ${EIGHT44_MIN_SUBJECTS - subs.length} more subject(s) before saving.`);
-      return;
-    }
-    if(scienceCount < EIGHT44_MIN_SCIENCES){
-      document.querySelector('.exam-setup-heading')?.scrollIntoView({block:'center'});
-      alert(`Add at least ${EIGHT44_MIN_SCIENCES} Sciences (Biology, Chemistry, Physics) — ${scienceCount} selected.`);
-      return;
-    }
-    if(humanityCount < EIGHT44_MIN_HUMANITIES){
-      document.querySelector('.exam-setup-heading')?.scrollIntoView({block:'center'});
-      alert(`At least ${EIGHT44_MIN_HUMANITIES} Humanity (History and Government, Geography, or a Religious Education subject) is compulsory — none selected.`);
-      return;
-    }
-    if(technicalCount < 1){
-      document.querySelector('.exam-setup-heading')?.scrollIntoView({block:'center'});
-      alert(`Pick one of Agriculture, Business Studies or Computer Studies — none selected.`);
-      return;
-    }
-  }
-
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2,'0');
-  const mm = String(today.getMonth()+1).padStart(2,'0');
-  const updatedOn = `${dd}/${mm}/${today.getFullYear()}`;
-
-  if(examEditRef){
-    // Editing an existing exam group: move it if the term changed, rename it,
-    // and rebuild its class rows (keeping status for classes that were already there).
-    const oldTermBlock = examTerms.find(t => t.term === examEditRef.term);
-    const oldGroup = oldTermBlock ? oldTermBlock.groups[examEditRef.groupIndex] : null;
-    const existingByClass = {};
-    if(oldGroup) oldGroup.rows.forEach(r => { existingByClass[r.class] = r; });
-
-    const newRows = selectedForms.map(f => {
-      const prev = existingByClass[f];
-      return prev
-        ? { ...prev, updatedBy: currentUserName, updatedOn }
-        : { class:f, status:"Results Not Uploaded", updatedBy: currentUserName, updatedOn };
-    });
-
-    if(oldTermBlock) oldTermBlock.groups.splice(examEditRef.groupIndex, 1);
-
-    let newTermBlock = examTerms.find(t => t.term === term);
-    if(!newTermBlock){
-      newTermBlock = { term, groups:[] };
-      examTerms.unshift(newTermBlock);
-    }
-    newTermBlock.groups.unshift({ exam: name, rows: newRows, subjects: createExamData.subjects.slice() });
-  } else {
-    let termBlock = examTerms.find(t => t.term === term);
-    if(!termBlock){
-      termBlock = { term, groups:[] };
-      examTerms.unshift(termBlock);
-    }
-    termBlock.groups.unshift({
-      exam: name,
-      rows: selectedForms.map(f => ({ class:f, status:"Results Not Uploaded", updatedBy: currentUserName, updatedOn })),
-      subjects: createExamData.subjects.slice(),
-    });
-  }
+  // 8-4-4: no subject-count or combination rules - each school decides which subjects are examinable.
 
   // Persist the maximum marks chosen for each subject in this exam.
   createExamData.subjects.forEach(s => {
@@ -17107,6 +17052,127 @@ function examSubjectPickerGroups(available){
   }).join('');
 }
 
+// ---- Create Exam: auto-pick examinable subjects ----
+// Subjects can be pulled automatically from (a) the subjects ticked when each grade/stream was created
+// ("Class & stream setup") or (b) the subjects each learner enrolled for at registration, for the
+// forms/streams chosen above, optionally narrowed to one pathway and track. The exam holds one
+// subject list for all its classes; Marks Entry later limits each subject to the learners who take it.
+let examAutoPick = { source:"students", pathway:"", track:"" };
+function setExamAutoSource(v){ examAutoPick.source = v; examAutoPickMsg = ""; render(); }
+function setExamAutoPathway(v){ examAutoPick.pathway = v; examAutoPick.track = ""; examAutoPickMsg = ""; render(); }
+function setExamAutoTrack(v){ examAutoPick.track = v; examAutoPickMsg = ""; render(); }
+function examAutoForms(){ return examFormsForCurriculum(createExamData.curriculum).filter(f => createExamData.forms[f]); }
+function examAutoStreamOk(grade, stream){
+  const picked = createExamData.streams[grade] || [];
+  return !picked.length || !stream || picked.includes(stream);
+}
+function examAutoClasses(){
+  const forms = examAutoForms();
+  return classesList.filter(c => forms.includes(c.grade) && examAutoStreamOk(c.grade, c.stream));
+}
+function examAutoStudents(){
+  const forms = examAutoForms();
+  const cbc = createExamData.curriculum !== "844";
+  return students.filter(s => forms.includes(s.grade) && examAutoStreamOk(s.grade, s.stream)
+    && (!cbc || !examAutoPick.pathway || s.pathway === examAutoPick.pathway)
+    && (!cbc || !examAutoPick.track || s.track === examAutoPick.track));
+}
+// -> [{ subject, count, where:[labels] }] sorted by name; compulsory subjects are left out (always loaded).
+function examAutoSubjects(){
+  const cbc = createExamData.curriculum !== "844";
+  const map = {};
+  const add = (subject, who, label) => {
+    if(!subject || isExamCompulsorySubject(subject)) return;
+    const e = map[subject] || (map[subject] = { subject, count:0, where:new Set() });
+    e.count += who; if(label) e.where.add(label);
+  };
+  const classLabel = c => c.grade + (c.stream ? " " + c.stream : "");
+  if(examAutoPick.source === "class"){
+    const pw = cbc && examAutoPick.pathway ? CBC_SS_PATHWAYS.find(p => p.label === examAutoPick.pathway) : null;
+    const allowed = pw ? new Set([...pw.subjects, ...CBC_SS_CORE, ...CBC_SS_OPTIONAL_ALL_PATHWAYS]) : null;
+    const trackStudents = cbc && examAutoPick.track ? examAutoStudents() : null;
+    const trackSubjects = trackStudents && trackStudents.length ? new Set(trackStudents.flatMap(s => [...(s.optionalSubjects || []), s.mathematicsChoice].filter(Boolean))) : null;
+    examAutoClasses().forEach(c => (c.subjects || []).forEach(sub => {
+      if(allowed && !allowed.has(sub)) return;
+      if(trackSubjects && !trackSubjects.has(sub)) return;
+      add(sub, 0, classLabel(c));
+    }));
+  } else {
+    examAutoStudents().forEach(s => {
+      let subs = [...(s.optionalSubjects || []), s.mathematicsChoice].filter(Boolean);
+      // Learners without their own subject list (e.g. 8-4-4 registered without one) sit their class's subjects.
+      if(!subs.length){
+        const cl = classesList.filter(c => c.grade === s.grade && (!c.stream || !s.stream || c.stream === s.stream));
+        subs = [...new Set(cl.flatMap(c => c.subjects || []))];
+      }
+      subs.forEach(sub => add(sub, 1, s.grade + (s.stream ? " " + s.stream : "")));
+    });
+  }
+  return Object.values(map).sort((a, b) => a.subject.localeCompare(b.subject));
+}
+let examAutoPickMsg = "";
+function runExamAutoPick(){
+  const picks = examAutoSubjects();
+  if(!examAutoForms().length){ examAutoPickMsg = "Tick at least one form/grade above first."; return render(); }
+  if(!picks.length){ examAutoPickMsg = "No subjects found for the chosen forms, streams, pathway and track."; return render(); }
+  const cbc = createExamData.curriculum !== "844";
+  const keep = createExamData.subjects.filter(isExamCompulsorySubject);
+  const keptCount = keep.length;
+  createExamData.subjects.filter(s => !isExamCompulsorySubject(s)).forEach(s => { delete createExamData.maxMarks[s]; });
+  createExamData.subjects = keep;
+  let skipped = [];
+  picks.forEach(({ subject }) => {
+    if(cbc){ createExamData.subjects.push(subject); }       // one exam spans every pathway's electives, so the per-learner cap isn't applied here
+    else if(!addEight44OrCbcElective(subject)) skipped.push(subject);   // 8-4-4 has no caps, so nothing is skipped
+    if(createExamData.subjects.includes(subject) && (createExamData.maxMarks[subject] === undefined || createExamData.maxMarks[subject] === "")) createExamData.maxMarks[subject] = 100;
+  });
+  const added = createExamData.subjects.length - keptCount;
+  examAutoPickMsg = `${added} subject${added === 1 ? "" : "s"} added automatically.` + (skipped.length ? ` Not added because of the 8-4-4 subject rules: ${skipped.join(", ")}.` : "");
+  render();
+}
+function renderExamAutoPickPanel(){
+  const cbc = createExamData.curriculum !== "844";
+  const forms = examAutoForms();
+  const pw = CBC_SS_PATHWAYS.find(p => p.label === examAutoPick.pathway);
+  const trackOpts = pw ? pw.tracks : [];
+  const picks = forms.length ? examAutoSubjects() : [];
+  const studentSrc = examAutoPick.source === "students";
+  const chips = picks.map(p => `<span class="optional-subject-chip" style="cursor:default;" title="${[...p.where].join(', ')}">${p.subject} <small style="opacity:.75;">${studentSrc ? '· ' + p.count + ' learner' + (p.count === 1 ? '' : 's') : '· ' + [...p.where].join(', ')}</small></span>`).join(' ');
+  return `
+    <div style="border:1px solid var(--border);background:var(--blue-tint,#f3f7ff);padding:14px 16px;margin:0 0 16px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Auto-pick subjects</div>
+      <p style="margin:0 0 10px;font-size:12.5px;color:var(--muted);">Fills the subject list from the forms and streams chosen above, so you don't have to tick every elective by hand.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <label class="field" style="min-width:230px;margin:0;"><span>Take subjects from</span>
+          <select onchange="setExamAutoSource(this.value)">
+            <option value="students" ${studentSrc?'selected':''}>Subjects learners enrolled for at registration</option>
+            <option value="class" ${!studentSrc?'selected':''}>Subjects set when the grade/stream was created</option>
+          </select>
+        </label>
+        ${cbc ? `
+        <label class="field" style="min-width:170px;margin:0;"><span>Pathway</span>
+          <select onchange="setExamAutoPathway(this.value)">
+            <option value="">All pathways</option>
+            ${CBC_SS_PATHWAYS.map(p => `<option value="${p.label}" ${examAutoPick.pathway===p.label?'selected':''}>${p.label}</option>`).join('')}
+          </select>
+        </label>
+        <label class="field" style="min-width:170px;margin:0;"><span>Track</span>
+          <select onchange="setExamAutoTrack(this.value)" ${pw?'':'disabled'}>
+            <option value="">${pw ? 'All tracks' : 'Pick a pathway first'}</option>
+            ${trackOpts.map(t => `<option value="${t}" ${examAutoPick.track===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </label>` : ''}
+        <button type="button" class="btn-primary auto" onclick="runExamAutoPick()" ${forms.length?'':'disabled'}><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-pick</button>
+      </div>
+      <div style="margin-top:10px;font-size:12.5px;">
+        ${!forms.length ? '<span style="color:var(--muted);">Tick the forms/grades and streams above to see which subjects would be picked.</span>'
+          : picks.length ? `<div style="color:var(--muted);margin-bottom:6px;">${picks.length} subject${picks.length===1?'':'s'} found for ${forms.join(', ')}${examAutoPick.pathway ? ' · ' + examAutoPick.pathway : ''}${examAutoPick.track ? ' · ' + examAutoPick.track : ''}:</div><div class="optional-subjects-bar" style="min-height:0;">${chips}</div>`
+          : '<span style="color:var(--muted);">No subjects found for this selection yet.</span>'}
+        ${examAutoPickMsg ? `<div style="margin-top:8px;font-weight:600;color:var(--blue-dark);">${examAutoPickMsg}</div>` : ''}
+      </div>
+    </div>`;
+}
+
 function renderExamSetupStepSubjects(){
   const selected = createExamData.subjects;
   const isCbc = createExamData.curriculum !== "844";
@@ -17114,37 +17180,14 @@ function renderExamSetupStepSubjects(){
   const electiveCount = examElectiveCount(selected);
   const electiveCapReached = isCbc && electiveCount >= EXAM_MAX_ELECTIVES;
   const kcbeCapReached = isKcbe && selected.length >= 7;
-  const eight44ScienceCount = eight44GroupCount(selected, "science");
-  const eight44HumanityCount = eight44GroupCount(selected, "humanity");
-  const eight44TechnicalCount = eight44GroupCount(selected, "technical");
-  const eight44CapReached = !isCbc && selected.length >= EIGHT44_MAX_SUBJECTS;
   const capReached = electiveCapReached || kcbeCapReached;
   // Compulsory subjects (English, Kiswahili, CSL, Mathematics for CBC;
   // English, Kiswahili, Mathematics for 8-4-4) are pre-loaded and locked —
   // the picker only ever offers the remaining elective subjects.
   const subjectCatalog = isCbc ? SENIOR_SCHOOL_SUBJECTS : EIGHT44_ALL_SUBJECTS;
   let available = subjectCatalog.filter(s => !selected.includes(s) && !isExamCompulsorySubject(s));
-  if(!isCbc){
-    // 8-4-4 combination rule: once Sciences/Humanities hit their group cap,
-    // or the exam's 7-8 subject total is full, stop offering more of them.
-    // The Agriculture/Business Studies/Computer Studies "either/or" group is
-    // always offered though — picking one swaps out whichever was already
-    // chosen rather than growing the list, so it never needs to be hidden.
-    const scienceCapped = eight44ScienceCount >= EIGHT44_MAX_SCIENCES;
-    const humanityCapped = eight44HumanityCount >= EIGHT44_MAX_HUMANITIES;
-    const reserve = eight44TechnicalCount === 0 ? 1 : 0;
-    const noRoomLeftForGroups = (selected.length + reserve) >= EIGHT44_MAX_SUBJECTS;
-    available = available.filter(s => {
-      const group = eight44SubjectGroup(s);
-      if(group === "technical") return true;
-      if(noRoomLeftForGroups) return false;
-      if(group === "science" && scienceCapped) return false;
-      if(group === "humanity" && humanityCapped) return false;
-      return true;
-    });
-  }
   const options = (available.length && !capReached)
-    ? `<option value="" selected disabled>Select an elective to add...</option>` + examSubjectPickerGroups(available)
+    ? `<option value="" selected disabled>${isCbc ? 'Select an elective to add...' : 'Select a subject to add...'}</option>` + examSubjectPickerGroups(available)
     : `<option value="" selected disabled>${capReached ? (electiveCapReached ? `Elective limit of ${EXAM_MAX_ELECTIVES} reached` : `KCBE limit of 7 subjects reached`) : 'All subjects added'}</option>`;
   const chips = selected.map((s,i) => {
     const isLast = i < selected.length-1;
@@ -17155,17 +17198,22 @@ function renderExamSetupStepSubjects(){
   }).join(' ');
   const hintParagraph = isCbc
     ? `Grade 10-12 learners sit a maximum of 7 subjects: 4 compulsory (English, Kiswahili, Community Service Learning, and Mathematics — Core or Essential) plus up to ${EXAM_MAX_ELECTIVES} electives from their pathway. Kenyan Sign Language is optional — add it as one of the electives. Compulsory subjects are pre-loaded and locked below${isKcbe ? '; KCBE also caps the exam at 7 subjects overall' : ''}.`
-    : `8-4-4 learners sit at least ${EIGHT44_MIN_SUBJECTS} subjects (up to ${EIGHT44_MAX_SUBJECTS}): English, Kiswahili and Mathematics are compulsory (pre-loaded below), plus ${EIGHT44_MIN_SCIENCES}-${EIGHT44_MAX_SCIENCES} Sciences (Biology, Chemistry, Physics), ${EIGHT44_MIN_HUMANITIES}-${EIGHT44_MAX_HUMANITIES} Humanities (History and Government / Geography is an either/or choice) and one of Agriculture, Business Studies or Computer Studies. <b>Only 7 subjects count toward the total, mean and points:</b> Mathematics, the better-performed of English or Kiswahili (one language only), and the 5 best-performed of the remaining subjects${isKcbe ? '. KCBE caps the exam at 7 subjects overall' : ''}.`;
+    : `Pick every subject that is examined in your school — the list differs from one school to another, so there are no elective, minimum or maximum rules for 8-4-4. English, Kiswahili and Mathematics are pre-loaded and locked; add all the others you need, or use "Add all subjects".`;
   const electiveHint = isCbc
     ? `${electiveCount} of ${EXAM_MAX_ELECTIVES} pathway electives selected${kcbeCapReached ? ` (${selected.length} of 7 KCBE subjects overall)` : ''}. Click an elective above to remove it and pick a different one.`
-    : `${selected.length} of ${EIGHT44_MIN_SUBJECTS}-${EIGHT44_MAX_SUBJECTS} subjects selected — Sciences ${eight44ScienceCount}/${EIGHT44_MAX_SCIENCES}, Humanities ${eight44HumanityCount}/${EIGHT44_MAX_HUMANITIES} (History/Geography is either/or), Agriculture/Business/Computer ${eight44TechnicalCount}/1${selected.length < EIGHT44_MIN_SUBJECTS ? ` — add at least ${EIGHT44_MIN_SUBJECTS - selected.length} more` : ''}. Click an elective above to remove it and pick a different one.`;
+    : `${selected.length} subject${selected.length === 1 ? '' : 's'} selected. Click a subject above to remove it.`;
   return `
     <div class="exam-setup-block">
       <div class="exam-setup-heading">Subjects</div>
       <p style="margin:-8px 0 16px;font-size:12.5px;color:var(--muted);">${hintParagraph}</p>
+      ${renderExamAutoPickPanel()}
       <select id="examSubjectPicker" class="exam-field-input" onchange="addExamSubjectFromPicker(this)" ${(!available.length || capReached)?'disabled':''}>
         ${options}
       </select>
+      ${isCbc ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+        <button type="button" class="btn-ghost" onclick="addAllExam844Subjects()" ${available.length?'':'disabled'}><i class="fa-solid fa-list-check"></i> Add all subjects</button>
+        <button type="button" class="btn-ghost" onclick="clearExam844Subjects()" ${selected.some(x => !isExamCompulsorySubject(x))?'':'disabled'}><i class="fa-solid fa-xmark"></i> Clear added subjects</button>
+      </div>`}
       <div class="optional-subjects-bar">
         ${selected.length ? chips : `<span class="optional-subjects-placeholder">No subjects selected yet</span>`}
       </div>
@@ -17336,8 +17384,9 @@ function renderExamPublishingDetail(){
   const rows = subjects.map(subject => {
     const teacherRec = teachersList.find(t => (t.subjects||[]).includes(subject));
     const teacherName = teacherRec ? teacherFullName(teacherRec) : '';
-    const missing = list.filter(s => combinedSubjectMark(term, exam, cls, subject, s.admissionNumber) === undefined).length;
-    const withoutMarksLabel = total === 0 ? '—' : (missing === 0 ? `All ${total} have marks` : `${missing} / ${total} Don't have marks`);
+    const takers = list.filter(s => studentTakesSubject(s, subject));
+    const missing = takers.filter(s => combinedSubjectMark(term, exam, cls, subject, s.admissionNumber) === undefined).length;
+    const withoutMarksLabel = takers.length === 0 ? '—' : (missing === 0 ? `All ${takers.length} have marks` : `${missing} / ${takers.length} Don't have marks`);
     return `
       <tr>
         <td style="font-weight:600;">${subject}</td>
@@ -17489,7 +17538,10 @@ function renderPublishResultsStep2(){
   const streamRows = streamNames.map(sn => {
     const className = `${cls} ${sn}`;
     const complete = streamResultsComplete(d.exam, cls, sn);
-    const statusIcon = complete
+    const noLearners = !studentsForGrade(cls, sn).length;
+    const statusIcon = noLearners
+      ? `<i class="fa-solid fa-minus" style="color:var(--muted);"></i> No learners`
+      : complete
       ? `<i class="fa-solid fa-circle-check" style="color:var(--green);"></i> Complete`
       : `<i class="fa-solid fa-circle-xmark" style="color:var(--rose);"></i> Incomplete`;
     return `
@@ -17504,6 +17556,7 @@ function renderPublishResultsStep2(){
   }).join('') || `<tr><td colspan="3" style="border:1px solid var(--border);text-align:center;color:var(--muted);padding:16px;">No streams configured yet.</td></tr>`;
 
   const gsOptions = gradingSystems.map(gs => `<option value="${gs.name}" ${d.gradingSystem===gs.name?'selected':''}>${gs.name}</option>`).join('');
+  const ready = publishResultsReady(d.exam, cls);
 
   const subjectGradingRows = subjectsForExam(d.exam).map((subject, i) => {
     const sel = (d.subjectGradingSystems && d.subjectGradingSystems[subject]) || d.gradingSystem;
@@ -17545,6 +17598,7 @@ function renderPublishResultsStep2(){
         </div>
       </div>
 
+      ${!ready ? `<div style="margin-top:16px;padding:12px 16px;border:1px solid var(--rose);background:#fdecef;color:var(--rose);font-size:13.5px;font-weight:600;"><i class="fa-solid fa-circle-xmark"></i>&nbsp; ${d.exam ? 'Every class must show a green tick (Complete) before you can set the ranking criteria and publish. Open View on a red-cross class to see which marks are missing.' : 'Select an exam to check the status of its class results.'}</div>` : `
       <div class="section-label" style="margin:22px 0 8px;">Ranking Criteria</div>
       <label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;font-size:14px;">
         <input type="radio" name="publishRankCriteria" value="marks" ${d.rankingCriteria==='marks'?'checked':''} onchange="setPublishRanking('marks')"> Rank by Mean marks
@@ -17583,7 +17637,7 @@ function renderPublishResultsStep2(){
           <thead><tr><th style="border:1px solid var(--border);background:#f8fafc;text-align:left;padding:12px 16px;width:288px;">Subject</th><th style="border:1px solid var(--border);background:#f8fafc;text-align:left;padding:12px 16px;">Grading System</th></tr></thead>
           <tbody>${subjectGradingRows}</tbody>
         </table>
-      </div>
+      </div>`}
 
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:26px;">
         <button class="btn-primary" style="width:auto;padding:11px 22px;background:var(--navy-dark);" onclick="backFromPublishStep2()">Back</button>
@@ -17597,9 +17651,9 @@ function renderPublishResultsStep2(){
             </div>
           ` : ''}
         </div>
-        <button class="btn-primary" style="width:auto;padding:11px 22px;margin-left:auto;" onclick="openPublishConfirm()">
+        ${ready ? `<button class="btn-primary" style="width:auto;padding:11px 22px;margin-left:auto;" onclick="openPublishConfirm()">
           <i class="fa-solid fa-newspaper"></i> Publish
-        </button>
+        </button>` : ''}
       </div>
       ${renderPublishConfirmModal()}
     </div>
@@ -18114,6 +18168,23 @@ function scoreToGrade(percent, gradeLabel){
   if(!gs) return { grade:'-', points:0 };
   const band = gs.bands.find(b => percent >= b.low && percent <= b.high);
   return band ? { grade: band.grade, points: band.points } : { grade:'-', points:0 };
+}
+
+// Grade / performance level for a MEAN POINTS figure (a subject, class, gender
+// or a learner's average). The mean points are rounded to the nearest whole
+// point, halves going up (5.5 and above counts as 6), and the band that carries
+// that many points gives the grade - so the grade always agrees with the mean
+// points printed beside it, instead of being re-derived from the mean marks.
+// The 4-decimal rounding matches what is displayed, so 5.4999999 (float noise) reads as 5.5.
+function gradeFromMeanPoints(meanPoints, gradeLabel){
+  const gs = gradeLabel !== undefined ? gradingSystemForGrade(gradeLabel) : gradingSystems[0];
+  if(!gs || !isFinite(meanPoints)) return '-';
+  const bands = gs.bands.filter(b => b.low >= 0 && b.points > 0);
+  if(!bands.length) return '-';
+  const want = Math.floor(Math.round(meanPoints * 10000) / 10000 + 0.5);
+  let best = bands[0];
+  bands.forEach(b => { if(Math.abs(b.points - want) < Math.abs(best.points - want)) best = b; });
+  return best.grade;
 }
 
 // Maps a CBE grade band (EE1/EE2, ME1/ME2, AE1/AE2, BE1/BE2) to its CBC
@@ -18683,7 +18754,7 @@ function computeMarksStats(exam, cls, subject){
   const passCount = percents.filter(r => r.pct >= passMark).length;
   const gradeCounts = {};
   percents.forEach(r => {
-    const { grade } = scoreToGrade(r.pct);
+    const { grade } = scoreToGrade(r.pct, cls);
     gradeCounts[grade] = (gradeCounts[grade]||0) + 1;
   });
   return { count: percents.length, max, mean, highest: sorted[0], lowest: sorted[sorted.length-1], passCount, failCount: percents.length - passCount, gradeCounts };
@@ -19165,6 +19236,7 @@ function printPlainClassList(d, esc, profile, fontLinks){
   let printed = false;
   const go = () => {
     if(printed) return; printed = true;
+    printPageNumbersIfMultiPage(iframe, d.orientation === 'landscape', 12);
     try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ window.print(); }
     setTimeout(() => { if(iframe.parentNode) iframe.remove(); }, 60000);
   };
@@ -19283,6 +19355,7 @@ ${profile.watermark ? '<div class="wm"></div>' : ''}
   const go = () => {
     if(printed) return;
     printed = true;
+    printPageNumbersIfMultiPage(iframe, landscape, 14);
     try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ window.print(); }
     setTimeout(() => { if(iframe.parentNode) iframe.remove(); }, 60000);
   };
@@ -19348,7 +19421,7 @@ function renderClassListPreviewModal(){
   const columnPicker = roster ? `
     <div class="col-picker">
       <span class="col-picker-label">Columns to include:</span>
-      ${CLASS_LIST_COLUMN_DEFS.map(d => `
+      ${classListColumnDefs().map(d => `
         <label class="col-toggle">
           <input type="checkbox" ${classListSelectedColumns.includes(d.key)?'checked':''} onchange="toggleClassListColumn('${d.key}')">
           ${d.label}
@@ -19628,8 +19701,14 @@ const STUDENT_UPLOAD_TEMPLATE_SAMPLE_ROW = [
   "","","","",
   "","","",
 ];
+// Day schools have no boarding columns in the upload template.
+function studentUploadTemplateCols(){
+  const keep = STUDENT_UPLOAD_TEMPLATE_HEADERS.map((h,i) => i).filter(i => schoolHasBoarding() || !["Boarding Status","House"].includes(STUDENT_UPLOAD_TEMPLATE_HEADERS[i]));
+  return { headers: keep.map(i => STUDENT_UPLOAD_TEMPLATE_HEADERS[i]), sample: keep.map(i => STUDENT_UPLOAD_TEMPLATE_SAMPLE_ROW[i]) };
+}
 function downloadStudentUploadTemplate(){
-  const rows = [STUDENT_UPLOAD_TEMPLATE_HEADERS, STUDENT_UPLOAD_TEMPLATE_SAMPLE_ROW];
+  const tpl = studentUploadTemplateCols();
+  const rows = [tpl.headers, tpl.sample];
   const filename = "Student-Upload-Template.xlsx";
   if(typeof XLSX === 'undefined'){
     // Fallback to CSV if the spreadsheet library couldn't load (e.g. no internet connection)
@@ -19646,8 +19725,8 @@ function downloadStudentUploadTemplate(){
     return;
   }
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = STUDENT_UPLOAD_TEMPLATE_HEADERS.map((h,i) => ({
-    wch: Math.max(h.length, String(STUDENT_UPLOAD_TEMPLATE_SAMPLE_ROW[i] || '').length, 10) + 2
+  ws['!cols'] = tpl.headers.map((h,i) => ({
+    wch: Math.max(h.length, String(tpl.sample[i] || '').length, 10) + 2
   }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Student Upload");
@@ -19674,6 +19753,44 @@ function classListPlainRows(data){
   const n = (data.columns || []).length;
   return [[1, ...Array(Math.max(0, n - 1)).fill('')], Array(n).fill('')];
 }
+// ---- Page numbers on multi-page lists ----
+// PDF: "Page n of N" centred at the bottom of every page, only when the list runs past one page.
+// (Report forms deliberately do not call this.)
+function pdfPageNumbers(doc){
+  try{
+    if(!doc || doc.__pageNumbered) return doc;
+    const n = doc.internal.getNumberOfPages();
+    if(n < 2) return doc;
+    doc.__pageNumbered = true;
+    const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+    for(let i = 1; i <= n; i++){
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+      doc.text(`Page ${i} of ${n}`, w / 2, h - 14, { align: 'center' });
+    }
+    doc.setPage(n);
+  }catch(_e){}
+  return doc;
+}
+// Print: measures the printable HTML at A4 width; if it needs more than one page, adds a centred
+// "Page n of N" footer through @page margin boxes before the print dialog opens.
+function printPageNumbersIfMultiPage(iframe, landscape, marginMm){
+  try{
+    const idoc = iframe.contentDocument; if(!idoc || !idoc.documentElement) return;
+    const wMm = (landscape ? 297 : 210) - 2 * marginMm, hMm = (landscape ? 210 : 297) - 2 * marginMm;
+    const old = iframe.style.cssText;
+    iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${wMm}mm;height:${hMm}mm;border:0;visibility:hidden;`;
+    const pxPerMm = 96 / 25.4;
+    const contentH = idoc.documentElement.scrollHeight;
+    iframe.style.cssText = old;
+    if(contentH > hMm * pxPerMm * 1.01){
+      const st = idoc.createElement('style');
+      st.textContent = '@page{ @bottom-center{ content:"Page " counter(page) " of " counter(pages); font:9pt Arial,Helvetica,sans-serif; color:#555; } }';
+      idoc.head.appendChild(st);
+    }
+  }catch(_e){}
+}
+
 function triggerPlainClassListPdf(data, paperSize){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: data.orientation || 'portrait', unit: 'pt', format: paperSize || 'a4' });
@@ -19708,6 +19825,7 @@ function triggerPlainClassListPdf(data, paperSize){
     styles: { font: 'times', fontSize: 10, cellPadding: 3, lineWidth: 0.6, lineColor: [0, 0, 0], textColor: [0, 0, 0], valign: 'middle', minCellHeight: 14 },
     headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'normal', halign: 'left', lineWidth: 0.6, lineColor: [0, 0, 0] },
   });
+  pdfPageNumbers(doc);
   doc.save(`${data.filenameBase}.pdf`);
 }
 
@@ -19927,6 +20045,7 @@ function triggerPdfDownload(data, paperSize){
     }
   }
 
+  pdfPageNumbers(doc);
   doc.save(filename);
 }
 
@@ -19957,6 +20076,8 @@ const CLASS_LIST_COLUMN_DEFS = [
   { key:'mother', label:"Mother's Name", get:s => s.motherName||'' },
 ];
 
+function classListColumnDefs(){ return schoolHasBoarding() ? CLASS_LIST_COLUMN_DEFS : CLASS_LIST_COLUMN_DEFS.filter(d => d.key !== 'boarding' && d.key !== 'house'); }
+
 // Which columns are checked by default — S/No, Adm No, Name, Grade, Stream,
 // Phone (Contact), plus Guardian, Gender and Date of Birth as the extra
 // three columns class teachers typically need on a printed class list.
@@ -19969,7 +20090,7 @@ let classListSelectedColumns = ['admNo','name','grade','stream','contact','guard
 function classListColumnsAndRows(roster){
   const labels = roster.map(r => r.classLabel || '');
   const spansClasses = new Set(labels).size > 1;
-  const defs = CLASS_LIST_COLUMN_DEFS.filter(d => classListSelectedColumns.includes(d.key));
+  const defs = classListColumnDefs().filter(d => classListSelectedColumns.includes(d.key));
   const columns = ['S\\NO', ...defs.map(d => d.label), ...(spansClasses ? ['Class'] : [])];
   const rows = roster.map((r, idx) => [
     idx+1,
@@ -19985,8 +20106,14 @@ function toggleClassListColumn(key){
     : [...classListSelectedColumns, key];
   if(classListPreview && classListPreview.roster){
     Object.assign(classListPreview, classListColumnsAndRows(classListPreview.roster));
+    classListPreview.orientation = classListOrientationFor(classListPreview.columns, classListPreview.baseOrientation);
   }
   renderClassListPreviewModal();
+}
+
+// More than 6 columns no longer fit a portrait page: print / PDF go landscape automatically.
+function classListOrientationFor(columns, base){
+  return (columns || []).length > 6 ? 'landscape' : (base || 'portrait');
 }
 
 function buildClassListPreview({ heading, gradeLine, teacherLine, columns, rows, filenameBase, roster, orientation, footerNote, hideGradeYear }){
@@ -20007,7 +20134,8 @@ function buildClassListPreview({ heading, gradeLine, teacherLine, columns, rows,
     columns: resolved.columns,
     rows: resolved.rows,
     filenameBase,
-    orientation: orientation || 'portrait',
+    baseOrientation: orientation || 'portrait',
+    orientation: classListOrientationFor(resolved.columns, orientation),
     footerNote: footerNote || "",
   };
 }
@@ -20171,12 +20299,12 @@ function generateAdmissionRegisterReport(){
     heading: "Admission Register",
     gradeLine: `Total students: ${list.length}`,
     teacherLine: `Generated: ${todayLabel()}`,
-    columns: ["S/No","Adm No","Name","Grade","Stream","Date of Admission","Date of Birth","Previous School","Parent/Guardian","Phone No","Boarding Status"],
+    columns: ["S/No","Adm No","Name","Grade","Stream","Date of Admission","Date of Birth","Previous School","Parent/Guardian","Phone No",...(schoolHasBoarding() ? ["Boarding Status"] : [])],
     rows: list.map((s,idx) => [
       idx+1, s.admissionNumber||'', upperStr(fullName(s)), s.grade||'', s.stream||'',
       s.dateOfAdmission||'', s.dateOfBirth||'', s.previousSchool||'',
       s.guardian||'', phoneList(s.guardianPhones)||phoneList(s.studentPhones)||'',
-      s.boardingStatus||'',
+      ...(schoolHasBoarding() ? [s.boardingStatus||''] : []),
     ]),
     filenameBase: "admission_register",
   });
@@ -20394,7 +20522,7 @@ function renderReports(){
   return `
     <div class="section-label">Generate</div>
     <div class="card-grid reports-grid">
-      ${REPORTS_LIST.map(r => `
+      ${REPORTS_LIST.filter(r => r.key !== 'boardingList' || schoolHasBoarding()).map(r => `
         <button class="action-card" onclick="generateReport('${r.key}')">
           <div class="icon-box"><i class="fa-solid ${r.icon}"></i></div>
           <div class="title">${r.label}</div>
@@ -20570,7 +20698,7 @@ function deleteTeacher(i){
 let teacherFormData = {
   surname:"", firstName:"", otherNames:"",
   phone:"", tscNumber:"", gender:"", responsibility:"", nationalId:"",
-  address:"", postalCode:"", email:"", photo:"", department:[], groups:[], subjects:[], subjectHead:[],
+  address:"", postalCode:"", email:"", countyOfBirth:"", subCountyOfBirth:"", photo:"", signature:"", department:[], groups:[], subjects:[], subjectHead:[],
 };
 
 const TEACHER_GROUPS = ["Mathematics","Sciences","Humanities","Languages","Co-curricular"];
@@ -20590,6 +20718,54 @@ function pickTeacherPhoto(inputEl){
 function removeTeacherPhoto(){
   teacherFormData.photo = "";
   render();
+}
+
+// Teacher signature: shrunk to a small PNG (keeps backups light) and printed on
+// the merit list sign-off boxes for the Principal, Deputy Principal, Director of
+// Studies and Examination Officer.
+function pickTeacherSignature(inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  inputEl.value = "";
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ alert("Please choose an image file (PNG or JPG)."); return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const k = Math.min(1, 500 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      teacherFormData.signature = c.toDataURL("image/png");
+      render();
+    };
+    img.onerror = function(){ alert("That image could not be read."); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeTeacherSignature(){
+  teacherFormData.signature = "";
+  render();
+}
+
+function teacherSignatureField(){
+  return `
+    <label class="field">
+      <span>Upload Signature</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        ${teacherFormData.signature
+          ? `<img src="${teacherFormData.signature}" style="height:44px;max-width:140px;object-fit:contain;border:1px solid var(--border);padding:3px;background:#fff;">`
+          : `<div class="photo-slot" style="width:56px;height:56px;padding:0;justify-content:center;border-radius:0;"><i class="fa-solid fa-signature"></i></div>`
+        }
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <input type="file" accept="image/*" id="tf_signature" onchange="pickTeacherSignature(this)" style="font-size:12px;">
+          ${teacherFormData.signature ? `<button type="button" class="link-btn danger" style="width:fit-content;" onclick="removeTeacherSignature()"><i class="fa-solid fa-trash"></i>&nbsp;Remove</button>` : `<span style="font-size:11.5px;color:var(--muted);">Printed on merit lists for Principal, Deputy Principal, Director of Studies and Examination Officer.</span>`}
+        </div>
+      </div>
+    </label>`;
 }
 
 function teacherPhotoField(){
@@ -20869,6 +21045,8 @@ const CBC_SS_OPTIONAL_ALL_PATHWAYS = ["Kenyan Sign Language"];
 // Applied subjects) is an elective, picked so each learner sits a MINIMUM of
 // 7 and a MAXIMUM of 8 subjects overall for the exam — see
 // EIGHT44_MIN_SUBJECTS / EIGHT44_MAX_SUBJECTS below.
+// NOTE: the limits below are legacy and NO LONGER ENFORCED by the Create Exam
+// wizard — examinable subjects vary from school to school, so 8-4-4 exams accept any subject selection.
 const EIGHT44_CORE = [
   "English", "Kiswahili", "Mathematics",
 ];
@@ -21141,6 +21319,34 @@ function teacherField(label, id, required, placeholder=""){
     </label>`;
 }
 
+// County / Sub-County of Birth: same master list (COUNTY_DATA) the student registration uses.
+function teacherCountyOfBirthField(){
+  const cur = teacherFormData.countyOfBirth || "";
+  return `
+    <label class="field"><span>County of Birth</span>
+      <select id="tf_countyOfBirth" onchange="onTeacherBirthCountyChange(this.value)">
+        <option value="" ${!cur?'selected':''} disabled>Select county...</option>
+        ${Object.keys(COUNTY_DATA).map(c => `<option value="${c}" ${cur===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </label>`;
+}
+function teacherSubCountyOfBirthField(){
+  const cty = teacherFormData.countyOfBirth || "", cur = teacherFormData.subCountyOfBirth || "";
+  const subs = cty && COUNTY_DATA[cty] ? Object.keys(COUNTY_DATA[cty]) : [];
+  return `
+    <label class="field"><span>Sub-County of Birth</span>
+      <select id="tf_subCountyOfBirth" onchange="teacherFormData['subCountyOfBirth']=this.value" ${!cty?'disabled':''}>
+        <option value="" ${!cur?'selected':''} disabled>${cty ? 'Select sub-county...' : 'Select county first'}</option>
+        ${subs.map(sc => `<option value="${sc}" ${cur===sc?'selected':''}>${sc}</option>`).join('')}
+      </select>
+    </label>`;
+}
+function onTeacherBirthCountyChange(v){
+  teacherFormData.countyOfBirth = v;
+  teacherFormData.subCountyOfBirth = "";
+  render();
+}
+
 function teacherSelect(label, id, options, required){
   const opts = options.map(o => `<option value="${o}" ${teacherFormData[id]===o?'selected':''}>${o}</option>`).join('');
   return `
@@ -21166,7 +21372,7 @@ function submitTeacher(exit){
   teacherFormData = {
     surname:"", firstName:"", otherNames:"",
     phone:"", tscNumber:"", gender:"", responsibility:"", nationalId:"",
-    address:"", postalCode:"", email:"", photo:"", department:[], groups:[], subjects:[], subjectHead:[],
+    address:"", postalCode:"", email:"", countyOfBirth:"", subCountyOfBirth:"", photo:"", signature:"", department:[], groups:[], subjects:[], subjectHead:[],
   };
   syncSuperAdminRoles();
   teacherTab = exit ? "manage" : "add";
@@ -21205,7 +21411,7 @@ function saveTeacherRow(i){
 }
 function renderManageTeachersPanel(){
   const shown = teachersList.map((t, i) => ({ t, i })).filter(({ t }) =>
-    teacherManageFilter === "boarding" ? teacherBoarderFlag(t) : teacherManageFilter === "day" ? teacherDayFlag(t) : true);
+    !schoolHasBoarding() ? true : teacherManageFilter === "boarding" ? teacherBoarderFlag(t) : teacherManageFilter === "day" ? teacherDayFlag(t) : true);
   const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   const inp = 'width:100%;box-sizing:border-box;padding:5px 8px;font-family:inherit;font-size:13px;border:1px solid #94a3b8;border-radius:0;';
   const rows = shown.map(({ t, i }, n) => {
@@ -21217,23 +21423,23 @@ function renderManageTeachersPanel(){
       <td style="font-weight:600;">${esc(teacherFullName(t))}</td>
       <td>${ed ? `<input style="${inp}" value="${esc(ed.phone)}" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this);setTeacherRowField('phone',this.value)">` : esc(t.phone || '—')}</td>
       <td>${ed ? `<input style="${inp}" value="${esc(ed.tscNumber)}" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this);setTeacherRowField('tscNumber',this.value)">` : esc(t.tscNumber || '—')}</td>
-      <td style="text-align:center;"><input type="checkbox" ${day?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('dayScholars',this.checked)"></td>
-      <td style="text-align:center;"><input type="checkbox" ${bo?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('boarder',this.checked)"></td>
+      ${schoolHasBoarding() ? `<td style="text-align:center;"><input type="checkbox" ${day?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('dayScholars',this.checked)"></td>
+      <td style="text-align:center;"><input type="checkbox" ${bo?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('boarder',this.checked)"></td>` : ''}
       <td style="white-space:nowrap;text-align:center;">
         ${btn('Edit','fa-pen',`startTeacherRowEdit(${i})`)}
         ${btn('Save','fa-floppy-disk',`saveTeacherRow(${i})`, ed ? '' : '" style="opacity:.4;pointer-events:none;')}
         ${btn('Delete','fa-trash',`deleteTeacher(${i})`,'danger')}
       </td></tr>`;
-  }).join('') || `<tr style="cursor:default;"><td colspan="7" class="empty">${teachersList.length ? 'No teachers in this group.' : 'No teachers yet. Add one from the "Add New Teacher" tab.'}</td></tr>`;
+  }).join('') || `<tr style="cursor:default;"><td colspan="${schoolHasBoarding() ? 7 : 5}" class="empty">${teachersList.length ? 'No teachers in this group.' : 'No teachers yet. Add one from the "Add New Teacher" tab.'}</td></tr>`;
   const nDay = teachersList.filter(teacherDayFlag).length, nBo = teachersList.filter(teacherBoarderFlag).length;
   const links = [["all","All Teachers",teachersList.length],["day","Day Scholars Teachers",nDay],["boarding","Boarding Teachers",nBo]]
     .map(([k,l,n]) => `<button type="button" onclick="setTeacherManageFilter('${k}')" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;padding:7px 16px;border:1px solid #2f5fa8;border-radius:0;${teacherManageFilter===k?'background:#2f5fa8;color:#fff;':'background:#fff;color:#2f5fa8;'}">${l} (${n})</button>`).join('');
   return `
     <div class="panel-header" style="padding:16px 4px;"><h3>Teachers (${shown.length})</h3></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 4px 14px;">${links}</div>
+    ${schoolHasBoarding() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 4px 14px;">${links}</div>` : ''}
     <div class="bsms-table-card"><div class="bsms-table-scroll">
       <table class="bsms-table" style="width:100%;">
-        <thead><tr style="text-transform:uppercase;font-weight:700;"><th style="width:60px;text-align:center;">S/NO</th><th>Name</th><th>Mobile No</th><th>TSC No</th><th style="text-align:center;">Day Scholars</th><th style="text-align:center;">Boarder</th><th style="text-align:center;">Action</th></tr></thead>
+        <thead><tr style="text-transform:uppercase;font-weight:700;"><th style="width:60px;text-align:center;">S/NO</th><th>Name</th><th>Mobile No</th><th>TSC No</th>${schoolHasBoarding() ? '<th style="text-align:center;">Day Scholars</th><th style="text-align:center;">Boarder</th>' : ''}<th style="text-align:center;">Action</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div></div>
@@ -21258,6 +21464,8 @@ function renderAddTeacherForm(){
             ${teacherField("Address","address",false,"Address")}
             ${teacherField("Postal Code","postalCode",false,"")}
             ${teacherField("Email","email",false,"name@school.edu")}
+            ${teacherCountyOfBirthField()}
+            ${teacherSubCountyOfBirthField()}
             ${teacherPathwaysField()}
           </div>
           <div class="form-grid-3" style="margin-top:8px;align-items:start;">
@@ -21265,9 +21473,9 @@ function renderAddTeacherForm(){
             ${teacherSubjectHeadField()}
             ${teacherSubjectsField()}
           </div>
-          <div style="margin-top:8px;">${teacherPhotoField()}</div>
+          <div class="form-grid-3" style="margin-top:8px;align-items:start;">${teacherPhotoField()}${teacherSignatureField()}</div>
           <div class="wizard-nav" style="padding:0;border-top:none;">
-            <button type="button" class="btn-ghost" onclick="teacherFormData={surname:'',firstName:'',otherNames:'',phone:'',tscNumber:'',gender:'',responsibility:'',nationalId:'',address:'',postalCode:'',email:'',photo:'',department:[],groups:[],subjects:[],subjectHead:[]};teacherEditIndex=null;render();">Clear</button>
+            <button type="button" class="btn-ghost" onclick="teacherFormData={surname:'',firstName:'',otherNames:'',phone:'',tscNumber:'',gender:'',responsibility:'',nationalId:'',address:'',postalCode:'',email:'',countyOfBirth:'',subCountyOfBirth:'',photo:'',signature:'',department:[],groups:[],subjects:[],subjectHead:[]};teacherEditIndex=null;render();">Clear</button>
             <div style="display:flex;gap:10px;">
               <button type="button" class="btn-primary auto" onclick="submitTeacher(false)">Save</button>
               <button type="button" class="btn-ghost" style="background:var(--navy-dark);color:#fff;" onclick="submitTeacher(true)">Save and Exit</button>
@@ -21535,8 +21743,8 @@ function addOptionalSubjectFromPicker(selectEl){
 function regSubmitFinal(){
   captureAddStudentFields();
   // basic validation for required fields — each one now lives in its own section
-  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","curriculum","formGrade","stream","boardingStatus",...(regIs844() ? [] : ["pathway"]),"nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
-  if(regData.boardingStatus === "Boarder") required.push("house");
+  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","curriculum","formGrade","stream",...(schoolHasBoarding() ? ["boardingStatus"] : []),...(regIs844() ? [] : ["pathway"]),"nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
+  if(schoolHasBoarding() && regData.boardingStatus === "Boarder") required.push("house");
   const missing = required.filter(k => !regData[k]);
   if(missing.length){
     const missingKey = missing[0];
@@ -21573,8 +21781,8 @@ function regSubmitFinal(){
     birthCounty: regData.birthCounty,
     constituency: regData.constituency,
     ward: regData.ward,
-    boardingStatus: regData.boardingStatus,
-    house: regData.boardingStatus === "Boarder" ? regData.house : "",
+    boardingStatus: schoolHasBoarding() ? regData.boardingStatus : "Day scholar",
+    house: schoolHasBoarding() && regData.boardingStatus === "Boarder" ? regData.house : "",
     county: regData.county,
     subcounty: regData.subcounty,
     division: regData.division,
@@ -21688,6 +21896,32 @@ function nameOnly(el){ el.value = el.value.replace(/[^\p{L}\s'\u2019.\-]/gu, "")
 function digitsOnlyInput(el){ el.value = el.value.replace(/\D/g, ""); }
 function phoneListInput(el){ el.value = el.value.replace(/[^0-9,\s]/g, ""); }
 const NUM_INPUT_ATTRS = `inputmode="numeric" pattern="[0-9]*"`;
+// ---- App-wide input rules (apply to every module, including fields drawn later) ----
+// Email fields: always lowercase, even if typed in capitals. Postal address / postal code / box no: digits only.
+function isEmailInput(el){
+  if(!el || el.tagName !== "INPUT") return false;
+  if(el.type === "email") return true;
+  return /email/i.test(el.id || "") && !/subject|body|template|message/i.test(el.id || "");
+}
+function isPostalInput(el){
+  if(!el || el.tagName !== "INPUT") return false;
+  return /postal|boxno|^sp_address$/i.test(el.id || "");
+}
+function applyInputRules(el){
+  let v = el.value, n = v;
+  if(isEmailInput(el)) n = v.toLowerCase();
+  else if(isPostalInput(el)) n = v.replace(/\D/g, "");
+  if(n !== v){
+    let pos = null; try{ pos = el.selectionStart; }catch(_e){}
+    el.value = n;
+    if(pos !== null){ try{ const d = v.length - n.length; el.setSelectionRange(Math.max(0,pos-d), Math.max(0,pos-d)); }catch(_e){} }
+  }
+}
+// capture phase: runs before each field's own oninput, so saved values are already normalised
+document.addEventListener("input", e => applyInputRules(e.target), true);
+document.addEventListener("change", e => applyInputRules(e.target), true);
+document.addEventListener("focusout", e => applyInputRules(e.target), true);
+
 function digitsOnly2(v){ return String(v == null ? "" : v).replace(/\D/g, ""); }
 function stepField(label, id, required, placeholder="", forceNumeric=false){
   const num = forceNumeric || NUMERIC_ONLY_FIELD_IDS.includes(id);
@@ -21966,14 +22200,14 @@ function renderAddStudentSection(){
             ${regIs844() ? stepField("KCPE Index No","previousIndexNumber",false,"e.g. 12345678",true) : stepField("Assessment Number","previousIndexNumber",false,"e.g. KPSEA/KCPE index number")}
             ${stepSelect("Assessment Year","assessmentYear",yearOptions(0,15),false)}
             ${regIs844() ? stepField("KCPE Marks","pointsObtained",false,"e.g. 350",true) : stepField("Points","pointsObtained",false,"")}
-            <label class="field"><span>Boarding Status&nbsp;<span class="req">*</span></span>
+            ${schoolHasBoarding() ? `<label class="field"><span>Boarding Status&nbsp;<span class="req">*</span></span>
               <select id="boardingStatus" onchange="updateRegField('boardingStatus', this.value); render();">
                 <option value="" ${!regData.boardingStatus?'selected':''} disabled>Select boarding status...</option>
                 <option value="Day scholar" ${regData.boardingStatus==='Day scholar'?'selected':''}>Day scholar</option>
                 <option value="Boarder" ${regData.boardingStatus==='Boarder'?'selected':''}>Boarder</option>
               </select>
-            </label>
-            ${regData.boardingStatus === 'Boarder' ? stepSelect("House","house",SCHOOL_HOUSES,true) : ''}
+            </label>` : ''}
+            ${schoolHasBoarding() && regData.boardingStatus === 'Boarder' ? stepSelect("House","house",SCHOOL_HOUSES,true) : ''}
             ${studentPhonesField("Student phone number(s)")}
           </div>
           <div class="hint-text">Stream picked from school settings</div>
@@ -22191,7 +22425,7 @@ function renderAddStudentTab(){
       ${regMode === 'upload' ? `
         <div class="wizard-body" style="padding-top:24px;">
           <a href="#" onclick="downloadStudentUploadTemplate();return false;" class="template-download-link">
-            <i class="fa-solid fa-file-arrow-down"></i> Download spreadsheet template (required header row &amp; ${STUDENT_UPLOAD_TEMPLATE_HEADERS.length} columns)
+            <i class="fa-solid fa-file-arrow-down"></i> Download spreadsheet template (required header row &amp; ${studentUploadTemplateCols().headers.length} columns)
           </a>
           <div class="student-tab-row" style="margin:18px 0 16px;">
             <button type="button" class="student-tab-cell ${uploadSubTab==='search'?'active':''}" onclick="setUploadSubTab('search')">
@@ -22591,8 +22825,8 @@ function renderStudentProfileModal(){
             <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Index No' : 'Assessment Number'}</span><strong>${s.previousIndexNumber || '—'}</strong></div>
             <div class="profile-detail-row"><span>Assessment Year</span><strong>${s.assessmentYear || '—'}</strong></div>
             <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Marks' : 'Points Obtained'}</span><strong>${s.pointsObtained || '—'}</strong></div>
-            <div class="profile-detail-row"><span>Boarding Status</span><strong>${s.boardingStatus || '—'}</strong></div>
-            ${isBoarder ? `<div class="profile-detail-row"><span>Dormitory/House</span><strong>${s.house || '—'}</strong></div>` : ''}
+            ${schoolHasBoarding() ? `<div class="profile-detail-row"><span>Boarding Status</span><strong>${s.boardingStatus || '—'}</strong></div>` : ''}
+            ${isBoarder && schoolHasBoarding() ? `<div class="profile-detail-row"><span>Dormitory/House</span><strong>${s.house || '—'}</strong></div>` : ''}
             ${s.exitDate ? `<div class="profile-detail-row"><span>Exit Date</span><strong>${s.exitDate}</strong></div>` : ''}
             <div class="profile-detail-row"><span>Student Phone(s)</span><strong>${(s.studentPhoneContacts && s.studentPhoneContacts.length) ? s.studentPhoneContacts.map(c => `${c.number}${(c.type || c.relationship) ? ' (' + [c.type, c.relationship].filter(Boolean).join(' - ') + ')' : ''}`).join('<br>') : (phoneList(s.studentPhones) || '—')}</strong></div>
 
@@ -23442,7 +23676,6 @@ function renderSubjectsPanel(){
     case "pathways": body = renderPathwaysTab(); break;
     case "tracks": body = renderRegLinkPanel("Track(s)", "fa-diagram-project", "Group subjects into tracks within a pathway."); break;
     case "departments": body = renderRegLinkPanel("Departments / Groupings", "fa-building-user", "Organize subjects by department or grouping."); break;
-    case "syllabus": body = renderSyllabusCoverageTab(); break;
     default: body = renderCompulsorySubjectsTab();
   }
 
@@ -23589,6 +23822,9 @@ function renderManageClassesTab(){
     `;
   }
 
+  // The Class Supervisor column only matters where a Form/Grade has more than one stream.
+  const streamsIn = g => classesList.filter(c => c.grade === g).length;
+  const showSupervisor = grades.some(g => streamsIn(g) > 1);
   const bodyRows = grades.map(grade => {
     const counts = gradeStudentCounts(grade);
     const entries = classesList
@@ -23689,9 +23925,9 @@ function renderManageClassesTab(){
         <td>${counts.boys}</td>
         <td>${counts.girls}</td>
         <td>${counts.total}</td>
-        <td onclick="event.stopPropagation();">
-          ${gradeSupervisorField(grade)}
-        </td>
+        ${showSupervisor ? `<td onclick="event.stopPropagation();">
+          ${streamsIn(grade) > 1 ? gradeSupervisorField(grade) : ''}
+        </td>` : ''}
         <td style="white-space:nowrap;">
           <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:12.5px;margin-right:8px;" onclick="toggleManageGradeExpand('${grade}')">
             <i class="fa-solid fa-gears"></i> ${isExpanded ? 'Close' : 'Manage'}
@@ -23706,7 +23942,7 @@ function renderManageClassesTab(){
       </tr>
       ${isExpanded ? `
         <tr>
-          <td colspan="6" style="padding:0;border-top:none;">
+          <td colspan="${showSupervisor ? 6 : 5}" style="padding:0;border-top:none;">
             ${expandBody}
           </td>
         </tr>
@@ -23726,7 +23962,7 @@ function renderManageClassesTab(){
       <td>${grandTotals.boys}</td>
       <td>${grandTotals.girls}</td>
       <td>${grandTotals.total}</td>
-      <td></td>
+      ${showSupervisor ? '<td></td>' : ''}
       <td></td>
     </tr>
   ` : '';
@@ -23736,7 +23972,7 @@ function renderManageClassesTab(){
       <div class="streams-scroll">
         <table style="min-width:640px;">
           <thead>
-            <tr><th>Form / Grade</th><th>Boys</th><th>Girls</th><th>Students</th><th>Class Supervisor</th><th>Action</th></tr>
+            <tr><th>Form / Grade</th><th>Boys</th><th>Girls</th><th>Students</th>${showSupervisor ? '<th>Class Supervisor</th>' : ''}<th>Action</th></tr>
           </thead>
           <tbody>${bodyRows}${totalsRow}</tbody>
         </table>
@@ -24359,7 +24595,11 @@ function scBar(pct){
   const c = pct >= 75 ? '#16a34a' : pct >= 40 ? '#eab308' : '#dc2626';
   return `<div style="display:flex;align-items:center;gap:8px;min-width:130px;"><div style="flex:1;height:8px;background:#e5e9f0;"><div style="width:${pct.toFixed(1)}%;height:100%;background:${c};"></div></div><span style="font-size:12px;font-weight:700;width:46px;text-align:right;">${pct.toFixed(1)}%</span></div>`;
 }
+// Every syllabus-coverage table (screen, PDF, Excel) starts with an S/NO column.
 function scTable(headers, rows, htmlRows){
+  headers = ['S/NO', ...headers];
+  rows = rows.map((r, i) => [i + 1, ...r]);
+  htmlRows = htmlRows.map((h, i) => h.replace(/<tr[^>]*>/, m => `${m}<td style="padding:8px 12px;border-top:1px solid var(--border);font-size:13px;">${i + 1}</td>`));
   scCurrent = { title: (SC_TABS.find(t => t.key === scTab) || {}).label || 'Syllabus Coverage', headers, rows };
   return `<div class="panel" style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
     <thead><tr>${headers.map(h => `<th style="text-align:left;padding:9px 12px;font-size:11.5px;color:var(--muted);text-transform:uppercase;">${tEsc(h)}</th>`).join('')}</tr></thead>
@@ -24447,7 +24687,7 @@ function scSummaryHtml(blocks){
 }
 function scSummaryPdf(){
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  const doc = new jsPDF({ orientation: SC_SUMMARY_HEAD.length > 6 ? 'landscape' : 'portrait', unit:'pt', format:'a4' });
   const L = scSummaryTitleLines(), W = doc.internal.pageSize.getWidth();
   doc.setFont(undefined, 'bold');
   doc.setFontSize(10); doc.text(String(currentSchool || 'School').toUpperCase(), W / 2, 28, { align:'center' });
@@ -24473,6 +24713,7 @@ function scSummaryPdf(){
     styles:{ fontSize:9, cellPadding:4, lineColor:[0,0,0], lineWidth:0.5, textColor:[0,0,0] },
     headStyles:{ fillColor:[255,255,255], textColor:[0,0,0], fontStyle:'normal', halign:'center', lineColor:[0,0,0], lineWidth:0.5 },
     columnStyles:{ 0:{ cellWidth:40 }, 8:{ cellWidth:170 } } });
+  pdfPageNumbers(doc);
   doc.save('Subject_Syllabus_Coverage_Summary.pdf');
 }
 function scSummaryExcel(){
@@ -24494,12 +24735,13 @@ function scDownloadPdf(){
   if(typeof window.jspdf === 'undefined'){ alert("PDF library couldn't load. Check your internet connection and try again."); return; }
   if(scTab === 'summary'){ scSummaryPdf(); return; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  const doc = new jsPDF({ orientation: scCurrent.headers.length > 6 ? 'landscape' : 'portrait', unit:'pt', format:'a4' });
   const info = (()=>{ try{ return getCurrentTermInfo(); }catch(e){ return {}; } })();
   doc.setFontSize(14); doc.text(`${(currentSchool || 'School').toUpperCase()}`, 28, 32);
   doc.setFontSize(11); doc.text(`Syllabus Coverage — ${scCurrent.title}${info.term ? ' — ' + info.term + ' ' + (info.year || '') : ''}`, 28, 50);
   doc.autoTable({ startY:62, head:[scCurrent.headers], body:scCurrent.rows.map(r => r.map(c => String(c ?? ''))),
     theme:'grid', styles:{ fontSize:8.5, cellPadding:4 }, headStyles:{ fillColor:[30,63,120] } });
+  pdfPageNumbers(doc);
   doc.save(`Syllabus_Coverage_${scCurrent.title.replace(/\W+/g,'_')}.pdf`);
 }
 function scDownloadExcel(){
@@ -24527,8 +24769,8 @@ function renderSyllabusCoverageReports(){
     const kpi = (lbl, val, note) => `<div class="stat-card"><div class="lbl">${lbl}</div><div class="val">${val}</div>${note ? `<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${note}</div>` : ''}</div>`;
     const bySubj = scAggregate(rows, r => r.subject);
     const behind = rows.filter(r => r.submitted && scStatus(r, expected).label === 'Behind').length;
-    scCurrent = { title:'Overview', headers:['Subject','Teachers','Pages','Covered','Coverage %'],
-      rows: bySubj.map(g => [g.key, g.teachers.size, g.total, g.covered, g.pct.toFixed(1)]) };
+    scCurrent = { title:'Overview', headers:['S/NO','Subject','Teachers','Pages','Covered','Coverage %'],
+      rows: bySubj.map((g, i) => [i + 1, g.key, g.teachers.size, g.total, g.covered, g.pct.toFixed(1)]) };
     body = `<div class="stat-cards">
         ${kpi('School-wide coverage', overall.toFixed(1) + '%', expected === null ? '' : `Expected by now: ${expected.toFixed(0)}% of term elapsed`)}
         ${kpi('Entries submitted', `${sub.length} / ${rows.length}`, 'Teacher–subject records')}
@@ -31995,7 +32237,7 @@ function renderTtTeacherPickModal(){
     </div>`;
 }
 function newTimetableTeacherRegistration(){
-  teacherFormData = { surname:"", firstName:"", otherNames:"", phone:"", tscNumber:"", gender:"", responsibility:"", nationalId:"", address:"", postalCode:"", email:"", photo:"", department:[], groups:[], subjects:[], subjectHead:[] };
+  teacherFormData = { surname:"", firstName:"", otherNames:"", phone:"", tscNumber:"", gender:"", responsibility:"", nationalId:"", address:"", postalCode:"", email:"", countyOfBirth:"", subCountyOfBirth:"", photo:"", signature:"", department:[], groups:[], subjects:[], subjectHead:[] };
   teacherEditIndex = null;
   teacherTab = "add";
   active = "teachers";
@@ -36696,7 +36938,7 @@ function computeMeritListData(grade, exam){
     const totalPoints = scoring.reduce((sum, c) => sum + (c.points||0), 0);
     const mean = scoring.length ? total / scoring.length : 0;
     const meanPoints = scoring.length ? totalPoints / scoring.length : 0;
-    const meanGrade = scoring.length ? scoreToGrade(Math.round(mean), grade).grade : '-';
+    const meanGrade = scoring.length ? gradeFromMeanPoints(meanPoints, grade) : '-';
     return { student: s, subjectCells, subjectCount: taken.length, total, totalPoints, mean, meanPoints, meanGrade };
   })
   .filter(row => row.subjectCount > 0);
@@ -36885,14 +37127,16 @@ function meritStudentBandStats(groupRows, bandOrder, gradeLabel){
   groupRows.forEach(r => {
     if(!r.subjectCount) return;
     n++;
-    const g = scoreToGrade(Math.round(r.mean), gradeLabel).grade;
+    const g = r.meanGrade;   // already worked out from this learner's mean points
     counts[g] = (counts[g]||0) + 1;
     totalMean += r.mean;
-    totalPointsPerSubject += r.totalPoints / r.subjectCount;
+    // r.meanPoints = scoring-subject points / scoring subjects. Dividing by every subject
+    // sat (subjectCount) understated it for 8-4-4, where only the best subjects count.
+    totalPointsPerSubject += r.meanPoints;
   });
   const meanMarks = n ? totalMean / n : 0;
   const meanPoints = n ? totalPointsPerSubject / n : 0;
-  const meanGrade = n ? scoreToGrade(Math.round(meanMarks), gradeLabel).grade : '-';
+  const meanGrade = n ? gradeFromMeanPoints(meanPoints, gradeLabel) : '-';
   return { counts, entries: n, meanMarks, meanPoints, meanGrade };
 }
 
@@ -36913,7 +37157,7 @@ function meritSubjectBandStats(groupRows, subject, bandOrder, gradeLabel){
   });
   const meanMarks = n ? totalMarks / n : 0;
   const meanPoints = n ? totalPoints / n : 0;
-  const meanGrade = n ? scoreToGrade(Math.round(meanMarks), gradeLabel).grade : '-';
+  const meanGrade = n ? gradeFromMeanPoints(meanPoints, gradeLabel) : '-';
   return { counts, entries: n, meanMarks, meanPoints, meanGrade };
 }
 
@@ -37147,12 +37391,120 @@ function meritListClassSummarySection(data, grade){
 
 // Multi-sheet spreadsheet export: one sheet per area, each with its own
 // letterhead so the file is self-contained if a sheet is shared on its own.
+// ---- Merit list sign-off (Prepared by / Confirmed by) ----
+// Who signs is picked automatically, nobody types a name:
+//   Prepared by  - Examinations department : the user with the "Examination Officer" role
+//                  (falls back to a teacher in the Examinations department)
+//   Confirmed by - Director of Studies     : teacher whose Responsibility is Director of Studies
+//   Confirmed by - D/Principal             : Deputy Principal Academics, else Deputy Principal
+//   Confirmed by - Principal               : Principal (else Chief/Senior Principal, else the
+//                                            principal name + signature in the school profile)
+// Names show as first + last name only; the signature is the one uploaded on the teacher record.
+function meritSignOffPeople(){
+  const profile = (typeof getSchoolProfile === 'function' ? getSchoolProfile(currentSchool) : null) || {};
+  const norm = v => String(v || '').trim().toLowerCase();
+  const twoOf = v => { const p = String(v || '').trim().split(/\s+/).filter(Boolean); return p.length > 2 ? p[0] + ' ' + p[p.length - 1] : p.join(' '); };
+  const fromTeacher = t => t ? { name: teacherTwoNames(t), signature: t.signature || '' } : null;
+  const byResp = list => { for(const r of list){ const t = teachersList.find(x => x.responsibility === r); if(t) return t; } return null; };
+
+  let exam = null;
+  const officer = systemUsers.find(u => u.role === 'Examination Officer' && (!u.status || u.status === 'Active'));
+  if(officer){
+    const t = teachersList.find(x => norm(teacherFullName(x)) === norm(officer.name));
+    if(t) exam = fromTeacher(t);
+    else {
+      const st = (typeof staffList !== 'undefined' ? staffList : []).find(x => norm(x.name) === norm(officer.name));
+      exam = { name: twoOf(officer.name), signature: (st && st.signature) || '' };
+    }
+  }
+  if(!exam){
+    exam = fromTeacher(teachersList.find(x => (Array.isArray(x.department) ? x.department : [x.department]).includes('Examinations')));
+  }
+
+  const dos = fromTeacher(byResp(['Director of Studies']));
+  const dp = fromTeacher(byResp(['Deputy Principal Academics', 'Deputy Principal']));
+  let pr = fromTeacher(byResp(['Principal', 'Chief Principal', 'Senior Principal']));
+  if(!pr && profile.principalName) pr = { name: twoOf(profile.principalName), signature: profile.principalSignature || '' };
+  else if(pr && !pr.signature && profile.principalSignature) pr.signature = profile.principalSignature;
+
+  const base = { name: '', signature: '' };
+  return [
+    { ...base, ...(exam || {}), heading: 'Prepared by',  role: 'Examinations department' },
+    { ...base, ...(dos  || {}), heading: 'Confirmed by', role: 'Director of Studies' },
+    { ...base, ...(dp   || {}), heading: 'Confirmed by', role: 'D/Principal' },
+    { ...base, ...(pr   || {}), heading: 'Confirmed by', role: 'Principal' },
+  ];
+}
+
+// On-screen preview shown under the merit list tables.
+function meritSignOffHtml(){
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  return `<div class="merit-signoff">${meritSignOffPeople().map(p => `
+    <div class="merit-signoff-box">
+      <div class="so-head">${esc(p.heading)}</div>
+      <div class="so-row so-name">Name: <b>${esc(p.name)}</b></div>
+      <div class="so-row so-sig">Signature ${p.signature ? `<img src="${p.signature}">` : ''}</div>
+      <div class="so-row">Stamp</div>
+      <div class="so-role">${esc(p.role)}</div>
+    </div>`).join('')}</div>`;
+}
+
+// Spreadsheet rows (no images) for the same block.
+function meritSignOffRows(){
+  const people = meritSignOffPeople();
+  return [
+    [],
+    people.map(p => p.heading),
+    people.map(p => 'Name: ' + p.name),
+    people.map(() => 'Signature:'),
+    people.map(() => 'Stamp:'),
+    people.map(p => p.role),
+    [],
+  ];
+}
+
+// Draws the four sign-off boxes in the PDF at y (adds a page when they don't fit).
+function meritDrawSignOff(doc, y, margin, people){
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const n = people.length, bh = 104;
+  const bw = Math.min(190, (pw - margin * 2 - 18 * (n - 1)) / n);
+  if(y + bh > ph - 40){ doc.addPage(); y = margin + 10; }
+  const step = n > 1 ? (pw - margin * 2 - bw) / (n - 1) : 0;
+  people.forEach((p, i) => {
+    const x = margin + i * step;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.8);
+    doc.rect(x, y, bw, bh);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(p.heading, x + bw / 2, y + 15, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('Name: ' + p.name, x + 8, y + 31, { maxWidth: bw - 16 });
+    doc.text('Signature', x + 8, y + 58);
+    if(p.signature){
+      try{
+        const ip = doc.getImageProperties(p.signature);
+        const maxW = bw - 68, maxH = 28;
+        const k = Math.min(maxW / ip.width, maxH / ip.height);
+        const w = ip.width * k, h = ip.height * k;
+        doc.addImage(p.signature, ip.fileType, x + 62, y + 36 + (maxH - h) / 2, w, h, undefined, 'FAST');
+      }catch(e){ /* unreadable image: leave the space blank for a hand signature */ }
+    }
+    doc.text('Stamp', x + 8, y + 82);
+    doc.text(p.role, x + bw / 2, y + 97, { align: 'center' });
+  });
+  return y + bh;
+}
+
 function triggerMeritListXlsxDownload(meta, sections){
   const filename = `${meta.filenameBase}.xlsx`;
   if(typeof XLSX === 'undefined'){
     // Fallback to CSV if the spreadsheet library couldn't load (e.g. no internet connection)
     const allRows = [];
-    sections.forEach(sec => {
+    sections.forEach((sec, secIdx) => {
       allRows.push([sec.title]);
       sec.tables.forEach(t => {
         if(t.subtitle) allRows.push([t.subtitle]);
@@ -37160,6 +37512,7 @@ function triggerMeritListXlsxDownload(meta, sections){
         t.rows.forEach(r => allRows.push(r));
         allRows.push([]);
       });
+      if(meta.signOff !== false && secIdx === sections.length - 1) meritSignOffRows().forEach(r => allRows.push(r));
       allRows.push([]);
     });
     const csv = allRows.map(row => row.map(csvEscape).join(',')).join('\r\n');
@@ -37175,7 +37528,7 @@ function triggerMeritListXlsxDownload(meta, sections){
     return;
   }
   const wb = XLSX.utils.book_new();
-  sections.forEach(sec => {
+  sections.forEach((sec, secIdx) => {
     const allRows = [...classListLetterheadRows(meta)];
     sec.tables.forEach(t => {
       if(t.subtitle) allRows.push([t.subtitle]);
@@ -37183,6 +37536,7 @@ function triggerMeritListXlsxDownload(meta, sections){
       t.rows.forEach(r => allRows.push(r));
       allRows.push([]);
     });
+    if(meta.signOff !== false && secIdx === sections.length - 1) meritSignOffRows().forEach(r => allRows.push(r));
     const ws = XLSX.utils.aoa_to_sheet(allRows);
     const colCount = Math.max(...allRows.map(r => r.length), 1);
     const colWidths = [];
@@ -37217,6 +37571,7 @@ function triggerMeritListPdfDownload(meta, sections, paperSize){
   const margin = 40;
   const schoolNameStyle = getSchoolProfile(currentSchool);
   const [snR, snG, snB] = hexToRgb(schoolNameStyle.nameColor);
+  const signOffPeople = meta.signOff === false ? null : meritSignOffPeople();
 
   // The full school letterhead (logo, school name, contact, grade/year,
   // teacher line) is only drawn once, on the first page. Later pages just
@@ -37277,6 +37632,7 @@ function triggerMeritListPdfDownload(meta, sections, paperSize){
     return { y, frameTop };
   }
 
+  let lastSectionEnd = null;
   sections.forEach((sec, secIdx) => {
     if(secIdx > 0) doc.addPage();
     const { y: startY, frameTop } = drawHeader(sec.title, secIdx === 0);
@@ -37336,6 +37692,8 @@ function triggerMeritListPdfDownload(meta, sections, paperSize){
       y = doc.lastAutoTable.finalY + 18;
     });
 
+    lastSectionEnd = { page: doc.internal.getCurrentPageInfo().pageNumber, y };
+
     doc.setDrawColor(21,44,88);
     doc.setLineWidth(1.2);
     Object.keys(framePages).forEach(pageNumStr => {
@@ -37350,7 +37708,14 @@ function triggerMeritListPdfDownload(meta, sections, paperSize){
     });
   });
 
+  // Sign-off boxes: once, at the end of the last page of the merit list.
+  if(signOffPeople && lastSectionEnd){
+    doc.setPage(lastSectionEnd.page);
+    meritDrawSignOff(doc, lastSectionEnd.y + 6, margin, signOffPeople);
+  }
+
   doc.setPage(doc.internal.getNumberOfPages());
+  pdfPageNumbers(doc);
   doc.save(filename);
 }
 
@@ -37489,6 +37854,7 @@ function renderMeritListReport(){
         ${tabs.map(t => `<div class="merit-tab ${meritListTab===t.key?'active':''}" onclick="setMeritListTab('${t.key}')">${t.label}</div>`).join('')}
       </div>
       ${body}
+      ${meritListTab === 'classSummary' ? meritSignOffHtml() : ''}
     </div>
   `;
 }
@@ -38040,7 +38406,7 @@ function computeReportFormData(grade, exam, stream, student, list){
   const total = scoring.reduce((s,r)=>s+r.pct,0);
   const totalPoints = scoring.reduce((s,r)=>s+(scoreToGrade(r.pct, grade).points||0),0);
   const mean = scoring.length ? total/scoring.length : 0;
-  const meanGrade = scoring.length ? scoreToGrade(Math.round(mean), grade).grade : '-';
+  const meanGrade = scoring.length ? gradeFromMeanPoints(totalPoints / scoring.length, grade) : '-';
 
   let meanDelta = null, totalDelta = null, pointsDelta = null;
   if(prevExam){
@@ -38798,6 +39164,13 @@ function triggerReportFormsPdfDownload(meta, studentSections, paperSize){
     const reportFormRankShift = sec.showSubjectRank ? 1 : 0;
     const reportFormCommentColIdx = 5 + reportFormRankShift;
     const reportFormTeacherColIdx = 6 + reportFormRankShift;
+    // TEACHER column: fixed width (so the room for a name is known before the
+    // table is laid out) and each name's font is reduced just enough to keep
+    // it on ONE line inside its cell - long names no longer wrap and make the
+    // row taller. Short names keep the normal 9pt body font.
+    const reportFormTeacherColW = Math.round(contentWidth * 0.24);
+    const reportFormTeacherPadX = 4;
+    const reportFormTeacherMinFont = 5;
 
     doc.autoTable({
       startY: y,
@@ -38817,9 +39190,32 @@ function triggerReportFormsPdfDownload(meta, studentSections, paperSize){
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 6, lineWidth: 0.5, lineColor: [0,0,0], textColor: [0,0,0] },
       headStyles: { fillColor: [30,63,120], textColor: 255, fontStyle:'bold', fontSize: 8.5, lineWidth: 0.5, lineColor: [0,0,0] },
+      columnStyles: { [reportFormTeacherColIdx]: { cellWidth: reportFormTeacherColW, cellPadding: { top: 6, bottom: 6, left: reportFormTeacherPadX, right: reportFormTeacherPadX } } },
       didParseCell: (hookData) => {
         if(hookData.section !== 'body') return;
-        if(hookData.column.index !== reportFormCommentColIdx && hookData.column.index !== reportFormTeacherColIdx) return;
+        if(hookData.column.index === reportFormTeacherColIdx){
+          // Measure the text that will actually be drawn: the app prints people's
+          // names in CAPITALS in every PDF (global patch), already applied to
+          // cell.text by the time this runs, and capitals are wider than the stored name.
+          const drawn = Array.isArray(hookData.cell.text) && hookData.cell.text.length ? hookData.cell.text.join(' ') : hookData.cell.raw;
+          const name = (drawn === undefined || drawn === null) ? '' : String(drawn).trim();
+          if(!name) return;
+          const room = reportFormTeacherColW - reportFormTeacherPadX * 2;
+          doc.setFont('helvetica','normal');
+          let fs = 9;
+          doc.setFontSize(fs);
+          while(fs > reportFormTeacherMinFont && doc.getTextWidth(name) > room){
+            fs = Math.max(reportFormTeacherMinFont, +(fs - 0.25).toFixed(2));
+            doc.setFontSize(fs);
+          }
+          hookData.cell.styles.fontSize = fs;
+          // Fits on one line -> keep it as a single unwrapped line. (If it still
+          // does not fit at the minimum size, the normal wrap is left alone.)
+          if(doc.getTextWidth(name) <= room) hookData.cell.text = [name];
+          doc.setFontSize(9);
+          return;
+        }
+        if(hookData.column.index !== reportFormCommentColIdx) return;
         const text = (hookData.cell.raw === undefined || hookData.cell.raw === null) ? '' : String(hookData.cell.raw);
         if(!text) return;
         const availableWidth = hookData.cell.width - (hookData.cell.styles.cellPadding || 6) * 2;
@@ -39210,7 +39606,7 @@ function reportsAnalysisExamStats(grade, exam, stream){
   const scopedRows = stream ? data.rows.filter(r => r.student.stream === stream) : data.rows;
   const meanMarks = scopedRows.length ? scopedRows.reduce((s,r) => s + r.mean, 0) / scopedRows.length : 0;
   const meanPoints = scopedRows.length ? scopedRows.reduce((s,r) => s + r.meanPoints, 0) / scopedRows.length : 0;
-  const meanGrade = scopedRows.length ? scoreToGrade(Math.round(meanMarks)).grade : '-';
+  const meanGrade = scopedRows.length ? gradeFromMeanPoints(meanPoints, grade) : '-';
   const subjectStats = data.subjects.map(subject => {
     let totalMarks = 0, totalPoints = 0, n = 0;
     scopedRows.forEach(r => {
@@ -39239,7 +39635,7 @@ function reportsAnalysisClassTeacherForStream(grade, stream){
 // Per-stream grade-band stats for one subject+exam, computed straight from
 // marksData (mirrors meritSubjectBandStats but scoped to a single stream).
 function reportsAnalysisSubjectBandStats(grade, exam, subject, rowsOfStudents){
-  const gs = gradingSystems[0];
+  const gs = gradingSystemForGrade(grade);
   const bandOrder = gs ? gs.bands : [];
   const counts = {}; bandOrder.forEach(b => counts[b.grade] = 0);
   let totalMarks = 0, totalPoints = 0, n = 0;
@@ -39250,7 +39646,7 @@ function reportsAnalysisSubjectBandStats(grade, exam, subject, rowsOfStudents){
       if(raw === undefined) return;
       const max = getMaxMarks(exam, subject);
       const pct = max ? Math.round((Number(raw)/max)*100) : Number(raw);
-      const g = scoreToGrade(pct);
+      const g = scoreToGrade(pct, grade);
       n++; counts[g.grade] = (counts[g.grade]||0) + 1; totalMarks += pct; totalPoints += g.points;
     });
   } else {
@@ -39265,7 +39661,7 @@ function reportsAnalysisSubjectBandStats(grade, exam, subject, rowsOfStudents){
   }
   const meanMarks = n ? totalMarks/n : 0;
   const meanPoints = n ? totalPoints/n : 0;
-  const meanGrade = n ? scoreToGrade(Math.round(meanMarks)).grade : '-';
+  const meanGrade = n ? gradeFromMeanPoints(meanPoints, grade) : '-';
   return { counts, entries: n, meanMarks, meanPoints, meanGrade };
 }
 
@@ -39453,7 +39849,7 @@ function reportsAnalysisSubjectRows(stats, compStats){
   return stats.subjectStats.map(s => {
     const comp = compStats ? compStats.subjectStats.find(c => c.subject === s.subject) : null;
     const change = comp && comp.entries ? s.meanPoints - comp.meanPoints : null;
-    const level = performanceLevelForGrade(s.entries ? scoreToGrade(Math.round(s.meanMarks)).grade : '-');
+    const level = performanceLevelForGrade(s.entries ? gradeFromMeanPoints(s.meanPoints, stats.grade) : '-');
     return { subject: s.subject, points: s.meanPoints, change, level };
   });
 }
@@ -39498,7 +39894,7 @@ function renderReportsAnalysisPerformanceOverTime(grade){
 }
 
 function renderReportsAnalysisGradeBreakdown(grade, exam, comparisonExam, subject, subjects, streamFilter){
-  const gs = gradingSystems[0];
+  const gs = gradingSystemForGrade(grade);
   const bandOrder = gs ? gs.bands : [];
   const allStreams = Array.from(new Set(studentsForGrade(grade, "").map(s => s.stream))).sort();
   const streams = streamFilter ? allStreams.filter(st => st === streamFilter) : allStreams;
@@ -39914,6 +40310,7 @@ function downloadAnalysisPrintPreviewPdf(){
   try{
     const built = buildAnalysisPrintPreviewPdfDoc();
     if(!built) return;
+    pdfPageNumbers(built.doc);
     built.doc.save(`${built.filenameBase}.pdf`);
   }finally{
     if(btn){ btn.disabled = false; btn.innerHTML = originalBtnHtml; }
@@ -40055,7 +40452,7 @@ function reportsAnalysisSubjectRankings(grade, exam, subject){
     const raw = combinedSubjectMark(term, exam, grade, subject, s.admissionNumber);
     if(raw === undefined) return null;
     const pct = max ? Math.round((Number(raw)/max)*100) : Number(raw);
-    return { student: s, score: pct, gradeLetter: scoreToGrade(pct).grade };
+    return { student: s, score: pct, gradeLetter: scoreToGrade(pct, grade).grade };
   }).filter(Boolean);
   groupRank(scored, () => 'all', r => r.score, '_ovrRank', '_ovrTotal');
   groupRank(scored, r => r.student.stream || '', r => r.score, '_strRank', '_strTotal');
@@ -40290,7 +40687,7 @@ function renderAnalysisPrintDoc(grade, exam, stream, comparisonExam, topOnly){
   `;
 
   // ---- Class Grade Summary: one master table, overall row + one row per subject ----
-  const gs = gradingSystems[0];
+  const gs = gradingSystemForGrade(grade);
   const bandOrder = gs ? gs.bands : [];
   const overallData = reportsAnalysisOverallRankings(grade, exam);
   const compOverallData = comparisonExam ? reportsAnalysisOverallRankings(grade, comparisonExam) : null;
@@ -40313,7 +40710,7 @@ function renderAnalysisPrintDoc(grade, exam, stream, comparisonExam, topOnly){
         <td>${mmDev===null||mmDev===undefined?'—':mmDev.toFixed(4)}</td>
         <td>${meanPoints.toFixed(4)}</td>
         <td>${mpDev===null||mpDev===undefined?'—':mpDev.toFixed(4)}</td>
-        <td class="apd-perf-col">${performanceLevelForGrade(scoreToGrade(Math.round(meanMarks)).grade)}</td>
+        <td class="apd-perf-col">${performanceLevelForGrade(gradeFromMeanPoints(meanPoints, grade))}</td>
         <td>${teacher}</td>
       </tr>
     `;
@@ -40437,7 +40834,7 @@ function renderAnalysisPrintDoc(grade, exam, stream, comparisonExam, topOnly){
         ${bandOrder.map(b=>`<td>${g.counts[b.grade]||0}</td>`).join('')}
         <td>${g.entries}</td><td>${g.meanMarks.toFixed(1)}</td><td>—</td>
         <td>${g.meanPoints.toFixed(4)}</td><td>—</td>
-        <td class="apd-perf-col">${performanceLevelForGrade(scoreToGrade(Math.round(g.meanMarks)).grade)}</td>
+        <td class="apd-perf-col">${performanceLevelForGrade(gradeFromMeanPoints(g.meanPoints, grade))}</td>
       </tr>
     `;
     return `
@@ -41714,7 +42111,7 @@ function renderExamsReportsTab(){
   if(!reportsExportsView){
     return `
       <div class="reports-exports-hub-cards reg-card-row">
-        ${REPORTS_EXPORTS_ITEMS.map(t => `
+        ${REPORTS_EXPORTS_ITEMS.filter(t => t.key !== 'houseList' || schoolHasBoarding()).map(t => `
           <button class="reg-card" onclick="setReportsExportsView('${t.key}')">
             <div class="reg-card-icon"><i class="fa-solid ${t.icon}"></i></div>
             <div class="reg-card-label">${t.label}</div>
@@ -42088,6 +42485,7 @@ function scoreSheetAction(kind, el){
       headStyles:{ fillColor:[240,240,240], textColor:20 }, columnStyles: colStyles,
       margin:{ left:28, right:28 }
     });
+    pdfPageNumbers(doc);
     doc.save((scoreSheet.subject + ' ' + scoreSheet.entryGrade + ' SBA Score Sheet').replace(/[^\w\- ]+/g,'') + '.pdf');
     return;
   }
@@ -42880,7 +43278,7 @@ function addFeeStructureItem(e){
     return;
   }
   termAmounts.forEach(t => {
-    feeStructureItems.push({ grade: grade||'—', term:t.term, category, amount:t.amount, studentType: fsStudentType });
+    feeStructureItems.push({ grade: grade||'—', term:t.term, category, amount:t.amount, studentType: schoolHasBoarding() ? fsStudentType : 'Dayscholars' });
   });
   gradeInput.value = ""; categoryInput.value = "";
   term1Input.value = ""; term2Input.value = ""; term3Input.value = "";
@@ -42941,12 +43339,12 @@ function renderFinanceFeeStructureTab(){
       <div class="panel settings-card">
         <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;">Add fee item</h3>
         <form onsubmit="addFeeStructureItem(event)">
-          <label class="field"><span>Student type</span>
+          ${schoolHasBoarding() ? `<label class="field"><span>Student type</span>
             <select id="fs_studentType" onchange="onFsStudentTypeChange(this)">
               <option value="Boarders" ${fsStudentType==='Boarders'?'selected':''}>Boarder</option>
               <option value="Dayscholars" ${fsStudentType==='Dayscholars'?'selected':''}>Dayscholar</option>
             </select>
-          </label>
+          </label>` : ''}
           <label class="field"><span>Grade / Class</span>
             <select id="fs_grade">
               <option value="">All grades</option>
@@ -44739,6 +45137,7 @@ function downloadFinanceReportPdf(type){
     } : undefined,
   });
 
+  pdfPageNumbers(doc);
   doc.save(`${filename}-${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
@@ -47893,6 +48292,7 @@ function downloadCocurricularRosterPdf(club, mode){
     headStyles: { fillColor: [47,95,168], textColor: 255, fontStyle:'bold' },
   });
 
+  pdfPageNumbers(doc);
   if(mode === 'open'){
     window.open(doc.output('bloburl'), '_blank');
   } else {
@@ -48137,6 +48537,7 @@ function downloadActivityAttendancePdf(club, mode){
   doc.text("Teacher's Signature: ___________________________", margin, finalY);
   doc.text('Date: ___________________', pageWidth-margin-180, finalY);
 
+  pdfPageNumbers(doc);
   if(mode === 'open'){
     window.open(doc.output('bloburl'), '_blank');
   } else {
@@ -49165,6 +49566,7 @@ function downloadRegisterPdf(type, snap, mode){
 
   const scopeSlug = isSubject ? `${regSubject.replace(/\s+/g,'_')}_subject` : 'class';
   const filenameBase = `${regClassLabel.replace(/\s+/g,'_')}_${scopeSlug}_register_${regYear}_${regTerm.replace(/\s+/g,'_')}`;
+  pdfPageNumbers(doc);
   if(mode === 'open') window.open(doc.output('bloburl'), '_blank');
   else doc.save(`${filenameBase}.pdf`);
 }
@@ -51851,7 +52253,7 @@ function renderSettingsProfileTab(){
           </label>
 
           <label class="icon-field"><span>Postal Address&nbsp;<span class="req">*</span></span>
-            <div class="icon-input"><i class="fa-solid fa-location-dot"></i><input id="sp_address" type="text" value="${profile.address||''}"></div>
+            <div class="icon-input"><i class="fa-solid fa-location-dot"></i><input id="sp_address" type="text" inputmode="numeric" pattern="[0-9]*" value="${profile.address||''}"></div>
           </label>
           <label class="icon-field"><span>Website</span>
             <div class="icon-input"><i class="fa-solid fa-globe"></i><input id="sp_website" type="text" value="${profile.website||''}"></div>

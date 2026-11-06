@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else api.init();
 })(typeof window !== 'undefined' ? window : this, function(win){
-  var SKIP_ANCESTORS = '.preview-modal,.preview-frame,.receipt-frame,.letterhead,.login-page,.pdf-bar,#classListPreviewRoot,[class*="tt-"],[class*="cal-"],.timetable,.calendar';
+  var SKIP_ANCESTORS = '.preview-modal,.preview-frame,.receipt-frame,.letterhead,.login-page,.pdf-bar,#classListPreviewRoot,.merit-table-wrap,table.merit-table,[class*="tt-"],[class*="cal-"],.timetable,.calendar';
   var DROP_HEADER = /^(actions?|options?|manage|edit|delete|view|select|remove|photo|picture|image|tick|✓)$/i;
 
   function clean(s){ return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }

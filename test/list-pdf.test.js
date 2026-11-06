@@ -27,3 +27,8 @@ test('tables inside previews/timetables are skipped; scan adds one button once',
 test('title comes from the panel heading', () => {
   expect(lp.titleFor(table('<table></table>'))).toBe('Teachers');
 });
+test('merit list tables never get the extra PDF button (they have Print Format / Download Merit List)', () => {
+  document.body.innerHTML = '<div class="panel"><div class="merit-table-wrap"><table class="merit-table"><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table></div></div>';
+  lp.scan();
+  expect(document.querySelectorAll('.pdf-bar')).toHaveLength(0);
+});
