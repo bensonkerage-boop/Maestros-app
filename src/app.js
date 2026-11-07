@@ -31,6 +31,9 @@ const auth = (req, res, next) => {
 };
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts, try again later' } });
 
+app.locals.auth = auth;
+app.use('/api', require('./comms').router);
+
 app.get('/api/health', wrap(async (req, res) => { await getStore(); res.json({ ok: true }); }));
 
 // First account is created freely (becomes admin); after that only an admin may add users.

@@ -4259,6 +4259,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     background:#eceef0;color:var(--text);
   }
   .login-cert-field input:focus{outline:2px solid var(--blue);outline-offset:1px;background:#fff;}
+  .login-cert-pwwrap{flex:1;display:flex;align-items:stretch;width:100%;min-width:0;}
+  .login-cert-pwwrap input{flex:1;min-width:0;}
+  .login-cert-eye{
+    flex:0 0 auto;width:44px;display:flex;align-items:center;justify-content:center;
+    background:#f3f4f6;border:1px solid #6b7280;border-left:0;border-radius:0;cursor:pointer;color:var(--text);font-size:15px;
+  }
+  .login-cert-eye:hover{background:#e5e7eb;}
   .login-cert-forgot-row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 20px;}
   .login-cert-remember{
     display:flex;align-items:center;gap:6px;
@@ -4280,6 +4287,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     text-decoration:none;
   }
   .login-cert-signup:hover{text-decoration:underline;}
+  .login-cert-signup:disabled,.login-cert-signup:disabled:hover{color:#9ca3af;cursor:not-allowed;text-decoration:none;}
+  .login-cert-signup-note{text-align:center;margin:4px 0 0;font-size:12px;color:#6b7280;}
   .reset-pw-overlay{
     display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);
     align-items:center;justify-content:center;z-index:9999;padding:20px;
@@ -4541,8 +4550,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 .team-list-actions{ margin-top:20px; display:flex; gap:10px; justify-content:flex-end; }
 @media print{
   body *{ visibility:hidden; }
-  #teamListPrintArea, #teamListPrintArea *{ visibility:visible; }
-  #teamListPrintArea{ position:absolute; top:0; left:0; width:100%; margin:0; padding:0; box-shadow:none; }
   .team-list-overlay{ position:static; background:none; padding:0; }
   .team-list-actions{ display:none; }
   #activityAttendancePrintArea, #activityAttendancePrintArea *{ visibility:visible; }
@@ -5309,6 +5316,27 @@ let loginError = "";
 let currentUserRole = "Administrator";
 let isPortalSession = false; // true when the logged-in party is a parent/student, not staff
 let currentPortalStudentAdm = null; // admission number of the student a portal session belongs to
+// ---- Generated user names ----
+// Staff who sign in by name (not phone number) use a user name the system generates:
+// first + second name (lower case, no spaces) @ school name + school level, e.g. bensonoimeke@demosenior
+// ("DEMO SCHOOL", level SENIOR -> demosenior). Sales Agents are platform-level, so they use @maestro.
+function loginWords(v){ return String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(/\s+/).filter(Boolean); }
+function loginSchoolSuffix(schoolName){
+  const sc = (typeof sdSchools !== "undefined" ? sdSchools : []).find(x => x.name === schoolName);
+  const level = sc ? (sc.level ? String(sc.level).toLowerCase() : "") : "senior";   // not in the registry yet (e.g. the built-in demo school): treated as senior
+  const w = loginWords(schoolName);
+  while(w.length > 1 && (w[w.length-1] === "school" || w[w.length-1] === "schools")) w.pop();
+  let base = w.join("");
+  if(level && !base.endsWith(level)) base += level;
+  return base;
+}
+function userLoginName(fullName, schoolName){
+  const w = loginWords(fullName).slice(0, 2).join("");
+  return w ? w + "@" + (schoolName === "@platform" ? "maestro" : loginSchoolSuffix(schoolName)) : "";
+}
+function loginNameMatches(fullName, typed, schoolName){
+  return !!typed && userLoginName(fullName, schoolName) === String(typed).trim().toLowerCase();
+}
 function userFirstName(name){
   return (name || "").trim().split(/\s+/)[0] || "";
 }
@@ -5449,11 +5477,14 @@ function renderLoginPage(){
           <div class="login-cert-fields">
             <div class="login-cert-field">
               <label for="login_username">User Name:</label>
-              <input id="login_username" type="text" placeholder="First name or phone number" autocomplete="username">
+              <input id="login_username" type="text" placeholder="Username or phone number" autocomplete="username">
             </div>
             <div class="login-cert-field">
               <label for="login_password">Password:</label>
-              <input id="login_password" type="password" placeholder="" autocomplete="current-password">
+              <div class="login-cert-pwwrap">
+                <input id="login_password" type="password" placeholder="" autocomplete="current-password">
+                <button type="button" class="login-cert-eye" aria-label="Show or hide password" title="Show / hide password" onclick="toggleResetPwVisibility('login_password', this)"><i class="fa-solid fa-eye"></i></button>
+              </div>
             </div>
           </div>
           <div class="login-cert-forgot-row">
@@ -5471,10 +5502,10 @@ function renderLoginPage(){
           <div style="text-align:center;margin:10px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
           <div class="login-cert-signup-row">
             New here?
-            <button type="button" class="login-cert-signup" onclick="openCreateAccount()">Sign Up</button>
+            <button type="button" class="login-cert-signup" disabled aria-disabled="true">Sign Up</button>
           </div>
         </form>
-        <div class="login-cert-footnote">Staff: first name or phone number as username; the first time, use the welcome password from your administrator, then choose your own. Parents/Students: guardian's phone number as username, student's admission number as password. · © MASMS 2026</div>
+        <div class="login-cert-footnote">© MASMS 2026</div>
       </div>
     </div>
 
@@ -5537,10 +5568,37 @@ function renderLoginPage(){
       </div>
     </div>
   `;
-  setTimeout(() => document.getElementById('login_username')?.focus(), 0);
+  // Remember Password: bring back the saved user name / password on this device.
+  const _rem = rememberedLoginGet();
+  if(_rem){
+    const ru = document.getElementById('login_username'), rp = document.getElementById('login_password'), rc = document.getElementById('login_remember');
+    if(ru) ru.value = _rem.u;
+    if(rp) rp.value = _rem.p;
+    if(rc) rc.checked = true;
+  }
+  setTimeout(() => document.getElementById(_rem ? 'login_password' : 'login_username')?.focus(), 0);
 }
 
+// ---- Remember Password ----
+// When "Remember Password" is ticked and the login succeeds, the user name and password are kept on THIS
+// device (browser / app storage) and filled in next time. Un-ticking it on a later login erases them.
+// Only use it on your own phone or computer: anyone who can open this device's app data can read them.
+const REMEMBER_LOGIN_KEY = 'maestroRememberLogin';
+function rememberedLoginGet(){
+  try{
+    const o = JSON.parse(localStorage.getItem(REMEMBER_LOGIN_KEY) || 'null');
+    if(o && typeof o.u === 'string' && typeof o.p === 'string') return { u:o.u, p:decodeURIComponent(escape(atob(o.p))) };
+  }catch(_e){}
+  return null;
+}
+function rememberedLoginSave(user, pass){
+  try{ localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ u:user, p:btoa(unescape(encodeURIComponent(pass))) })); }catch(_e){}
+}
+function rememberedLoginClear(){ try{ localStorage.removeItem(REMEMBER_LOGIN_KEY); }catch(_e){} }
+
 function openCreateAccount(){
+  // Sign up is switched off: users are added by the Principal or the Sales Agent.
+  return;
   document.getElementById('signup_overlay').classList.add('open');
   ['signup_phone','signup_first','signup_last','signup_password'].forEach(id => {
     const el = document.getElementById(id);
@@ -5554,6 +5612,7 @@ function closeCreateAccount(){
 }
 
 function submitCreateAccount(){
+  return; // sign up is switched off (see openCreateAccount)
   const phone = document.getElementById('signup_phone').value.trim();
   const first = document.getElementById('signup_first').value.trim();
   const last = document.getElementById('signup_last').value.trim();
@@ -5721,7 +5780,7 @@ function teacherWelcomeCandidate(usernameRaw, passwordRaw){
     return full && !systemUsers.some(u => u.name.trim().toLowerCase() === full);
   });
   const byPhone = key ? free.filter(t => loginPhoneKey(t.phone) === key) : [];
-  const byFirst = free.filter(t => userFirstName(teacherFullName(t)).toLowerCase() === uname);
+  const byFirst = free.filter(t => loginNameMatches(teacherFullName(t), uname, currentSchool));
   const t = byPhone.length === 1 ? byPhone[0] : (!byPhone.length && byFirst.length === 1 ? byFirst[0] : null);
   if(!t) return null;
   const name = teacherFullName(t);
@@ -5859,8 +5918,13 @@ function submitLoginCore(e){
   const el = document.getElementById('login_username');
   const uname = el ? el.value.trim() : "";
   const wasLoggedIn = isLoggedIn;
+  const _pw = (document.getElementById('login_password')?.value || '').trim();
+  const _remember = !!document.getElementById('login_remember')?.checked;
+  const _prevSchool = currentSchool;
   submitLoginCore0();
+  if(!isLoggedIn && !pwChangePending && currentSchool !== _prevSchool){ try{ switchToSchool(_prevSchool); }catch(_e){} }
   if(isLoggedIn && !wasLoggedIn){
+    if(_remember) rememberedLoginSave(uname, _pw); else rememberedLoginClear();
     recordLoginAudit(uname, "success", { name: currentUserName, role: currentUserRole, school: currentUserRole === "System Developer" ? "(Platform)" : currentSchool, portal: !!isPortalSession });
   } else if(!isLoggedIn && !pwChangePending){
     recordLoginAudit(uname, "failed");
@@ -6041,19 +6105,26 @@ function submitLoginCore0(e){
     return;
   }
 
+  // A generated user name ends in @school: open that school's records before looking the person up.
+  if(username.includes("@")){
+    const suffix = username.split("@").pop();
+    const target = (schools || []).find(sn => loginSchoolSuffix(sn) === suffix);
+    if(target && target !== currentSchool) switchToSchool(target);
+  }
+
   // Staff: first name (or phone number) as user name; password is the welcome
   // password until the person has chosen their own (see "Staff passwords" above).
   const _phoneKey = loginPhoneKey(usernameRaw);
   const matchedUser = systemUsers.find(u =>
     u.role !== "System Developer" &&
-    (userFirstName(u.name).toLowerCase() === username || (_phoneKey && loginPhoneKey(staffPhoneForUser(u)) === _phoneKey)) &&
+    (loginNameMatches(u.name, username, currentSchool) || (_phoneKey && loginPhoneKey(staffPhoneForUser(u)) === _phoneKey)) &&
     userPasswordOk(u, passwordRaw)
   );
   // Sales agents (platform-level accounts kept on the Sales Agents roster). A phone
   // number always identifies the agent; a first name only when no staff member
   // with the welcome password already claims it (staff keep priority on names).
   const matchedAgent = (saAgents || []).find(a => !a.isDeveloper && a.status !== "Inactive" &&
-    (userFirstName(a.name).toLowerCase() === username || (_phoneKey && loginPhoneKey(a.phone) === _phoneKey)) &&
+    (loginNameMatches(a.name, username, "@platform") || (_phoneKey && loginPhoneKey(a.phone) === _phoneKey)) &&
     userPasswordOk(saLoginUser(a), passwordRaw));
   const agentByPhone = !!(matchedAgent && _phoneKey && loginPhoneKey(matchedAgent.phone) === _phoneKey);
   if(!matchedUser && matchedAgent && (agentByPhone || !teacherWelcomeCandidate(usernameRaw, passwordRaw))){
@@ -6140,7 +6211,7 @@ function globalSearch(e){
 // ---- Announcements ----
 let announcementsList = [];
 
-// Announcements come from administrators and departmental heads only.
+// Announcements come from administrators only.
 // Everyone else (e.g. ordinary teachers) can read them but not post/delete.
 const ANNOUNCEMENT_ADMIN_ROLES = ["System Developer", "Super Admin", "Administrator"];
 function announcementHeadRecord(){
@@ -6151,11 +6222,10 @@ function announcementHeadRecord(){
 }
 function isAnnouncementAdmin(){ return ANNOUNCEMENT_ADMIN_ROLES.includes(currentUserRole); }
 function isDepartmentHead(){ return currentUserRole === "HOD" || !!announcementHeadRecord(); }
-function canPostAnnouncements(){ return isAnnouncementAdmin() || isDepartmentHead(); }
-// Admins can delete any announcement; department heads only their own.
+function canPostAnnouncements(){ return isAnnouncementAdmin(); }
+// Only administrators can post or delete announcements.
 function canDeleteAnnouncement(a){
-  if(isAnnouncementAdmin()) return true;
-  return isDepartmentHead() && !!a && a.author === currentUserName;
+  return isAnnouncementAdmin();
 }
 function announcementSenderLabel(){
   if(isAnnouncementAdmin()) return "Administration";
@@ -6168,7 +6238,7 @@ function announcementSenderLabel(){
 function addAnnouncement(e){
   if(e) e.preventDefault();
   if(!canPostAnnouncements()){
-    alert("Only administrators and departmental heads can post announcements.");
+    alert("Only administrators can post announcements.");
     return;
   }
   const titleInput = document.getElementById('annTitle');
@@ -6319,8 +6389,6 @@ let activityAttendanceSheetClub = null; // club name currently shown in the atte
 let cocurricularRosterSheetClub = null; // club name currently shown in the roster open/PDF overlay
 let clubManageOpen = null; // club name currently expanded for managing students
 let clubSearchQuery = "";
-let teamListPrintClub = null; // club name currently shown in the KSSSA team list overlay
-let teamListFormData = {};
 let attStatus = {};
 let messages = [];
 
@@ -6451,7 +6519,7 @@ const sumPaymentAmounts = list => list.reduce((t, p) => t + parseAmountKsh(p.amo
 function studentAccountSummary(s, pidx, term){
   const type = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
   const gross = feeStructureItems
-    .filter(f => f.grade === s.grade && (!term || f.term === term) && (!f.studentType || f.studentType === type))
+    .filter(f => f.grade === s.grade && (!term || f.term === term) && feeItemBills(f, type))
     .reduce((t, f) => t + parseAmountKsh(f.amount), 0);
   const adjustments = studentTotalAdjustments(s.admissionNumber);
   const fines = studentTotalLibraryFines(s.admissionNumber) + studentTotalLabFines(s.admissionNumber);
@@ -6480,7 +6548,7 @@ function studentOverdueSince(s, pidx){
   const rem = {};
   FEE_TERM_OPTIONS.forEach(t => {
     const due = feeStructureItems
-      .filter(f => f.grade === s.grade && f.term === t && (!f.studentType || f.studentType === type))
+      .filter(f => f.grade === s.grade && f.term === t && feeItemBills(f, type))
       .reduce((a, f) => a + parseAmountKsh(f.amount), 0);
     rem[t] = due - sumPaymentAmounts(pays.filter(p => p.term === t));
     if(rem[t] < 0){ extra += -rem[t]; rem[t] = 0; }
@@ -6617,7 +6685,7 @@ function computeClassStreamCollection(){
     g.students.forEach(s => {
       const studentType = s.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
       feeStructureItems
-        .filter(f => f.grade === g.grade && (!f.studentType || f.studentType === studentType))
+        .filter(f => f.grade === g.grade && feeItemBills(f, studentType))
         .forEach(f => {
           const amt = parseAmountKsh(f.amount);
           if(f.category === 'Tuition') tuition += amt;
@@ -6868,7 +6936,7 @@ function studentTotalAdjustments(admissionNumber){
 function studentGrossFeesDue(student){
   const studentType = student.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
   return feeStructureItems
-    .filter(f => f.grade === student.grade && (!f.studentType || f.studentType === studentType))
+    .filter(f => f.grade === student.grade && feeItemBills(f, studentType))
     .reduce((sum, f) => sum + parseAmountKsh(f.amount), 0);
 }
 
@@ -7053,7 +7121,7 @@ function buildStudentFeeLedger(student){
   const entries = [];
   FEE_TERM_OPTIONS.forEach(term => {
     const due = feeStructureItems
-      .filter(f => f.grade === student.grade && f.term === term && (!f.studentType || f.studentType === studentType))
+      .filter(f => f.grade === student.grade && f.term === term && feeItemBills(f, studentType))
       .reduce((sum, f) => sum + parseAmountKsh(f.amount), 0);
     if(due > 0){
       const dateStr = `${FEE_TERM_START_DATES[term] || '01 Jan'} ${year}`;
@@ -8145,19 +8213,13 @@ async function sendFeeSms(e){
 
   if(feeMsgMode === "email"){
     if(!emailJsIsConfigured()){
-      alert("Email sending isn't set up yet. Add your EmailJS Service ID, Template ID, and Public Key near the top of the Compose Message code (see the comment above EMAILJS_SERVICE_ID) before sending real emails.");
+      alert(commsBlockedMessage('email'));
       return;
     }
     feeSendState = { sending: true, label: 'Sending emails…', sub: `Emailing ${built.length} guardian${built.length===1?'':'s'}` };
     renderSmsModal();
-    let sent = 0;
-    const failures = [];
-    for(const r of built){
-      const hasEmail = r.email && r.email !== 'No email on file';
-      if(!hasEmail){ failures.push({ name: r.student, error: 'No email on file' }); continue; }
-      const result = await sendEmailViaEmailJS(r.email, r.student, r.subject, r.message);
-      if(result.ok) sent++; else failures.push({ name: r.student, error: result.error });
-    }
+    const er = await commsSendEmails(built.map(r => ({ name: r.student, email: r.email, subject: r.subject, message: r.message })));
+    const sent = er.sent, failures = er.failures.map(f => ({ name: f.name, error: f.error }));
     feeSendState = null;
     lastSentFeeSms = built;
     smsModalOpen = false;
@@ -8193,19 +8255,20 @@ async function sendFeeSms(e){
     }
   } else {
     if(!africasTalkingIsConfigured()){
-      alert("SMS sending isn't set up yet. Add your Africa's Talking Username and API Key near the top of the Compose Message code (see the comment above AFRICASTALKING_USERNAME) before sending real SMS.");
+      alert(commsBlockedMessage('sms'));
       return;
     }
     feeSendState = { sending: true, label: 'Sending SMS…', sub: `To ${built.length} guardian${built.length===1?'':'s'}` };
     renderSmsModal();
-    let sent = 0;
-    const failures = [];
-    for(const r of built){
-      const hasPhone = r.phone && r.phone !== 'No number on file';
-      if(!hasPhone){ failures.push({ name: r.student, error: 'No number on file' }); continue; }
-      const result = await sendSmsViaAfricasTalking(r.phone, r.message);
-      if(result.ok) sent++; else failures.push({ name: r.student, error: result.error });
+    const needed = smsCreditsNeeded(built.map(r => ({ phone: r.phone, message: r.message })));
+    if(smsCreditBalance < needed){
+      feeSendState = null; renderSmsModal();
+      alert(`You need ${needed} SMS credit${needed===1?'':'s'} but only have ${smsCreditBalance}. Visit Communication > Buy SMS to top up.`);
+      return;
     }
+    const sr = await commsSendSms(built.map(r => ({ name: r.student, phone: r.phone, message: r.message })));
+    spendSmsCredits(sr.units);
+    const sent = sr.sent, failures = sr.failures.map(f => ({ name: f.name, error: f.error }));
     feeSendState = null;
     lastSentFeeSms = built;
     smsModalOpen = false;
@@ -8500,6 +8563,7 @@ const KENYA_PUBLISHERS = [
   "Target Publications",
 ];
 let libraryBooks = [];
+let libraryPublishers = [];   // publishers the school added itself (on top of KENYA_PUBLISHERS)
 // Registration numbers are auto-generated per physical copy from a book's
 // prefix, since "copies" is a count on the title, not on any one number.
 // e.g. prefix "LIB-0005" with 3 copies -> LIB-0005-1, LIB-0005-2, LIB-0005-3.
@@ -9306,7 +9370,7 @@ let ttRooms = TT_DEFAULT_ROOMS.slice();
 const SCHOOL_EMPTY_KEYS = [
   "announcementsList", "calendarEvents", "students", "medicalAlerts", "savedRegisters", "disciplineCases", "disciplineCommittee",
   "clubJoined", "clubMembers", "clubPatrons", "clubAttendance", "clubAttendanceDate", "clubAttendanceSaved",
-  "messages", "attendanceRecords", "attendanceNotes", "attendanceDayMeta",
+  "messages", "attendanceRecords", "attendanceNotes", "attendanceDayMeta", "libraryPublishers",
   "feeAdjustments", "parentPortalNotifications", "lastSentFeeSms", "feeStructureItems",
   "paymentsLog", "incomeEntries", "expenseEntries", "budgetItems", "payrollEntries", "financeMeta",
   "libraryBooks", "libraryLoans", "libraryLostDamaged", "libraryFines",
@@ -9366,7 +9430,7 @@ function snapshotSchoolData(name){
   schoolData[name] = {
     announcementsList, calendarEvents, students, medicalAlerts, savedRegisters, disciplineCases, disciplineCommittee,
     clubJoined, clubMembers, clubPatrons, clubAttendance, clubAttendanceDate, clubAttendanceSaved,
-    messages, attendanceRecords, attendanceNotes, attendanceDayMeta,
+    messages, attendanceRecords, attendanceNotes, attendanceDayMeta, libraryPublishers,
     feeAdjustments, parentPortalNotifications, lastSentFeeSms, feeStructureItems,
     paymentsLog, incomeEntries, expenseEntries, budgetItems, payrollEntries, financeMeta: collectFinanceMeta(),
     libraryBooks, libraryLoans, libraryLostDamaged, libraryFines,
@@ -9403,6 +9467,7 @@ function loadSchoolData(name){
   paymentsLog = d.paymentsLog; incomeEntries = d.incomeEntries; expenseEntries = d.expenseEntries; budgetItems = d.budgetItems; payrollEntries = d.payrollEntries;
   applyFinanceMeta(d.financeMeta);
   normalizePayroll();
+  libraryPublishers = Array.isArray(d.libraryPublishers) ? d.libraryPublishers : [];
   libraryBooks = d.libraryBooks; libraryLoans = d.libraryLoans; libraryLostDamaged = d.libraryLostDamaged; libraryFines = d.libraryFines;
   storeItems = d.storeItems || []; storeMovements = d.storeMovements || []; storeRequisitions = d.storeRequisitions || []; storeSuppliers = d.storeSuppliers || [];
   labItems = d.labItems || []; labUsageLog = d.labUsageLog || []; labIncidents = d.labIncidents || []; labRequisitions = d.labRequisitions || []; labFines = d.labFines || [];
@@ -10961,6 +11026,18 @@ function lmClear(){
   if(!confirm("Delete the whole login log from this browser? This cannot be undone.")) return;
   loginAuditLog = []; persistLoginAudit(); render();
 }
+// Login instructions are shown to the System Developer only (not on the public login page).
+function sdLoginGuideHtml(){
+  if(currentUserRole !== "System Developer") return "";
+  const eg = userLoginName("Benson Oimeke", currentSchool);
+  return `<div class="panel" style="margin-bottom:16px;padding:16px 20px;font-size:13px;line-height:1.6;">
+    <h3 style="margin:0 0 8px;font-size:15px;font-weight:700;"><i class="fa-solid fa-circle-info"></i> Login information (System Developer only)</h3>
+    <div><b>Sign up:</b> turned off. The Principal or the Sales Agent adds every user.</div>
+    <div><b>Staff:</b> sign in with the generated user name (first and second name @ school name and level, e.g. <b>${eg}</b>) or with their phone number. The first time, they use the welcome password from the administrator, then choose their own.</div>
+    <div><b>Sales Agents:</b> user name is first and second name @maestro, or phone number.</div>
+    <div><b>Parents/Students:</b> guardian's phone number as user name, student's admission number as password.</div>
+  </div>`;
+}
 function renderLoginMonitor(){
   const list = lmFiltered(), flags = lmFlags(list);
   const ok = list.filter(e => e.outcome === "success"), bad = list.filter(e => e.outcome === "failed"), dec = list.filter(e => e.outcome === "declined");
@@ -12021,7 +12098,7 @@ function renderSystemDeveloperPage(){
   }
   const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"]];
   const bar = `<div class="class-tab-row" style="margin-bottom:16px;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
-  if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + renderLoginMonitor();
+  if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + sdLoginGuideHtml() + renderLoginMonitor();
   if(sdMainTab === "pricing") return `<div class="dash2-topline"><div><h1 class="dash2-title">Pricing</h1><p class="dash2-sub">Fixed and variable cost for each registered school &mdash; total = fixed cost + (variable cost &times; enrollment)</p></div></div>` + bar + renderSdPricing();
   if(sdMainTab === "account") return `<div class="dash2-topline"><div><h1 class="dash2-title">Account Information</h1><p class="dash2-sub">Your platform account and payment details</p></div></div>` + bar + renderSdAccountInfo();
   if(sdMainTab === "documents") return `<div class="dash2-topline"><div><h1 class="dash2-title">Documents</h1><p class="dash2-sub">Contracts, licences, invoices and other files you keep for the platform</p></div></div>` + bar + renderSdDocuments();
@@ -13034,7 +13111,7 @@ function renderNav(){
     <button class="nav-item ${navActive===item.key?'active':''}" onclick="go('${item.key}')">
       <i class="fa-solid ${item.icon}"></i>
       ${navLabel(item.key)}
-      ${item.key==='medicalalerts' && medAlertPendingCountForMe() ? `<span style="margin-left:auto;background:var(--rose);color:#fff;font-size:11px;font-weight:700;min-width:18px;padding:1px 6px;text-align:center;">${medAlertPendingCountForMe()}</span>` : ''}
+      ${item.key==='medicalalerts' && medAlertNavCount() ? `<span style="margin-left:auto;background:var(--rose);color:#fff;font-size:11px;font-weight:700;min-width:18px;padding:1px 6px;text-align:center;">${medAlertNavCount()}</span>` : ''}
       ${navActive===item.key ? '<i class="fa-solid fa-chevron-right chev"></i>' : ''}
     </button>
   `).join('');
@@ -13274,6 +13351,7 @@ function renderTeacherHomeDashboard(){
       ? `<img src="${heroRec.photo}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.5);flex-shrink:0;">`
       : `<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0;"><i class="fa-solid fa-chalkboard-user"></i></div>`;
     body = `
+      ${renderDepartmentAndClubPanels()}
       ${renderAdminOverviewDashboard(false, false, false)}
 
       <div class="section-label" style="margin-top:24px;display:flex;align-items:center;justify-content:space-between;">
@@ -13293,6 +13371,207 @@ function renderTeacherHomeDashboard(){
   return `${viewModeBadge}${teacherResponsibilityStrip()}${tabBar}${body}`;
 }
 
+// =====================================================================
+// DASHBOARD: department-head and club-patron panels (read-only).
+//  - A Head of Department sees information about HIS/HER department(s) only
+//    (taken from the Department set on the teacher record). Co-curricular
+//    heads see every club; Boarding heads the dorms; Transport heads the
+//    routes; Examinations heads the exams; the academic departments see their
+//    staff, subjects, learners and latest exam averages.
+//  - A club Patron/Matron sees ONLY the clubs they are patron of
+//    (Football for the Football patron, Drama for the Drama patron, ...).
+// Nothing here is typed in: it is all picked from the teacher record
+// (Responsibility + Department) and the Co-curricular patron assignments.
+// =====================================================================
+function myHeadedDepartments(){
+  const rec = currentTeacherRecord();
+  if(!rec) return [];
+  if(rec.responsibility !== "Head of Department" && currentUserRole !== "HOD") return [];
+  const d = Array.isArray(rec.department) ? rec.department : (rec.department ? [rec.department] : []);
+  return d.filter(Boolean);
+}
+function deptTeachers(dept){
+  return teachersList.filter(t => (Array.isArray(t.department) ? t.department : (t.department ? [t.department] : [])).includes(dept));
+}
+function deptDate(iso){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '—'); }
+function deptStat(label, val){
+  return `<div style="flex:1;min-width:130px;border:1px solid var(--border);padding:10px 14px;background:var(--card,transparent);">
+    <div style="font-size:20px;font-weight:700;">${val}</div><div style="font-size:12px;color:var(--muted);">${label}</div></div>`;
+}
+function deptTable(headers, rows, empty){
+  return `<table style="width:100%;border-collapse:collapse;"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.join('') || `<tr><td colspan="${headers.length}" style="text-align:center;color:var(--muted);padding:18px;">${empty}</td></tr>`}</tbody></table>`;
+}
+function deptPanel(title, icon, intro, inner){
+  return `<div class="panel" style="margin-bottom:20px;overflow:hidden;">
+    <div class="panel-header"><h3><i class="fa-solid ${icon}"></i>&nbsp;${tEsc(title)}</h3></div>
+    ${intro ? `<div style="padding:4px 24px 12px;color:var(--muted);font-size:12.5px;">${intro}</div>` : ''}
+    <div style="padding:0 24px 20px;">${inner}</div></div>`;
+}
+
+// ---- Co-curricular helpers ----
+function clubActiveMembers(club){ return (clubMembers[club] || []).filter(m => m.status !== "Left"); }
+function clubAttendanceStats(club){
+  const days = clubAttendance[club] || {}, saved = clubAttendanceSaved[club] || {};
+  let present = 0, marked = 0, sessions = 0, last = '';
+  const recent = [];
+  Object.keys(days).sort().forEach(d => {
+    if(!saved[d]) return;
+    let p = 0, a = 0;
+    Object.keys(days[d] || {}).forEach(adm => {
+      const st = days[d][adm] && days[d][adm].status;
+      if(!st) return;
+      marked++; if(st === 'Present'){ present++; p++; } else if(st === 'Absent'){ a++; }
+    });
+    if(p + a){ sessions++; last = d; recent.push({ date: d, present: p, absent: a }); }
+  });
+  return { sessions, last, rate: marked ? Math.round(present / marked * 100) : null, recent: recent.slice(-5).reverse() };
+}
+function clubSummaryRows(names, mine){
+  return names.map(c => {
+    const a = clubAttendanceStats(c);
+    const isMine = mine && mine.includes(c);
+    return `<tr><td style="font-weight:600;">${tEsc(c)}${isMine ? ' <span style="font-size:11px;color:var(--blue-dark);">(yours)</span>' : ''}</td>
+      <td>${tEsc(clubPatrons[c] || 'Not assigned')}</td><td>${clubActiveMembers(c).length}</td>
+      <td>${a.sessions}</td><td>${a.rate === null ? '—' : a.rate + '%'}</td><td>${a.last ? deptDate(a.last) : '—'}</td></tr>`;
+  });
+}
+const CLUB_TABLE_HEADERS = ['Activity', 'Patron / Matron', 'Active members', 'Sessions', 'Attendance', 'Last session'];
+
+function renderCocurricularHeadPanel(){
+  const mine = teacherCocurricularClubs();
+  const withMembers = clubs.filter(c => clubActiveMembers(c).length);
+  const unique = new Set(); clubs.forEach(c => clubActiveMembers(c).forEach(m => unique.add(m.admissionNumber)));
+  let present = 0, marked = 0;
+  clubs.forEach(c => { const a = clubAttendanceStats(c); const n = clubActiveMembers(c).length; if(a.rate !== null){ present += a.rate * n; marked += n; } });
+  const overall = marked ? Math.round(present / marked) + '%' : '—';
+  const noPatron = clubs.filter(c => !clubPatrons[c]).length;
+  const stats = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+    ${deptStat('Activities running', withMembers.length + ' of ' + clubs.length)}
+    ${deptStat('Learners in activities', unique.size)}
+    ${deptStat('Activities without a patron', noPatron)}
+    ${deptStat('Average attendance', overall)}</div>`;
+  return deptPanel('Co-curricular Department', 'fa-trophy', 'Every activity, its patron, membership and attendance.',
+    stats + deptTable(CLUB_TABLE_HEADERS, clubSummaryRows(clubs, mine), 'No activities yet.'));
+}
+
+// A patron's own clubs ONLY: roster and recent attendance for each.
+function renderPatronClubsPanel(){
+  const mine = teacherCocurricularClubs();
+  if(!mine.length) return '';
+  const cards = mine.map(c => {
+    const a = clubAttendanceStats(c);
+    const roster = cocurricularRosterRows(c).filter(r => r.status !== 'Left');
+    const rosterHtml = deptTable(['#', 'Adm No', 'Name', 'Class', 'Position'],
+      roster.map((r, i) => `<tr><td>${i + 1}</td><td>${tEsc(r.admissionNumber)}</td><td>${tEsc(r.name)}</td><td>${tEsc(r.grade)}${r.stream ? ' ' + tEsc(r.stream) : ''}</td><td>${tEsc(r.position || '—')}</td></tr>`),
+      'No learners have joined this activity yet.');
+    const sessions = a.recent.length
+      ? deptTable(['Date', 'Present', 'Absent'], a.recent.map(s => `<tr><td>${deptDate(s.date)}</td><td>${s.present}</td><td>${s.absent}</td></tr>`), '')
+      : '<div style="color:var(--muted);font-size:12.5px;">No attendance saved yet.</div>';
+    return `<div style="border:1px solid var(--border);margin-bottom:14px;padding:14px 16px;">
+      <div style="font-weight:700;font-size:14.5px;margin-bottom:10px;"><i class="fa-solid fa-trophy"></i>&nbsp;${tEsc(c)}</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        ${deptStat('Active members', roster.length)}${deptStat('Sessions held', a.sessions)}${deptStat('Attendance', a.rate === null ? '—' : a.rate + '%')}${deptStat('Last session', a.last ? deptDate(a.last) : '—')}
+      </div>
+      <details><summary style="cursor:pointer;font-weight:600;margin-bottom:8px;">Members (${roster.length})</summary>${rosterHtml}</details>
+      <details style="margin-top:8px;"><summary style="cursor:pointer;font-weight:600;margin-bottom:8px;">Recent attendance</summary>${sessions}</details>
+    </div>`;
+  }).join('');
+  return deptPanel('My Clubs' , 'fa-people-group', `Activities you are patron / matron of: <strong>${mine.map(tEsc).join(', ')}</strong>.`, cards);
+}
+
+// ---- Other departments ----
+function deptStaffTable(dept){
+  const list = deptTeachers(dept);
+  return deptTable(['Name', 'Responsibility', 'Subjects', 'Phone'],
+    list.map(t => `<tr><td style="font-weight:600;">${tEsc(teacherFullName(t))}</td><td>${tEsc(t.responsibility || '—')}</td><td>${tEsc((t.subjects || []).join(', ') || '—')}</td><td>${tEsc(t.phone || '—')}</td></tr>`),
+    'No staff have been placed in this department yet.');
+}
+function deptLatestExamAverages(subjects){
+  for(const tb of examTerms){
+    for(const g of tb.groups){
+      const up = (g.rows || []).filter(r => r.status === 'Uploaded');
+      const exSubs = (g.subjects && g.subjects.length) ? g.subjects : subjects;
+      const mine = subjects.filter(s => exSubs.includes(s));
+      if(!up.length || !mine.length) continue;
+      const rows = mine.map(subject => {
+        let sum = 0, n = 0, total = 0;
+        up.forEach(r => {
+          const max = getMaxMarks(g.exam, subject);
+          studentsForGrade(r.class, '').forEach(s => {
+            total++;
+            const v = combinedSubjectMark(tb.term, g.exam, r.class, subject, s.admissionNumber);
+            if(v !== undefined && v !== '' && !isNaN(Number(v)) && max){ sum += Number(v) / max * 100; n++; }
+          });
+        });
+        return `<tr><td style="font-weight:600;">${tEsc(subject)}</td><td>${n ? Math.round(sum / n) + '%' : 'No marks'}</td><td>${n}/${total}</td></tr>`;
+      });
+      return { title: `${g.exam} — ${tb.term}`, rows };
+    }
+  }
+  return null;
+}
+function renderAcademicDeptPanel(dept){
+  const staff = deptTeachers(dept);
+  const subjects = [...new Set(staff.flatMap(t => t.subjects || []))].sort((a, b) => a.localeCompare(b));
+  const subjRows = subjects.map(s => {
+    const who = staff.filter(t => (t.subjects || []).includes(s)).map(teacherFullName);
+    return `<tr><td style="font-weight:600;">${tEsc(s)}</td><td>${tEsc(who.join(', '))}</td><td>${studentsForSubject(s).length}</td></tr>`;
+  });
+  const exam = deptLatestExamAverages(subjects);
+  return deptPanel(dept + ' Department', 'fa-sitemap', 'Your department: staff, subjects and how learners did in the latest analysed exam.',
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">${deptStat('Teachers', staff.length)}${deptStat('Subjects', subjects.length)}</div>
+     <div class="section-label" style="margin:6px 0;">Staff</div>${deptStaffTable(dept)}
+     <div class="section-label" style="margin:16px 0 6px;">Subjects</div>${deptTable(['Subject', 'Taught by', 'Learners'], subjRows, 'No subjects are assigned to this department’s teachers yet.')}
+     <div class="section-label" style="margin:16px 0 6px;">Latest exam${exam ? ' — ' + tEsc(exam.title) : ''}</div>
+     ${exam ? deptTable(['Subject', 'Mean score', 'Marks entered'], exam.rows, '') : '<div style="color:var(--muted);font-size:12.5px;">No analysed exam for these subjects yet.</div>'}`);
+}
+function renderBoardingDeptPanel(){
+  const rows = boardingDorms.map(d => {
+    const occ = boardingAllocations.filter(a => a.dormId === d.id).length;
+    return `<tr><td style="font-weight:600;">${tEsc(d.name)}</td><td>${tEsc(d.gender || '—')}</td><td>${occ}</td><td>${tEsc(d.capacity || '—')}</td><td>${tEsc(d.warden || 'Not assigned')}</td></tr>`;
+  });
+  const boarders = new Set(boardingAllocations.map(a => a.admissionNumber)).size;
+  return deptPanel('Boarding Department', 'fa-bed', 'Dormitories, wardens and occupancy.',
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">${deptStat('Dormitories', boardingDorms.length)}${deptStat('Boarders allocated', boarders)}</div>
+     ${deptTable(['Dormitory', 'Gender', 'Occupied', 'Capacity', 'Warden'], rows, 'No dormitories set up yet.')}
+     <div class="section-label" style="margin:16px 0 6px;">Staff</div>${deptStaffTable('Boarding')}`);
+}
+function renderTransportDeptPanel(){
+  const rows = transportRoutes.map(r => `<tr><td style="font-weight:600;">${tEsc(r.name)}</td><td>${tEsc(r.vehicle || '—')}</td><td>${tEsc(r.driver || '—')}</td><td>${tEsc(r.capacity || '—')}</td><td>${tEsc(r.status || '—')}</td></tr>`);
+  return deptPanel('Transport Department', 'fa-bus', 'Routes, vehicles and drivers.',
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">${deptStat('Routes', transportRoutes.length)}${deptStat('Active routes', transportRoutes.filter(r => r.status === 'Active').length)}</div>
+     ${deptTable(['Route', 'Vehicle', 'Driver', 'Capacity', 'Status'], rows, 'No routes set up yet.')}
+     <div class="section-label" style="margin:16px 0 6px;">Staff</div>${deptStaffTable('Transport')}`);
+}
+function renderExaminationsDeptPanel(){
+  const rows = [];
+  examTerms.forEach(tb => tb.groups.forEach(g => {
+    const total = (g.rows || []).length, up = (g.rows || []).filter(r => r.status === 'Uploaded').length;
+    rows.push(`<tr><td style="font-weight:600;">${tEsc(g.exam)}</td><td>${tEsc(tb.term)}</td><td>${up} of ${total} classes</td><td>${(g.subjects || []).length}</td></tr>`);
+  }));
+  return deptPanel('Examinations Department', 'fa-file-lines', 'Exams set up and how many classes have results uploaded.',
+    `${deptTable(['Exam', 'Term', 'Results uploaded', 'Subjects'], rows, 'No exams have been created yet.')}
+     <div class="section-label" style="margin:16px 0 6px;">Staff</div>${deptStaffTable('Examinations')}`);
+}
+const ACADEMIC_DEPARTMENTS = ["Pure Sciences", "Applied Sciences", "Technical Studies", "Language & Literature", "Humanities & Business Studies", "Art & Sports Science"];
+function renderDepartmentPanel(dept){
+  if(dept === 'Co-curricular') return renderCocurricularHeadPanel();
+  if(dept === 'Boarding') return renderBoardingDeptPanel();
+  if(dept === 'Transport') return renderTransportDeptPanel();
+  if(dept === 'Examinations') return renderExaminationsDeptPanel();
+  if(ACADEMIC_DEPARTMENTS.includes(dept) || deptTeachers(dept).some(t => (t.subjects || []).length)) return renderAcademicDeptPanel(dept);
+  // Finance, Support Staff, Guidance & Counselling, custom departments: their own staff only.
+  return deptPanel(dept + ' Department', 'fa-sitemap', 'Staff in your department.', deptStaffTable(dept));
+}
+// Everything a head / patron should see on their dashboard, nothing more.
+function renderDepartmentAndClubPanels(){
+  const depts = myHeadedDepartments();
+  const parts = depts.map(renderDepartmentPanel);
+  if(!depts.includes('Co-curricular')) parts.push(renderPatronClubsPanel());   // a Co-curricular head already sees every club
+  return parts.join('');
+}
+
 function teacherResponsibilityStrip(){
   const chips = [];
   const cls = myClassTeacherClasses();
@@ -13303,7 +13582,9 @@ function teacherResponsibilityStrip(){
   if(dorms.length) chips.push(["fa-bed", "Boarding Master: " + dorms.map(d => d.name).join(", ")]);
   if(teacherIsTransportInCharge()) chips.push(["fa-bus", "Transport In-Charge"]);
   const clubs = teacherCocurricularClubs();
-  if(clubs.length) chips.push(["fa-trophy", "Co-curricular: " + clubs.join(", ")]);
+  if(clubs.length) chips.push(["fa-trophy", "Patron: " + clubs.join(", ")]);
+  const headed = myHeadedDepartments();
+  if(headed.length) chips.push(["fa-sitemap", "Head of Department: " + headed.join(", ")]);
   if(!chips.length) return '';
   return `<div class="panel" style="margin-bottom:16px;padding:12px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
     <strong style="font-size:12.5px;color:var(--muted);margin-right:6px;">Your roles</strong>
@@ -13776,7 +14057,8 @@ function renderDashboard(){
   if(currentUserRole === "Teacher"){
     return renderTeacherHomeDashboard();
   }
-  return renderAdminOverviewDashboard();
+  const deptPanels = (currentUserRole === "HOD") ? renderDepartmentAndClubPanels() : '';
+  return deptPanels + renderAdminOverviewDashboard();
 }
 
 function renderDashFeatureStrip(){
@@ -15348,6 +15630,7 @@ const FINANCE_TABS = [
   { key:"arrears", label:"Fee Arrears", icon:"fa-triangle-exclamation" },
   { key:"discounts", label:"Discounts & Scholarships", icon:"fa-hand-holding-heart" },
   { key:"receipts", label:"Receipts", icon:"fa-receipt" },
+  { key:"reconcile", label:"Reconciliation", icon:"fa-right-left" },
   { key:"budget", label:"Budget & Variance", icon:"fa-chart-pie" },
   { key:"incomeExpenditure", label:"🧾 Income & Expenditure", icon:"fa-scale-balanced" },
   { key:"payroll", label:"Payroll", icon:"fa-money-check-dollar" },
@@ -16824,9 +17107,14 @@ function submitCreateExam(){
   const selectedForms = examFormsForCurriculum(createExamData.curriculum).filter(f => createExamData.forms[f]);
   const isConsolidated = createExamData.examType === "Consolidated Exam";
   const sourceExams = (createExamData.sourceExams || []).slice();
-  if(!name){ document.getElementById('exam_name')?.scrollIntoView({block:'center'}); document.getElementById('exam_name')?.focus(); return; }
-  if(!term){ document.getElementById('exam_term')?.scrollIntoView({block:'center'}); document.getElementById('exam_term')?.focus(); return; }
-  if(selectedForms.length === 0){ document.querySelector('.exam-band-list')?.scrollIntoView({block:'center'}); return; }
+  if(!name){ document.getElementById('exam_name')?.scrollIntoView({block:'center'}); document.getElementById('exam_name')?.focus(); alert("Please enter or choose the Exam Name."); return; }
+  if(!term){ document.getElementById('exam_term')?.scrollIntoView({block:'center'}); document.getElementById('exam_term')?.focus(); alert("Please choose the Term."); return; }
+  if(selectedForms.length === 0){ document.querySelector('.exam-band-list')?.scrollIntoView({block:'center'}); alert("Tick at least one class that sits this exam."); return; }
+  if(!createExamData.subjects.length){ alert("Add at least one subject to the exam."); return; }
+  // The same exam name can't be added twice in one term (editing an exam may keep its own name).
+  const clash = examTerms.some(t => t.term === term && t.groups.some((g, gi) =>
+    g.exam === name && !(examEditRef && examEditRef.term === t.term && examEditRef.groupIndex === gi)));
+  if(clash){ alert(`An exam named "${name}" already exists in ${term}. Pick a different name, or edit the existing one from Manage Exams.`); document.getElementById('exam_name')?.focus(); return; }
   if(isConsolidated && sourceExams.length < 2){
     document.querySelector('.exam-setup-heading')?.scrollIntoView({block:'center'});
     alert("Pick at least two exams to combine for a Consolidated Exam.");
@@ -16867,6 +17155,35 @@ function submitCreateExam(){
       });
     });
   }
+
+  // ---- Save the exam: one row per class (grade / form) sitting it, under its term ----
+  // examTerms = [{ term, groups:[{ exam, rows:[{ class, status, updatedBy, updatedOn }], subjects }] }]
+  const keptRows = {};
+  if(examEditRef){
+    const oldBlock = examTerms.find(t => t.term === examEditRef.term);
+    const oldGroup = oldBlock && oldBlock.groups[examEditRef.groupIndex];
+    if(oldGroup){
+      oldGroup.rows.forEach(r => { keptRows[r.class] = r; });   // keep status / uploader of classes that stay
+      oldBlock.groups.splice(examEditRef.groupIndex, 1);
+      if(oldBlock.groups.length === 0 && oldBlock.term !== term) examTerms = examTerms.filter(t => t !== oldBlock);
+      // Renamed: carry the exam's marks and max marks across to the new name.
+      if(oldGroup.exam !== name){
+        const from = oldGroup.exam + "||", to = name + "||";
+        [marksMaxMarks, marksData].forEach(store => {
+          Object.keys(store).filter(k => k.startsWith(from)).forEach(k => {
+            const nk = to + k.slice(from.length);
+            if(!(nk in store)) store[nk] = store[k];
+            delete store[k];
+          });
+        });
+      }
+    }
+  }
+  const updatedOn = todayDDMMYYYY();
+  const rows = selectedForms.map(cls => keptRows[cls] || { class: cls, status: "Results Not Uploaded", updatedBy: currentUserName, updatedOn });
+  let termBlock = examTerms.find(t => t.term === term);
+  if(!termBlock){ termBlock = { term, groups: [] }; examTerms.unshift(termBlock); }
+  termBlock.groups.unshift({ exam: name, rows, subjects: createExamData.subjects.slice() });
 
   resetCreateExamForm();
   academicTab = "examSetup";
@@ -38322,7 +38639,7 @@ function reportFormsPrincipalRemarkFor(meanGrade, student){
 function reportFormsFeeSummary(student, grade, term){
   const studentType = student.boardingStatus === 'Dayscholar' ? 'Dayscholars' : 'Boarders';
   const due = feeStructureItems
-    .filter(f => f.grade === grade && f.term === term && (!f.studentType || f.studentType === studentType))
+    .filter(f => f.grade === grade && f.term === term && feeItemBills(f, studentType))
     .reduce((sum, f) => sum + parseAmountKsh(f.amount), 0);
   const paid = activePayments()
     .filter(p => p.student === fullName(student))
@@ -43259,6 +43576,22 @@ function renderGradingSystemSamplePreview(){
   `;
 }
 
+// ---- Day scholars pay the Lunch Fee vote head only ----
+// Every other vote head on a day scholar's fee structure is inactive (not billed, not part of the balance or the
+// payment split) unless it has been added: use "Add" on that line in Fee Structure, or add it with the form there.
+// Boarders are unaffected: they pay every vote head that applies to them.
+function feeItemIsLunch(f){ return /^lunch( fees?)?$/i.test(String((f && f.category) || '').trim()); }
+function feeItemActiveForDayscholars(f){ return feeItemIsLunch(f) || (f && f.active === true); }
+function feeItemBills(f, studentType){
+  if(f.studentType && f.studentType !== studentType) return false;
+  return studentType !== 'Dayscholars' || feeItemActiveForDayscholars(f);
+}
+function toggleFeeItemActive(i){
+  const f = feeStructureItems[i]; if(!f || feeItemIsLunch(f)) return;
+  f.active = f.active !== true;
+  render();
+}
+
 function addFeeStructureItem(e){
   e.preventDefault();
   const gradeInput = document.getElementById('fs_grade');
@@ -43278,7 +43611,8 @@ function addFeeStructureItem(e){
     return;
   }
   termAmounts.forEach(t => {
-    feeStructureItems.push({ grade: grade||'—', term:t.term, category, amount:t.amount, studentType: schoolHasBoarding() ? fsStudentType : 'Dayscholars' });
+    const stype = schoolHasBoarding() ? fsStudentType : 'Dayscholars';
+    feeStructureItems.push({ grade: grade||'—', term:t.term, category, amount:t.amount, studentType: stype, ...(stype === 'Dayscholars' ? { active:true } : {}) });   // added on purpose, so active
   });
   gradeInput.value = ""; categoryInput.value = "";
   term1Input.value = ""; term2Input.value = ""; term3Input.value = "";
@@ -43299,9 +43633,28 @@ function onFsStudentTypeChange(select){
 // Standard fee categories offered in the "Add fee item" dropdown. Kept as a
 // simple flat list (rather than tied to a separate vote-heads module) so
 // fee structure entries stay consistent and typo-free across grades/terms.
-const RECEIPT_VOTEHEAD_ORDER = ["BES", "PE", "ADMINISTRATION COST", "EW&C", "RMI"]; // fixed order payments are applied & printed
+// Fixed priority order in which a payment is applied to a learner's vote heads (and printed on the receipt):
+//  1 Primary operational needs: BES, then EW&C   2 Human resources & logistics: PE, then LT&T
+//  3 Facility upkeep & activities: RMI, then Activity / Co-Curricular   4 Special projects: Infrastructure & Projects (PA/PTA)
+const RECEIPT_VOTEHEAD_ORDER = ["BES", "EW&C", "PE", "LT&T", "RMI", "Activity / Co-Curricular Fees", "Infrastructure & Projects (PA/PTA)"];
+// Other spellings of the same vote head (as already typed into a school's fee structure) share its place in the order.
+const VOTEHEAD_ALIASES = [
+  ["BES", "BOARDING, EQUIPMENT & STORES", "BOARDING EQUIPMENT & STORES"],
+  ["EW&C", "EWC", "EW & C", "ELECTRICITY, WATER & CONSERVANCY", "ELECTRICITY WATER & CONSERVANCY"],
+  ["PE", "PERSONAL EMOLUMENTS"],
+  ["LT&T", "LTT", "LT & T", "LOCAL TRAVEL & TRANSPORT"],
+  ["RMI", "REPAIR, MAINTENANCE & IMPROVEMENT", "REPAIRS, MAINTENANCE & IMPROVEMENT"],
+  ["ACTIVITY / CO-CURRICULAR FEES", "ACTIVITY", "ACTIVITY FEE", "ACTIVITY FEES", "CO-CURRICULAR", "CO-CURRICULAR FEES", "CO CURRICULAR", "CO-CURRICULAR ACTIVITY"],
+  ["INFRASTRUCTURE & PROJECTS (PA/PTA)", "INFRASTRUCTURE & PROJECTS", "INFRASTRUCTURE", "PA", "PTA", "PA/PTA", "PA / PTA", "PROJECTS", "DEVELOPMENT", "DEVELOPMENT FUND"],
+];
+// Position of a vote head in the priority order; anything not listed (e.g. ADMINISTRATION COST) goes after the listed ones.
+function voteheadRank(name){
+  const n = String(name || '').trim().toUpperCase();
+  const i = VOTEHEAD_ALIASES.findIndex(g => g.includes(n));
+  return i < 0 ? VOTEHEAD_ALIASES.length : i;
+}
 const FEE_CATEGORY_OPTIONS = [
-  ...RECEIPT_VOTEHEAD_ORDER, "Tuition", "Boarding", "Transport", "Meals", "Lunch Fee", "Activity Fee",
+  ...RECEIPT_VOTEHEAD_ORDER, "ADMINISTRATION COST", "Tuition", "Boarding", "Transport", "Meals", "Lunch Fee", "Activity Fee",
   "Examination", "Uniform", "Books & Stationery", "Medical / Insurance",
   "Development Fund", "Library", "Computer Lab", "Caution Money", "Other",
 ];
@@ -43327,9 +43680,13 @@ function renderFinanceFeeStructureTab(){
       <td style="color:var(--muted);">${f.term}</td>
       <td style="font-weight:600;">${f.category}</td>
       <td style="color:var(--muted);">${f.amount}</td>
+      <td>${f.studentType !== 'Dayscholars' ? '<span style="color:var(--green);font-weight:600;">Active</span>'
+        : feeItemIsLunch(f) ? '<span style="color:var(--green);font-weight:600;">Active</span>'
+        : f.active === true ? `<span style="color:var(--green);font-weight:600;">Active (added)</span> <button class="link-btn" onclick="toggleFeeItemActive(${i})">Make inactive</button>`
+        : `<span style="color:var(--muted);font-weight:600;">Inactive</span> <button class="link-btn" onclick="toggleFeeItemActive(${i})">Add</button>`}</td>
       <td><button class="link-btn danger" onclick="removeFeeStructureItem(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button></td>
     </tr>
-  `).join('') || `<tr><td colspan="6" class="empty">No fee structure items yet.</td></tr>`;
+  `).join('') || `<tr><td colspan="7" class="empty">No fee structure items yet.</td></tr>`;
 
   const gradeOpts = GRADE_OPTIONS.map(g => `<option value="${g}">${g}</option>`).join('');
   const categoryOpts = FEE_CATEGORY_OPTIONS.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -43374,7 +43731,7 @@ function renderFinanceFeeStructureTab(){
         <div class="panel-header"><h3>Fee structure (${feeStructureItems.length})</h3></div>
         <div class="streams-scroll">
           <table>
-            <thead><tr><th>Type</th><th>Grade</th><th>Term</th><th>Votehead</th><th>Amount</th><th>Action</th></tr></thead>
+            <thead><tr><th>Type</th><th>Grade</th><th>Term</th><th>Votehead</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -43417,19 +43774,53 @@ function formatDDMMYY(dateISO){
 // Receive Payment form — e.g. a student admitted in Term 2 wasn't enrolled
 // during Term 1, so Term 1 is shown as inactive and can't be selected.
 function applyAdmissionTermToRpForm(student){
+  // Term is automatic: the current term, unless the learner was admitted later in the year.
   const termSelect = document.getElementById('rp_term');
   if(!termSelect || !student || !student.term) return;
   const admissionIdx = FEE_TERM_OPTIONS.indexOf(student.term);
   if(admissionIdx < 0) return;
-  Array.from(termSelect.options).forEach(opt => {
-    const idx = FEE_TERM_OPTIONS.indexOf(opt.value);
-    const inactive = idx >= 0 && idx < admissionIdx;
-    opt.disabled = inactive;
-    opt.textContent = inactive ? `${opt.value} (inactive - not yet admitted)` : opt.value;
-  });
   if(FEE_TERM_OPTIONS.indexOf(termSelect.value) < admissionIdx){
     termSelect.value = student.term;
+    const info = document.getElementById('rp_auto_info');
+    if(info) info.innerHTML = `<i class="fa-solid fa-calendar-check"></i>&nbsp;${student.term} &middot; ${document.getElementById('rp_year')?.value || ''} (picked automatically)`;
   }
+}
+
+// Current term + academic year, taken from Settings > Academic Term (falls back to the school profile year).
+function rpAutoTermYear(){
+  let info = {};
+  try{ info = getCurrentTermInfo() || {}; }catch(e){}
+  const profile = getSchoolProfile(currentSchool) || {};
+  return { term: info.term || FEE_TERM_OPTIONS[0], year: String(info.year || profile.academicYear || '') };
+}
+
+// Shows only the fields the chosen payment method needs:
+//   Cash -> amount only; M-Pesa / Paybill -> Transaction Code; Bank -> Receipt No / Transaction Code;
+//   Cheque -> Cheque No. A code filled in automatically (M-Pesa prompt, reconciliation) still lands in the same box.
+const RP_METHOD_FIELDS = {
+  'Cash':    null,
+  'In Kind': null,
+  'M-Pesa':  { label:'Transaction Code',               ph:'e.g. QK71ABCD9' },
+  'Paybill': { label:'Transaction Code',               ph:'e.g. QK71ABCD9' },
+  'Bank':    { label:'Receipt No / Transaction Code',  ph:'Bank slip / receipt or transaction no.' },
+  'Cheque':  { label:'Cheque No',                      ph:'e.g. 000123' },
+};
+function rpApplyMethod(){
+  const m = document.querySelector('input[name="rp_method"]:checked')?.value || 'Cash';
+  const cfg = RP_METHOD_FIELDS[m] || null;
+  const wrap = document.getElementById('rp_txn_wrap'), txn = document.getElementById('rp_txn');
+  if(!wrap || !txn) return;
+  wrap.style.display = cfg ? '' : 'none';
+  if(cfg){
+    document.getElementById('rp_txn_label').textContent = cfg.label;
+    txn.placeholder = cfg.ph;
+  } else {
+    txn.value = '';
+  }
+  const hint = document.getElementById('rp_txn_hint');
+  if(hint) hint.textContent = (m === 'M-Pesa' || m === 'Paybill' || m === 'Bank') ? 'Leave blank if it is filled in automatically.' : '';
+  if(!cfg){ const a = document.getElementById('rp_amount'); if(a && document.activeElement && document.activeElement.name === 'rp_method') a.focus(); }
+  else if(document.activeElement && document.activeElement.name === 'rp_method') txn.focus();
 }
 
 // Looks up a student by name and, if found, fills in their admission
@@ -43477,10 +43868,9 @@ function rpAutofillAmountCore(){
   const admissionInput = document.getElementById('rp_admission');
   const studentInput = document.getElementById('rp_student');
   const termSelect = document.getElementById('rp_term');
-  const feeTypeSelect = document.getElementById('rp_feetype');
   const amountInput = document.getElementById('rp_amount');
   const hint = document.getElementById('rp_amount_hint');
-  if(!termSelect || !feeTypeSelect || !amountInput) return;
+  if(!termSelect || !amountInput) return;
 
   const adm = admissionInput ? admissionInput.value.trim() : '';
   const name = studentInput ? studentInput.value.trim() : '';
@@ -43492,20 +43882,21 @@ function rpAutofillAmountCore(){
     return;
   }
 
-  const studentType = student.boardingStatus === 'Boarder' ? 'Boarders' : 'Dayscholars';
+  // Suggest what the learner still owes for the term (billed less paid); the figure can be overwritten for part payments.
   const term = termSelect.value;
-  const category = feeTypeSelect.value;
-  const match = feeStructureItems.find(f =>
-    f.grade === student.grade && f.term === term && f.category === category &&
-    (!f.studentType || f.studentType === studentType)
-  );
-
-  if(match){
-    if(!rpAmountManuallyEdited) amountInput.value = match.amount;
-    if(hint) hint.innerHTML = `<i class="fa-solid fa-circle-info"></i>&nbsp;Fee structure: <strong>${match.amount}</strong> for ${student.grade} · ${term} · ${category} (${studentType.replace(/s$/,'')})`;
-  } else if(hint) {
-    hint.textContent = `No fee structure entry found for ${student.grade} · ${term} · ${category} (${studentType.replace(/s$/,'')}) — enter the amount manually.`;
+  const billed = voteheadDue(student, term).reduce((t, v) => t + v.due, 0);
+  if(!billed){
+    if(hint) hint.textContent = student.boardingStatus === 'Boarder'
+      ? `No fee structure entry found for ${student.grade} · ${term} — enter the amount manually.`
+      : `Day scholars pay the Lunch Fee only, and no Lunch Fee is set for ${student.grade} · ${term} — add it in Fee Structure, or enter the amount manually.`;
+    return;
   }
+  const adm2 = (student.admissionNumber || '').toString().trim(), nm2 = fullName(student);
+  const paid = paymentsLog.filter(p => p.status !== 'Cancelled' && p.term === term && ((adm2 && p.admissionNo && p.admissionNo.toString().trim() === adm2) || p.student === nm2))
+    .reduce((t, p) => t + parseAmountKsh(p.amount), 0);
+  const owing = Math.max(billed - paid, 0);
+  if(owing > 0 && !rpAmountManuallyEdited) amountInput.value = owing;
+  if(hint) hint.innerHTML = `<i class="fa-solid fa-circle-info"></i>&nbsp;${term}: billed <strong>${rcKes(billed)}</strong>, paid ${rcKes(paid)}, balance <strong>${rcKes(owing)}</strong>`;
 }
 
 function rpFindStudent(){
@@ -43513,14 +43904,14 @@ function rpFindStudent(){
   const name = (document.getElementById('rp_student')?.value || '').trim();
   return (adm && students.find(s => (s.admissionNumber || '').toString().trim() === adm)) || (name && students.find(s => fullName(s) === name)) || null;
 }
-// Vote heads billed to a student for a term, in the fixed receipt order
-// (BES, PE, ADMINISTRATION COST, EW&C, RMI), then any other vote heads.
+// Vote heads billed to a student for a term, in the fixed priority order
+// (BES, EW&C, PE, LT&T, RMI, Activity / Co-Curricular, Infrastructure & Projects), then any other vote heads.
 function voteheadDue(student, term){
   const type = student.boardingStatus === 'Dayscholar' ? 'Dayscholars' : 'Boarders';
   const due = {};
-  feeStructureItems.filter(f => f.grade === student.grade && f.term === term && (!f.studentType || f.studentType === type))
+  feeStructureItems.filter(f => f.grade === student.grade && f.term === term && feeItemBills(f, type))
     .forEach(f => { due[f.category] = (due[f.category] || 0) + parseAmountKsh(f.amount); });
-  const names = [...RECEIPT_VOTEHEAD_ORDER.filter(n => n in due), ...Object.keys(due).filter(n => !RECEIPT_VOTEHEAD_ORDER.includes(n))];
+  const names = Object.keys(due).map((n, i) => ({ n, i })).sort((a, b) => voteheadRank(a.n) - voteheadRank(b.n) || a.i - b.i).map(x => x.n);
   return names.map(n => ({ name:n, due:due[n] }));
 }
 function paymentAllocation(p){ return p.allocation || (p.feeType ? [{ name:p.feeType, amount:parseAmountKsh(p.amount) }] : []); }
@@ -43542,7 +43933,7 @@ function rpUpdateDistribution(){
   const s = rpFindStudent(), term = document.getElementById('rp_term')?.value;
   const amt = parseAmountKsh(document.getElementById('rp_amount')?.value);
   if(!s || !term || !amt){ hint.textContent = ''; return; }
-  hint.innerHTML = '<i class="fa-solid fa-list-ol"></i>&nbsp;Distribution: ' + allocateAmount(s, term, amt, document.getElementById('rp_feetype')?.value).map(a => `<strong>${a.name}</strong> ${rcKes(a.amount)}`).join(' &middot; ');
+  hint.innerHTML = '<i class="fa-solid fa-list-ol"></i>&nbsp;Distribution: ' + allocateAmount(s, term, amt, 'Tuition').map(a => `<strong>${a.name}</strong> ${rcKes(a.amount)}`).join(' &middot; ');
 }
 function rcKes(n){ return 'KES ' + Math.round(n).toLocaleString('en-US'); }
 function rcWords(n){ return numberToWordsKsh(n).replace(/ Only$/, '') + ' Kenyan shillings only'; }
@@ -43557,7 +43948,6 @@ function recordPayment(e){
   const studentInput = document.getElementById('rp_student');
   const classInput = document.getElementById('rp_class');
   const termSelect = document.getElementById('rp_term');
-  const feeTypeSelect = document.getElementById('rp_feetype');
   const yearInput = document.getElementById('rp_year');
   const methodInput = document.querySelector('input[name="rp_method"]:checked');
   const txnInput = document.getElementById('rp_txn');
@@ -43581,7 +43971,7 @@ function recordPayment(e){
     student,
     grade: classInput.value.trim(),
     term: termSelect.value,
-    feeType: feeTypeSelect ? feeTypeSelect.value : "Tuition",
+    feeType: "Tuition",
     academicYear: yearInput.value.trim(),
     method: methodInput ? methodInput.value : 'Cash',
     transactionCode: txnInput.value.trim(),
@@ -43603,6 +43993,7 @@ function recordPayment(e){
   rpAmountManuallyEdited = false;
   const hint = document.getElementById('rp_amount_hint');
   if(hint) hint.textContent = '';
+  const dh = document.getElementById('rp_dist_hint'); if(dh) dh.textContent = '';
   paymentJustRecorded = true;
   render();
   setTimeout(() => { paymentJustRecorded = false; render(); }, 2200);
@@ -43733,7 +44124,7 @@ function computeReceiptBalance(payment){
 
   const studentType = student.boardingStatus === 'Dayscholar' ? 'Dayscholars' : 'Boarders';
   const due = feeStructureItems
-    .filter(f => f.grade === student.grade && f.term === payment.term && (!f.studentType || f.studentType === studentType))
+    .filter(f => f.grade === student.grade && f.term === payment.term && feeItemBills(f, studentType))
     .reduce((sum,f) => sum + parseAmountKsh(f.amount), 0);
 
   const thisAmount = parseAmountKsh(payment.amount);
@@ -43845,7 +44236,7 @@ function renderReceiptPreviewModal(){
                 <div class="rc2-box"><div class="rc2-bt">Payment info</div>
                   <div><b>Mode of Payment:</b> ${r.mode}</div>
                   ${r.account ? `<div><b>Account:</b> ${r.account}</div>` : ''}
-                  ${r.transactionCode ? `<div><b>Transaction Code:</b> ${r.transactionCode}</div>` : ''}
+                  ${r.transactionCode ? `<div><b>${r.mode === 'CHEQUE' ? 'Cheque No' : 'Transaction Code'}:</b> ${r.transactionCode}</div>` : ''}
                 </div>
               </div>
               <div class="rc2-sub">Payment Distribution</div>
@@ -43921,7 +44312,7 @@ function downloadReceiptPdf(){
   doc.setFont('helvetica','bold'); doc.text(r.studentName.toUpperCase(), M+12, y+38);
   doc.setFont('helvetica','normal'); doc.text(`Adm No ${r.admissionNo}`, M+12, y+54); doc.text(String(r.className), M+12, y+70);
   let iy = y+38;
-  [['Mode of Payment: ', r.mode], ['Account: ', r.account], ['Transaction Code: ', r.transactionCode]].filter(x => x[1]).forEach(([k,v]) => {
+  [['Mode of Payment: ', r.mode], ['Account: ', r.account], [(r.mode === 'CHEQUE' ? 'Cheque No: ' : 'Transaction Code: '), r.transactionCode]].filter(x => x[1]).forEach(([k,v]) => {
     const x0 = bx+12, maxW = bw-24; doc.setFont('helvetica','bold'); doc.text(k, x0, iy);
     const kw = doc.getTextWidth(k); doc.setFont('helvetica','normal');
     let line = '', avail = maxW-kw, lx = x0+kw;
@@ -43985,27 +44376,19 @@ function renderFinanceReceiveTab(){
               <input id="rp_class" type="text" list="rp_class_list" placeholder="e.g. Grade 10 North">
               <datalist id="rp_class_list">${classOptions.map(c=>`<option value="${c}">`).join('')}</datalist>
             </label>
-            <label class="field"><span>Term</span>
-              <select id="rp_term" onchange="rpAutofillAmount()">
-                ${FEE_TERM_OPTIONS.map(t => `<option value="${t}">${t}</option>`).join('')}
-              </select>
-            </label>
-            <label class="field"><span>Vote Head</span>
-              <select id="rp_feetype" onchange="rpAutofillAmount()">
-                ${FEE_CATEGORY_OPTIONS.map(c => `<option value="${c}" ${c==='Tuition'?'selected':''}>${c}</option>`).join('')}
-              </select>
-            </label>
-            <label class="field" style="grid-column:1 / -1;"><span>Academic Year</span>
-              <input id="rp_year" type="text" placeholder="e.g. 2026" value="${profile.academicYear||''}">
-            </label>
           </div>
+          <!-- Term and Academic Year are picked automatically (current term from Settings > Academic Term);
+               the vote-head split is worked out from the amount, so there is nothing to choose here. -->
+          <input id="rp_term" type="hidden" value="${rpAutoTermYear().term}">
+          <input id="rp_year" type="hidden" value="${rpAutoTermYear().year}">
+          <div id="rp_auto_info" class="hint-text" style="margin:-4px 0 14px;"><i class="fa-solid fa-calendar-check"></i>&nbsp;${rpAutoTermYear().term} &middot; ${rpAutoTermYear().year} (picked automatically)</div>
 
           <div class="field">
             <span>Payment Method&nbsp;<span class="req">*</span></span>
             <div class="rp-method-row">
               ${['Cash','M-Pesa','Paybill','Bank','Cheque','In Kind'].map((m,i) => `
                 <label class="rp-method-option">
-                  <input type="radio" name="rp_method" value="${m}" ${i===0?'checked':''}>
+                  <input type="radio" name="rp_method" value="${m}" ${i===0?'checked':''} onchange="rpApplyMethod()">
                   <span>${m}</span>
                 </label>
               `).join('')}
@@ -44013,18 +44396,11 @@ function renderFinanceReceiveTab(){
           </div>
 
           <div class="form-grid-2">
-            <label class="field"><span>Receipt Number</span>
-              <div class="icon-input" style="background:var(--bg);">
-                <i class="fa-solid fa-hashtag"></i>
-                <input type="text" value="RCPT-${String(nextReceiptNo).padStart(6,'0')}" disabled style="color:var(--muted);">
-              </div>
+            <label class="field" id="rp_txn_wrap" style="display:none;"><span id="rp_txn_label">Transaction Code</span>
+              <input id="rp_txn" type="text" placeholder="e.g. QK71ABCD9" autocomplete="off">
+              <div id="rp_txn_hint" class="hint-text" style="margin-top:4px;"></div>
             </label>
-            <label class="field"><span>Transaction Code</span>
-              <input id="rp_txn" type="text" placeholder="e.g. QK71ABCD9">
-            </label>
-            <label class="field" style="grid-column:1 / -1;"><span>Account (paid into)</span>
-              <input id="rp_account" type="text" placeholder="e.g. SCHOOL FUND - ${currentSchool} KCB BANK(BANK)">
-            </label>
+            <input id="rp_account" type="hidden" value="">
             <label class="field"><span>Amount Paid&nbsp;<span class="req">*</span></span>
               <input id="rp_amount" type="text" placeholder="e.g. Ksh 20,000" oninput="onRpAmountInput();rpUpdateDistribution()">
               <div id="rp_amount_hint" class="hint-text" style="margin-top:4px;"></div>
@@ -44044,10 +44420,12 @@ function renderFinanceReceiveTab(){
 
           <div style="display:flex;align-items:center;gap:14px;margin-top:6px;flex-wrap:wrap;">
             <button type="submit" class="btn-primary" style="width:auto;padding:11px 22px;"><i class="fa-solid fa-hand-holding-dollar"></i> Save Payment</button>
+            <button type="button" id="rp_mpesa_btn" class="btn-ghost" style="width:auto;padding:11px 22px;" onclick="rpRequestMpesa()"><i class="fa-solid fa-mobile-screen-button"></i> Request M-Pesa payment</button>
             <button type="button" class="btn-ghost" style="width:auto;padding:11px 22px;" onclick="printLastReceipt()"><i class="fa-solid fa-print"></i> Print Receipt</button>
             <span style="color:var(--green);font-size:13px;font-weight:600;opacity:${paymentJustRecorded?1:0};transition:opacity .2s;">
               <i class="fa-solid fa-circle-check"></i> Payment recorded
             </span>
+            <span id="rp_mpesa_status" style="font-size:13px;color:var(--muted);"></span>
           </div>
         </form>
       </div>
@@ -45743,6 +46121,194 @@ function renderFinanceIncomeExpenditureTab(){
   `;
 }
 
+// ---- Receive Payment: ask the parent's phone to pay (M-Pesa STK push), then receipt it ----
+// The server raises the prompt and Safaricom confirms to the server. Only after
+// confirmation do we fill in the M-Pesa code and save the receipt, so a receipt is
+// never issued for money that did not arrive.
+let rpMpesaBusy = false;
+async function rpRequestMpesa(){
+  if(rpMpesaBusy) return;
+  const stEl = document.getElementById('rp_mpesa_status'), btn = document.getElementById('rp_mpesa_btn');
+  const say = t => { if(stEl) stEl.textContent = t; };
+  const student = rpFindStudent();
+  const amount = parseAmountKsh(document.getElementById('rp_amount')?.value);
+  if(!student){ alert("Enter the admission number or pick the student first."); return; }
+  if(amount <= 0){ alert("Enter the amount to request first."); return; }
+  if(!commsStatus.mpesa){ alert(commsBlockedMessage('mpesa')); return; }
+  const phone = prompt(`M-Pesa number to send the payment prompt to (${fullName(student)}'s parent/guardian):`, splitPhones(smsGuardianPhone(student.admissionNumber))[0] || '');
+  if(!phone) return;
+  const term = document.getElementById('rp_term')?.value || '', feeType = 'Tuition';
+  rpMpesaBusy = true; if(btn) btn.disabled = true;
+  say('Prompt sent — ask the parent to enter their M-Pesa PIN…');
+  const r = await mpesaCharge({ phone, amount, reference: String(student.admissionNumber), description: 'School fees', purpose: 'fee',
+    meta: { adm: String(student.admissionNumber), student: fullName(student), grade: student.grade || '', term, feeType, year: document.getElementById('rp_year')?.value || '' } });
+  rpMpesaBusy = false; if(btn) btn.disabled = false;
+  if(!r.ok){ say(''); alert(r.status === 'cancelled' ? "The parent cancelled the M-Pesa prompt. Nothing was receipted." : `Payment not completed: ${r.reason || r.status}`); return; }
+  say(`Paid — M-Pesa ${r.receipt}`);
+  const m = document.querySelector('input[name="rp_method"][value="M-Pesa"]'); if(m) m.checked = true;
+  rpApplyMethod();
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+  set('rp_txn', r.receipt); set('rp_amount', String(r.amount || amount));
+  const form = document.getElementById('rp_amount')?.form;
+  if(form) form.requestSubmit(); else alert(`Payment ${r.receipt} received — save it from the Receive Payment form.`);
+}
+
+// ---- Reconciliation: match the bank / M-Pesa statement against what has been receipted ----
+let reconServerPaid = null;   // paid M-Pesa prompts from the server (null = not loaded)
+let reconServerError = "";
+let reconStatement = [];      // [{ date, ref, amount, description }]
+let reconStatementName = "";
+let reconStatementError = "";
+async function loadReconServerPayments(){
+  reconServerError = "";
+  try{ reconServerPaid = (await commsApi('GET', '/mpesa/recent')).payments || []; }
+  catch(e){ reconServerPaid = []; reconServerError = commsSignedIn() ? e.message : "Sign in with the cloud button to see M-Pesa prompts raised from this app."; }
+  render();
+}
+function reconCodeSet(){ return new Set(activePayments().map(p => String(p.transactionCode || '').trim().toUpperCase()).filter(Boolean)); }
+function receiptFromMpesaTx(i){
+  const tx = (reconServerPaid || [])[i]; if(!tx) return;
+  const code = String(tx.receipt || '').toUpperCase();
+  if(reconCodeSet().has(code)){ alert(`${tx.receipt} is already receipted.`); return; }
+  const meta = tx.meta || {};
+  const stu = students.find(s => String(s.admissionNumber).trim() === String(meta.adm || tx.reference || '').trim());
+  if(!stu){ alert(`Could not find the learner (admission ${meta.adm || tx.reference || '—'}). Receipt it manually from Receive Payment using code ${tx.receipt}.`); return; }
+  const term = meta.term || FEE_TERM_OPTIONS[0], feeType = meta.feeType || 'Tuition';
+  const iso = (tx.paidAt || new Date().toISOString()).slice(0,10);
+  const payment = {
+    receiptNo: newReceiptNo(), admissionNo: String(stu.admissionNumber), student: fullName(stu), grade: stu.grade || '', term, feeType,
+    academicYear: meta.year || getSchoolProfile(currentSchool).academicYear || '', method: 'M-Pesa', transactionCode: tx.receipt, amount: String(tx.amount),
+    date: formatReceiptDate(iso), receivedBy: currentUserName || '', remarks: 'Auto-confirmed M-Pesa payment', account: '', isoDate: iso, issueDate: new Date().toLocaleDateString('en-GB'),
+  };
+  payment.allocation = allocateAmount(stu, term, parseAmountKsh(payment.amount), feeType);
+  paymentsLog.unshift(payment);
+  render();
+}
+function parseCsvRows(text){
+  const rows = []; let row = [], cur = '', q = false;
+  const t = String(text || '').replace(/^﻿/, '');
+  for(let i = 0; i < t.length; i++){
+    const c = t[i];
+    if(q){ if(c === '"'){ if(t[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c; }
+    else if(c === '"') q = true;
+    else if(c === ',' || c === ';' || c === '\t'){ row.push(cur); cur = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && t[i+1] === '\n') i++; row.push(cur); if(row.some(x => x.trim())) rows.push(row); row = []; cur = ''; }
+    else cur += c;
+  }
+  row.push(cur); if(row.some(x => x.trim())) rows.push(row);
+  return rows.map(r => r.map(x => x.trim()));
+}
+// Reads a statement export (CSV). Uses the header row to find Date / Reference / Amount columns.
+function parseStatementCsv(text){
+  const rows = parseCsvRows(text);
+  if(rows.length < 2) throw new Error("The file needs a header row and at least one transaction.");
+  const head = rows[0].map(h => h.toLowerCase());
+  const find = re => head.findIndex(h => re.test(h));
+  let iRef = find(/receipt|reference|ref\b|transaction|trans\s*id|code/), iAmt = find(/paid in|credit|amount|deposit|money in/), iDate = find(/date|time|completion/), iDesc = find(/detail|description|narrat|particular|name/);
+  if(iRef < 0 || iAmt < 0) throw new Error("Could not find a Reference/Receipt column and an Amount column in the header row.");
+  const out = [];
+  rows.slice(1).forEach(r => {
+    const amount = parseAmountKsh(r[iAmt]);
+    const ref = (r[iRef] || '').trim();
+    if(!ref || amount <= 0) return;   // money-out rows and blanks are not receipts
+    out.push({ date: iDate >= 0 ? r[iDate] : '', ref, amount, description: iDesc >= 0 ? r[iDesc] : '' });
+  });
+  if(!out.length) throw new Error("No incoming (credit) transactions found in the file.");
+  return out;
+}
+function reconLoadStatementText(text, name){
+  try{ reconStatement = parseStatementCsv(text); reconStatementError = ""; reconStatementName = name || 'pasted statement'; }
+  catch(e){ reconStatement = []; reconStatementError = e.message; }
+  render();
+}
+function reconStatementFile(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  const rd = new FileReader(); rd.onload = () => reconLoadStatementText(String(rd.result), f.name); rd.readAsText(f);
+}
+function reconStatementPasted(){ const el = document.getElementById('reconPaste'); reconLoadStatementText(el ? el.value : '', 'pasted statement'); }
+function reconClear(){ reconStatement = []; reconStatementName = ""; reconStatementError = ""; render(); }
+// Result of matching: statement lines vs receipts, by transaction code.
+function computeReconciliation(statement, payments){
+  const byCode = new Map();
+  payments.forEach(p => { const k = String(p.transactionCode || '').trim().toUpperCase(); if(k) byCode.set(k, p); });
+  const matched = [], mismatched = [], unreceipted = [], seen = new Set();
+  statement.forEach(l => {
+    const k = String(l.ref).trim().toUpperCase(), p = byCode.get(k);
+    if(!p){ unreceipted.push(l); return; }
+    seen.add(k);
+    (Math.abs(parseAmountKsh(p.amount) - l.amount) < 0.01 ? matched : mismatched).push({ line: l, payment: p });
+  });
+  const notOnStatement = payments.filter(p => {
+    const k = String(p.transactionCode || '').trim().toUpperCase();
+    return !['Cash','In Kind'].includes(p.method) && !seen.has(k);
+  });
+  return { matched, mismatched, unreceipted, notOnStatement };
+}
+function reconReceiveLine(i){
+  const l = reconStatement[i]; if(!l) return;
+  financeTab = 'receive'; render();
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+  const m = document.querySelector(`input[name="rp_method"][value="${/^[A-Z0-9]{10}$/i.test(l.ref) ? 'M-Pesa' : 'Bank'}"]`); if(m) m.checked = true;
+  rpApplyMethod();
+  set('rp_txn', l.ref); set('rp_amount', String(l.amount));
+  if(/^\d{4}-\d{2}-\d{2}/.test(l.date)) set('rp_date', l.date.slice(0,10));
+  rpAmountManuallyEdited = true;
+}
+function renderFinanceReconcileTab(){
+  if(reconServerPaid === null && commsSignedIn() && commsStatus.mpesa) { reconServerPaid = []; loadReconServerPayments(); }
+  const codes = reconCodeSet();
+  const pending = (reconServerPaid || []).map((t, i) => ({ t, i })).filter(x => x.t.purpose === 'fee' && !codes.has(String(x.t.receipt || '').toUpperCase()));
+  const nonCash = activePayments().filter(p => !['Cash','In Kind'].includes(p.method));
+  const rec = reconStatement.length ? computeReconciliation(reconStatement, nonCash) : null;
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const th = cols => `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const pendingPanel = `
+    <div class="panel" style="overflow:hidden;margin-bottom:16px;">
+      <div class="panel-header"><h3>M-Pesa received but not yet receipted (${pending.length})</h3>
+        <button class="btn-ghost" style="width:auto;padding:8px 14px;font-size:12.5px;" onclick="loadReconServerPayments()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+      ${reconServerError ? `<div style="padding:10px 18px;color:var(--rose);font-size:12.5px;">${esc(reconServerError)}</div>` : ''}
+      <div class="streams-scroll"><table>${th(['M-Pesa code','Learner','Term','Amount','Paid on',''])}<tbody>
+        ${pending.map(({t,i}) => `<tr><td style="font-family:var(--font-mono);">${esc(t.receipt)}</td><td>${esc((t.meta && t.meta.student) || t.reference || t.phone)}</td><td>${esc((t.meta && t.meta.term) || '')}</td><td style="font-weight:700;color:var(--green);">${formatKsh(t.amount)}</td><td style="color:var(--muted);">${esc((t.paidAt || '').slice(0,10))}</td><td><button class="link-btn" onclick="receiptFromMpesaTx(${i})">Issue receipt</button></td></tr>`).join('')
+          || `<tr><td colspan="6" class="empty">${commsSignedIn() ? 'Every confirmed M-Pesa payment has been receipted.' : 'Sign in with the cloud button to see M-Pesa prompts raised from this app.'}</td></tr>`}
+      </tbody></table></div>
+    </div>`;
+  const section = (title, color, head, rows, empty) => `
+    <div class="panel" style="overflow:hidden;margin-top:16px;">
+      <div class="panel-header"><h3 style="color:${color};">${title}</h3></div>
+      <div class="streams-scroll"><table>${th(head)}<tbody>${rows || `<tr><td colspan="${head.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>
+    </div>`;
+  const result = rec ? `
+    <div class="stat-cards" style="margin-top:16px;">
+      <div class="stat-card"><div class="lbl">Statement lines</div><div class="val">${reconStatement.length}</div></div>
+      <div class="stat-card"><div class="lbl">Matched</div><div class="val" style="color:var(--green);">${rec.matched.length}</div></div>
+      <div class="stat-card"><div class="lbl">Amount differs</div><div class="val" style="color:${rec.mismatched.length?'var(--rose)':'var(--green)'};">${rec.mismatched.length}</div></div>
+      <div class="stat-card"><div class="lbl">On statement, not receipted</div><div class="val" style="color:${rec.unreceipted.length?'var(--rose)':'var(--green)'};">${rec.unreceipted.length}</div></div>
+      <div class="stat-card"><div class="lbl">Receipted, not on statement</div><div class="val" style="color:${rec.notOnStatement.length?'var(--rose)':'var(--green)'};">${rec.notOnStatement.length}</div></div>
+    </div>
+    ${section('On the statement but NOT receipted', 'var(--rose)', ['Date','Reference','Details','Amount',''], reconStatement.map((l,i) => ({l,i})).filter(x => rec.unreceipted.includes(x.l)).map(({l,i}) => `<tr><td>${esc(l.date)}</td><td style="font-family:var(--font-mono);">${esc(l.ref)}</td><td style="color:var(--muted);">${esc(l.description)}</td><td style="font-weight:700;">${formatKsh(l.amount)}</td><td><button class="link-btn" onclick="reconReceiveLine(${i})">Receive</button></td></tr>`).join(''), 'Nothing — every credit on the statement has a receipt.')}
+    ${section('Amount on statement differs from receipt', 'var(--rose)', ['Reference','Learner','Statement','Receipt'], rec.mismatched.map(m => `<tr><td style="font-family:var(--font-mono);">${esc(m.line.ref)}</td><td>${esc(m.payment.student)}</td><td>${formatKsh(m.line.amount)}</td><td>${formatKsh(parseAmountKsh(m.payment.amount))} (${esc(m.payment.receiptNo)})</td></tr>`).join(''), 'No differences.')}
+    ${section('Receipted but NOT on the statement', 'var(--rose)', ['Receipt','Learner','Method','Code','Amount'], rec.notOnStatement.map(p => `<tr><td>${esc(p.receiptNo)}</td><td>${esc(p.student)}</td><td>${esc(p.method)}</td><td style="font-family:var(--font-mono);">${esc(p.transactionCode || '—')}</td><td>${formatKsh(parseAmountKsh(p.amount))}</td></tr>`).join(''), 'Every non-cash receipt appears on the statement.')}
+    ${section('Matched', 'var(--green)', ['Reference','Learner','Receipt','Amount'], rec.matched.map(m => `<tr><td style="font-family:var(--font-mono);">${esc(m.line.ref)}</td><td>${esc(m.payment.student)}</td><td>${esc(m.payment.receiptNo)}</td><td>${formatKsh(m.line.amount)}</td></tr>`).join(''), 'No matches yet.')}` : '';
+  return `
+    <h2 style="margin:0 0 4px;font-size:19px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;">Reconciliation</h2>
+    <p style="margin:0 0 16px;font-size:12.5px;color:var(--muted);">Check that every shilling that reached the bank or M-Pesa till has a receipt, and that every non-cash receipt really arrived.</p>
+    ${pendingPanel}
+    <div class="panel settings-card" style="max-width:none;">
+      <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;">Reconcile a statement</h3>
+      <p style="margin:0 0 12px;font-size:12.5px;color:var(--muted);">Upload the CSV export from your bank or the M-Pesa portal. It needs a header row with a Reference/Receipt column and an Amount (or Paid in / Credit) column; money-out rows are ignored. Matching is by transaction code.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <input type="file" accept=".csv,.txt,text/csv" onchange="reconStatementFile(this)">
+        ${reconStatement.length ? `<span style="font-size:12.5px;color:var(--muted);">${esc(reconStatementName)} · ${reconStatement.length} lines</span><button class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="reconClear()">Clear</button>` : ''}
+      </div>
+      <details style="margin-top:12px;"><summary style="cursor:pointer;font-size:12.5px;color:var(--muted);">…or paste the statement text</summary>
+        <textarea id="reconPaste" rows="5" style="width:100%;margin-top:8px;font-family:var(--font-mono);font-size:12px;" placeholder="Date,Reference,Details,Paid in&#10;2026-02-10,QWE1ABCD9,Fees Amina,15000"></textarea>
+        <button class="btn-primary" style="width:auto;padding:8px 16px;margin-top:8px;" onclick="reconStatementPasted()">Reconcile pasted text</button>
+      </details>
+      ${reconStatementError ? `<div style="margin-top:10px;color:var(--rose);font-size:12.5px;">${esc(reconStatementError)}</div>` : ''}
+    </div>
+    ${result}`;
+}
+
 function renderFinanceTitleBar(){
   return `
     <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;margin-bottom:16px;background:var(--panel-bg,#fff);border:1px solid var(--border);border-radius:0;">
@@ -45772,6 +46338,7 @@ function renderFinance(){
     case "discounts": body = renderFinanceDiscountsTab(); break;
     case "receive": body = renderFinanceReceiveTab(); break;
     case "receipts": body = renderFinanceReceiptsTab(); break;
+    case "reconcile": body = renderFinanceReconcileTab(); break;
     case "cashBook": body = renderFinanceCashBookTab(); break;
     case "generalLedger": body = renderFinanceGeneralLedgerTab(); break;
     case "trialBalance": body = renderFinanceTrialBalanceTab(); break;
@@ -45815,6 +46382,52 @@ function removeBook(i){
   render();
 }
 
+// Publisher dropdown = the built-in Kenyan list + publishers this school added +
+// any publisher already on a catalogued book (so older records still show up).
+function libraryPublisherList(){
+  const base = KENYA_PUBLISHERS.slice();
+  const seen = new Set(base.map(p => p.toLowerCase()));
+  const extra = [];
+  [...libraryPublishers, ...libraryBooks.map(b => b.publisher)].forEach(p => {
+    const n = String(p || '').trim();
+    if(n && !seen.has(n.toLowerCase())){ seen.add(n.toLowerCase()); extra.push(n); }
+  });
+  return base.concat(extra.sort((a, b) => a.localeCompare(b)));
+}
+function libraryAttr(v){ return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function onBookPublisherChange(sel){
+  const row = document.getElementById('newPublisherRow');
+  if(!row) return;
+  const adding = sel.value === '__add__';
+  row.style.display = adding ? 'flex' : 'none';
+  if(adding){ const n = document.getElementById('newPublisherName'); if(n){ n.value = ''; n.focus(); } }
+}
+function cancelNewPublisher(){
+  const sel = document.getElementById('newBookPublisher'), row = document.getElementById('newPublisherRow');
+  if(sel) sel.value = '';
+  if(row) row.style.display = 'none';
+}
+function saveNewPublisher(){
+  const input = document.getElementById('newPublisherName');
+  if(!input) return;
+  const name = input.value.replace(/\s+/g, ' ').trim();
+  if(!name){ input.focus(); return; }
+  // Already there (any capitalisation)? Just select it instead of adding a duplicate.
+  const existing = libraryPublisherList().find(p => p.toLowerCase() === name.toLowerCase());
+  const chosen = existing || name;
+  if(!existing) libraryPublishers = [...libraryPublishers, chosen];
+  // render() rebuilds the form, so carry over what was already typed for the book.
+  const ids = ['newBookRegPrefix','newBookTitle','newBookAuthor','newBookSubject','newBookCopies'];
+  const keep = {};
+  ids.forEach(id => { const el = document.getElementById(id); if(el) keep[id] = el.value; });
+  try{ snapshotSchoolData(currentSchool); }catch(e){ console.error(e); }
+  render();
+  ids.forEach(id => { const el = document.getElementById(id); if(el && keep[id] !== undefined) el.value = keep[id]; });
+  const sel = document.getElementById('newBookPublisher');
+  if(sel) sel.value = chosen;
+}
+
 function addNewBook(e){
   e.preventDefault();
   const regPrefixInput = document.getElementById('newBookRegPrefix');
@@ -45833,6 +46446,7 @@ function addNewBook(e){
   const title = titleInput.value.trim();
   if(!title){ titleInput.focus(); return; }
   if(!subjectInput.value){ subjectInput.focus(); return; }
+  if(publisherInput.value === '__add__'){ const n = document.getElementById('newPublisherName'); if(n) n.focus(); alert('Type the new publisher name and press Add, or pick a publisher from the list.'); return; }
   if(!publisherInput.value){ publisherInput.focus(); return; }
   const copies = parseInt(copiesInput.value, 10);
   libraryBooks.push({
@@ -45900,10 +46514,17 @@ function renderLibraryBooksTab(){
           <input id="newBookAuthor" type="text" placeholder="e.g. Ngũgĩ wa Thiong'o">
         </label>
         <label class="field"><span>Publisher&nbsp;<span class="req">*</span></span>
-          <select id="newBookPublisher">
+          <select id="newBookPublisher" onchange="onBookPublisherChange(this)">
             <option value="">Select publisher...</option>
-            ${KENYA_PUBLISHERS.map(p => `<option value="${p}">${p}</option>`).join('')}
+            ${libraryPublisherList().map(p => `<option value="${libraryAttr(p)}">${libraryAttr(p)}</option>`).join('')}
+            <option value="__add__">+ Add new publisher...</option>
           </select>
+          <div id="newPublisherRow" style="display:none;gap:8px;align-items:center;margin-top:8px;">
+            <input id="newPublisherName" type="text" placeholder="New publisher name" style="flex:1;min-width:0;"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewPublisher();}">
+            <button type="button" class="btn-primary auto" style="width:auto;padding:8px 14px;" onclick="saveNewPublisher()">Add</button>
+            <button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;" onclick="cancelNewPublisher()">Cancel</button>
+          </div>
         </label>
         <label class="field"><span>Registration Number Prefix&nbsp;<span class="req">*</span></span>
           <input id="newBookRegPrefix" type="text" placeholder="e.g. LIB-0005">
@@ -48581,9 +49202,6 @@ function renderCocurricular(){
             <button class="btn-ghost" style="width:auto;padding:8px 14px;font-size:12.5px;" onclick="toggleClubManage('${c.replace(/'/g,"\\'")}')">
               <i class="fa-solid fa-user-plus"></i> ${clubManageOpen===c ? 'Close' : 'Add students'}
             </button>
-            <button class="btn-ghost" style="width:auto;padding:8px 14px;font-size:12.5px;" onclick="openTeamList('${c.replace(/'/g,"\\'")}')">
-              <i class="fa-solid fa-file-lines"></i> Team List
-            </button>
             <button class="btn-ghost" style="width:auto;padding:8px 14px;font-size:12.5px;" onclick="openCocurricularRosterSheet('${c.replace(/'/g,"\\'")}')">
               <i class="fa-solid fa-file-pdf"></i> Roster PDF
             </button>
@@ -48608,137 +49226,6 @@ function renderCocurricular(){
           ${clubPatrons[name] ? `<span class="cc-meta">Patron: ${clubPatrons[name]}</span>` : ''}
         </div>
       `).join('')}
-    </div>
-    ${renderTeamListPrint()}
-  `;
-}
-
-function openTeamList(club){
-  teamListPrintClub = club;
-  teamListFormData = {
-    year:"", games:"Term I", team:club, boysGirls:"", no:"",
-    subCounty:"", county:"", region:"",
-  };
-  render();
-}
-
-function closeTeamList(){
-  teamListPrintClub = null;
-  render();
-}
-
-function updateTeamListField(key, value){
-  teamListFormData[key] = value;
-  if(key === "region"){ teamListFormData.county = ""; teamListFormData.subCounty = ""; }
-  if(key === "county"){ teamListFormData.subCounty = ""; }
-  render();
-}
-
-function printTeamList(){
-  window.print();
-}
-
-function renderTeamListPrint(){
-  if(!teamListPrintClub) return "";
-  const club = teamListPrintClub;
-  const members = clubMembers[club] || [];
-  const school = getSchoolProfile(currentSchool);
-  const rows = members.map((m, idx) => {
-    const adm = m.admissionNumber;
-    const s = students.find(st => st.admissionNumber === adm);
-    return `
-      <tr>
-        <td>${idx+1}</td>
-        <td>${s ? upperStr(fullName(s)) : ''}</td>
-        <td>${s ? (s.grade||'') : ''}</td>
-        <td>${s ? (s.dateOfAdmission||'') : ''}</td>
-        <td>${adm}</td>
-        <td>${s ? (s.dateOfBirth||'') : ''}</td>
-        <td>${s ? (s.indexNumber||'') : ''}</td>
-        <td></td>
-        <td>${s ? (s.upi||'') : ''}</td>
-      </tr>
-    `;
-  }).join('');
-  const blankRows = Array.from({length: Math.max(0, 15 - members.length)}).map((_, i) => `
-    <tr>
-      <td>${members.length + i + 1}</td>
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-    </tr>
-  `).join('');
-
-  const tlRegionOptions = regionsForCountry("Kenya");
-  const tlCountyOptions = countiesForRegion("Kenya", teamListFormData.region);
-  const tlSubCountyOptions = subCountiesForCounty("Kenya", teamListFormData.county);
-
-  return `
-    <div class="team-list-overlay">
-      <div class="team-list-sheet" id="teamListPrintArea">
-        <div class="tl-header-lines">
-          <p>MINISTRY OF EDUCATION</p>
-          <p>STATE DEPARTMENT OF EARLY LEARNING &amp; BASIC EDUCATION</p>
-          <p style="font-weight:400;">Directorate of Field Coordination and Co-Curricular Activities</p>
-          <p style="margin-top:10px;">The Kenya Secondary Schools Sports Association</p>
-          <p style="margin-top:6px;text-decoration:underline;">OFFICIAL TEAM LIST/DECLARATION FORM</p>
-        </div>
-
-        <div class="team-list-form-row" style="margin-top:18px;">
-          <label>Year: <input type="text" style="width:160px;" value="${teamListFormData.year||''}" oninput="updateTeamListField('year',this.value)"></label>
-          <label>Games: <select onchange="updateTeamListField('games',this.value)">
-            <option value="Term I" ${teamListFormData.games==='Term I'?'selected':''}>Term I</option>
-            <option value="Term II" ${teamListFormData.games==='Term II'?'selected':''}>Term II</option>
-            <option value="Term III" ${teamListFormData.games==='Term III'?'selected':''}>Term III</option>
-          </select></label>
-        </div>
-        <div class="team-list-form-row">
-          <label>Team: <input type="text" style="width:160px;" value="${teamListFormData.team||''}" oninput="updateTeamListField('team',this.value)"></label>
-          <label>Boys/Girls: <input type="text" style="width:110px;" value="${teamListFormData.boysGirls||''}" oninput="updateTeamListField('boysGirls',this.value)"></label>
-          <label>No: <input type="text" style="width:80px;" value="${teamListFormData.no||''}" oninput="updateTeamListField('no',this.value)"></label>
-        </div>
-        <div class="team-list-form-row">
-          <label>School: <input type="text" style="width:260px;" value="${currentSchool}" disabled></label>
-          <label>Region: <select style="width:200px;" onchange="updateTeamListField('region',this.value)" ${tlRegionOptions.length?'':'disabled'}>
-            <option value="">${tlRegionOptions.length ? 'Select region' : 'N/A'}</option>
-            ${tlRegionOptions.map(r => `<option ${teamListFormData.region===r?'selected':''}>${r}</option>`).join('')}
-          </select></label>
-        </div>
-        <div class="team-list-form-row">
-          <label>County: <select style="width:200px;" onchange="updateTeamListField('county',this.value)" ${tlCountyOptions.length?'':'disabled'}>
-            <option value="">${tlCountyOptions.length ? 'Select county' : 'N/A'}</option>
-            ${tlCountyOptions.map(c => `<option ${teamListFormData.county===c?'selected':''}>${c}</option>`).join('')}
-          </select></label>
-          <label>Sub-County: <select style="width:200px;" onchange="updateTeamListField('subCounty',this.value)" ${tlSubCountyOptions.length?'':'disabled'}>
-            <option value="">${tlSubCountyOptions.length ? 'Select sub county' : 'N/A'}</option>
-            ${tlSubCountyOptions.map(s => `<option ${teamListFormData.subCounty===s?'selected':''}>${s}</option>`).join('')}
-          </select></label>
-        </div>
-
-        <p style="margin-top:14px;font-size:13px;">The following whose details are given here-under are bona fide students of this school:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th rowspan="2">NO.</th>
-              <th rowspan="2">FULL NAMES</th>
-              <th colspan="3">ADMISSION</th>
-              <th rowspan="2">D.O.B</th>
-              <th rowspan="2">KCPE INDEX NO.</th>
-              <th rowspan="2">KCPE YEAR</th>
-              <th rowspan="2">UPI NUMBER</th>
-            </tr>
-            <tr>
-              <th>CLASS</th><th>D.O.A</th><th>ADM NO</th>
-            </tr>
-          </thead>
-          <tbody>${rows}${blankRows}</tbody>
-        </table>
-
-        <div class="team-list-actions">
-          <button type="button" class="btn-ghost" style="width:auto;padding:10px 18px;" onclick="closeTeamList()"><i class="fa-solid fa-xmark"></i> Close</button>
-          <button type="button" class="btn-primary" style="width:auto;padding:10px 18px;" onclick="printTeamList()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
-        </div>
-      </div>
     </div>
   `;
 }
@@ -49699,13 +50186,15 @@ async function sendOpeningClosingSms(){
   if(!recipients.length){ alert('Select or scan at least one learner first.'); return; }
   const withPhone=recipients.filter(s => (s.guardianPhones||[]).length);
   if(!withPhone.length){ alert('The selected learners do not have parent/guardian phone numbers on file.'); return; }
-  if(smsCreditBalance < withPhone.length){ alert(`You need ${withPhone.length} SMS credit${withPhone.length===1?'':'s'} but only have ${smsCreditBalance}. Visit Messaging > Buy SMS to top up.`); return; }
+  if(!commsStatus.sms){ alert(commsBlockedMessage('sms')); return; }
+  if(smsCreditBalance < withPhone.length){ alert(`You need ${withPhone.length} SMS credit${withPhone.length===1?'':'s'} but only have ${smsCreditBalance}. Visit Communication > Buy SMS to top up.`); return; }
   const messages=withPhone.map(s => ({student:s, message:openingClosingMessageForStudent(s)}));
   openingClosingSmsState={sending:true,label:'Sending parent SMS…',sub:`To ${withPhone.length} parent/guardian contact${withPhone.length===1?'':'s'}`};
   render();
-  await wait(900);
-  smsCreditBalance=Math.max(0,smsCreditBalance-withPhone.length);
-  messages.forEach(({student,message}) => {
+  const sr = await commsSendSms(messages.map(({student,message}) => ({ name: fullName(student), phone: (student.guardianPhones||[]).join(','), message })));
+  spendSmsCredits(sr.units);
+  const failedNames = new Set(sr.failures.map(f => f.name));
+  messages.filter(({student}) => !failedNames.has(fullName(student))).forEach(({student,message}) => {
     sentMessages.unshift({
       to: fullName(student),
       recipientCount: 1,
@@ -49720,7 +50209,7 @@ async function sendOpeningClosingSms(){
   openingClosingSmsState=null;
   openingClosingSelected={};
   openingClosingSmsMessage=message;
-  alert(`SMS recorded for ${withPhone.length} parent/guardian contact${withPhone.length===1?'':'s'}.`);
+  alert(sr.failures.length ? smsFailureSummary('Parent SMS', sr) : `SMS sent to ${sr.sent} parent/guardian number${sr.sent===1?'':'s'}.`);
   render();
 }
 function downloadOpeningClosingRegisterPdf(){
@@ -50060,7 +50549,7 @@ function renderAnnouncements(){
     </div>
   ` : `
     <div class="panel" style="padding:14px 20px;margin-bottom:28px;font-size:13px;color:var(--muted);">
-      <i class="fa-solid fa-circle-info" style="margin-right:8px;"></i>Announcements are posted by administrators and departmental heads.
+      <i class="fa-solid fa-circle-info" style="margin-right:8px;"></i>Announcements are posted by administrators only.
     </div>
   `;
 
@@ -50086,160 +50575,104 @@ function renderSendingCard(title, subtitle){
   `;
 }
 
-// ---- Real email sending via EmailJS (Gmail) ----
-// This app has no backend, so it can't call Gmail's SMTP/API directly from
-// the browser. EmailJS is a client-side email relay: you connect a Gmail
-// account to a free EmailJS account once, and this app calls EmailJS's
-// public REST endpoint, which then sends the mail through your connected
-// Gmail. Set these three values from your EmailJS dashboard to go live —
-// until they're filled in, sends are blocked with a clear message instead
-// of silently pretending to succeed.
-//   1. Sign up at https://www.emailjs.com (free tier is fine for a school).
-//   2. Email Services -> Add New Service -> Gmail -> connect the Gmail
-//      account you want mail to be sent from. Copy the Service ID.
-//   3. Email Templates -> Create Template. Use these variable names in the
-//      template so they line up with what this app sends:
-//        {{to_email}}  {{to_name}}  {{subject}}  {{message}}
-//      Copy the Template ID.
-//   4. Account -> General -> copy your Public Key.
-//   5. Paste all three below.
-const EMAILJS_SERVICE_ID = "PASTE_YOUR_SERVICE_ID_HERE";
-const EMAILJS_TEMPLATE_ID = "PASTE_YOUR_TEMPLATE_ID_HERE";
-const EMAILJS_PUBLIC_KEY = "PASTE_YOUR_PUBLIC_KEY_HERE";
-
-function emailJsIsConfigured(){
-  return ![EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY].some(v => !v || v.startsWith("PASTE_"));
+// ---- Real SMS / email sending, through the school's server ----
+// The app never holds provider keys. Messages go to /api/sms/send and
+// /api/email/send on the MASMS server (see README), which uses Africa's
+// Talking (SMS) and SMTP (email). You must be signed in to cloud sync (the
+// cloud button, bottom-left) for sends to work.
+let commsStatus = { loaded:false, sms:false, email:false, mpesa:false };
+function commsSignedIn(){ return !!(window.MASMS_CLOUD && window.MASMS_CLOUD.signedIn && window.MASMS_CLOUD.signedIn()); }
+function commsApi(method, path, body){
+  if(!commsSignedIn()) return Promise.reject(new Error("Not signed in to the school server"));
+  return window.MASMS_CLOUD.api(method, path, body);
 }
+async function refreshCommsStatus(){
+  try{ const st = await commsApi('GET', '/comms/status'); commsStatus = Object.assign({ loaded:true }, st); }
+  catch(e){ commsStatus = { loaded:false, sms:false, email:false, mpesa:false }; }
+}
+try{ window.addEventListener('masms-cloud', () => { if(commsSignedIn()) refreshCommsStatus().then(() => { try{ render(); }catch(e){} }); }); }catch(e){}
+function emailJsIsConfigured(){ return !!commsStatus.email; }          // names kept for existing callers
+function africasTalkingIsConfigured(){ return !!commsStatus.sms; }
+const COMMS_ENV_HINT = { sms:"AT_USERNAME and AT_API_KEY (Africa's Talking)", email:"SMTP_HOST, SMTP_USER and SMTP_PASS", mpesa:"the MPESA_* settings and PUBLIC_URL" };
+function commsBlockedMessage(kind){
+  const label = { sms:"SMS", email:"Email", mpesa:"M-Pesa" }[kind];
+  if(!commsSignedIn()) return `${label} is sent through your school's server. Sign in with the cloud button (bottom-left) first, then try again.`;
+  return `${label} isn't set up on the server yet. Ask your administrator to add ${COMMS_ENV_HINT[kind]} to the server settings (see README), then try again.`;
+}
+function smsUnitsFor(text){ const n = String(text || '').length; return n <= 160 ? 1 : Math.ceil(n / 153); }
+function splitPhones(raw){
+  const t = String(raw || '').trim();
+  if(!t || t === 'No number on file') return [];
+  return t.split(/[,;\/\s]+/).filter(x => x.replace(/\D/g, '').length >= 9);
+}
+const last9 = x => String(x || '').replace(/\D/g, '').slice(-9);
 
-// Sends one email through EmailJS. Resolves { ok:true } on success, or
-// { ok:false, error } — callers should keep going and tally failures rather
-// than throwing, since one bad address shouldn't abort a whole batch send.
-async function sendEmailViaEmailJS(toEmail, toName, subject, message){
-  try{
-    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id: EMAILJS_SERVICE_ID,
-        template_id: EMAILJS_TEMPLATE_ID,
-        user_id: EMAILJS_PUBLIC_KEY,
-        template_params: { to_email: toEmail, to_name: toName || toEmail, subject: subject || "(No subject)", message: message || "" },
-      }),
-    });
-    if(!res.ok){
-      const text = await res.text().catch(()=> "");
-      return { ok:false, error: `${res.status} ${text}`.trim() };
-    }
-    return { ok:true };
-  }catch(err){
-    return { ok:false, error: err.message || String(err) };
+// items: [{ name, phone, message }]. One request per 500 texts. Returns { attempted, sent, units, failures:[{name,phone,error}] }.
+async function commsSendSms(items){
+  const msgs = [], failures = [];
+  items.forEach(it => {
+    const phones = splitPhones(it.phone);
+    if(!phones.length){ failures.push({ name: it.name, phone: '', error: 'No number on file' }); return; }
+    phones.forEach(ph => msgs.push({ to: ph, message: it.message, name: it.name }));
+  });
+  let sent = 0, units = 0;
+  for(let i = 0; i < msgs.length; i += 500){
+    const chunk = msgs.slice(i, i + 500);
+    try{
+      const r = await commsApi('POST', '/sms/send', { messages: chunk.map(m => ({ to: m.to, message: m.message })) });
+      sent += r.sent; units += r.units;
+      (r.results || []).filter(x => !x.ok).forEach(x => {
+        const m = chunk.find(c => last9(c.to) === last9(x.to));
+        failures.push({ name: m ? m.name : x.to, phone: x.to, error: x.status || 'Failed' });
+      });
+    }catch(e){ chunk.forEach(m => failures.push({ name: m.name, phone: m.to, error: e.message })); }
   }
+  return { attempted: msgs.length, sent, units, failures };
 }
-
-// ---- Real SMS sending via Africa's Talking ----
-// This app has no backend, so this calls Africa's Talking's REST endpoint
-// straight from the browser. Two things to know before you go live:
-//
-//   1. SECURITY: unlike EmailJS's "public key" design, an Africa's Talking
-//      API key is a secret credential. Anyone who opens this page's source
-//      (e.g. via browser dev tools) can read it and send SMS billed to your
-//      account. Only wire this up if this dashboard stays private/internal
-//      to school staff — never on a publicly shared link.
-//   2. CORS: Africa's Talking's API is designed for server-side use (their
-//      own docs and examples are all Node/PHP/curl, never browser fetch()).
-//      It may not send the CORS headers a browser requires, in which case
-//      every send below will fail with a generic "Failed to fetch" error
-//      even with correct credentials. If that happens, the fix is to route
-//      these requests through a small server-side proxy (e.g. a Cloudflare
-//      Worker, Vercel function, or a one-line PHP/Node script hosted
-//      anywhere) that holds the API key and forwards the request — the
-//      browser would call your proxy instead of africastalking.com directly.
-//
-// Setup:
-//   1. Sign up at https://africastalking.com and create a Live (production)
-//      app in your dashboard — not the default Sandbox app, which can only
-//      send test messages to numbers you've registered.
-//   2. Copy that app's Username and API Key from its settings page.
-//   3. Optional: apply for an alphanumeric Sender ID (e.g. your school's
-//      short name) from the dashboard so messages don't arrive from a
-//      generic shortcode. Leave blank to use the default.
-//   4. Paste your Username and API Key below.
-const AFRICASTALKING_USERNAME = "PASTE_YOUR_USERNAME_HERE";
-const AFRICASTALKING_API_KEY = "PASTE_YOUR_API_KEY_HERE";
-const AFRICASTALKING_SENDER_ID = ""; // optional — leave blank for the default sender
-
-function africasTalkingIsConfigured(){
-  return ![AFRICASTALKING_USERNAME, AFRICASTALKING_API_KEY].some(v => !v || v.startsWith("PASTE_"));
+// items: [{ name, email, subject, message }]
+async function commsSendEmails(items){
+  const failures = [], ok = [];
+  items.forEach(it => { if(!(it.email || '').trim() || it.email === 'No email on file') failures.push({ name: it.name, email: '', error: 'No email on file' }); else ok.push(it); });
+  let sent = 0;
+  for(let i = 0; i < ok.length; i += 300){
+    const chunk = ok.slice(i, i + 300);
+    try{
+      const r = await commsApi('POST', '/email/send', { messages: chunk.map(m => ({ email: m.email.trim(), subject: m.subject, message: m.message })) });
+      sent += r.sent;
+      (r.results || []).filter(x => !x.ok).forEach(x => {
+        const m = chunk.find(c => c.email.trim() === x.to);
+        failures.push({ name: m ? m.name : x.to, email: x.to, error: x.status || 'Failed' });
+      });
+    }catch(e){ chunk.forEach(m => failures.push({ name: m.name, email: m.email, error: e.message })); }
+  }
+  return { attempted: ok.length, sent, failures };
 }
-
-// Sends one SMS via Africa's Talking. Resolves { ok:true } on success, or
-// { ok:false, error } — callers should keep going and tally failures rather
-// than throwing, since one bad number shouldn't abort a whole batch send.
+// Single-message wrappers (kept for older call sites)
 async function sendSmsViaAfricasTalking(toPhone, message){
-  try{
-    const body = new URLSearchParams({
-      username: AFRICASTALKING_USERNAME,
-      to: toPhone,
-      message: message,
-    });
-    if(AFRICASTALKING_SENDER_ID) body.set("from", AFRICASTALKING_SENDER_ID);
-    const res = await fetch("https://api.africastalking.com/version1/messaging", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
-        "apiKey": AFRICASTALKING_API_KEY,
-      },
-      body: body.toString(),
-    });
-    if(!res.ok){
-      const text = await res.text().catch(()=> "");
-      return { ok:false, error: `${res.status} ${text}`.trim() };
-    }
-    const data = await res.json().catch(()=> null);
-    const recipient = data && data.SMSMessageData && data.SMSMessageData.Recipients && data.SMSMessageData.Recipients[0];
-    if(recipient && recipient.status && recipient.status !== "Success"){
-      return { ok:false, error: recipient.status };
-    }
-    return { ok:true };
-  }catch(err){
-    // A browser CORS block usually surfaces here as a bare "Failed to
-    // fetch" with no further detail — see the CORS note above this block.
-    const msg = err.message || String(err);
-    return { ok:false, error: msg + " (if this says \"Failed to fetch\", it's likely a CORS block — see the note above AFRICASTALKING_USERNAME)" };
-  }
+  const r = await commsSendSms([{ name: toPhone, phone: toPhone, message }]);
+  return r.sent ? { ok:true } : { ok:false, error: (r.failures[0] && r.failures[0].error) || 'Failed' };
 }
-
-// Sends the same message to a list of {name,phone} recipients, skipping
-// anyone without a phone number on file. Returns a tally so the UI can show
-// real results instead of a blind "sent" banner.
+async function sendEmailViaEmailJS(toEmail, toName, subject, message){
+  const r = await commsSendEmails([{ name: toName, email: toEmail, subject, message }]);
+  return r.sent ? { ok:true } : { ok:false, error: (r.failures[0] && r.failures[0].error) || 'Failed' };
+}
+// Same message to many {name,phone,message?} / {name,email}. Tally for the UI.
 async function sendBulkSms(recipients, message){
-  const withPhone = recipients.filter(r => (r.phone || "").trim() && r.phone !== "No number on file");
-  const skipped = recipients.length - withPhone.length;
-  let sent = 0;
-  const failures = [];
-  for(const r of withPhone){
-    const result = await sendSmsViaAfricasTalking(r.phone, r.message || message);
-    if(result.ok) sent++;
-    else failures.push({ name: r.name, phone: r.phone, error: result.error });
-  }
-  return { attempted: withPhone.length, sent, skippedNoPhone: skipped, failures };
+  const r = await commsSendSms(recipients.map(x => ({ name: x.name, phone: x.phone, message: x.message || message })));
+  const noPhone = r.failures.filter(f => f.error === 'No number on file').length;
+  return { attempted: r.attempted, sent: r.sent, units: r.units, skippedNoPhone: noPhone, failures: r.failures.filter(f => f.error !== 'No number on file') };
 }
-
-// Sends the same subject/message to a list of {name,email} recipients,
-// skipping anyone without an email on file. Returns a tally so the UI can
-// show real results instead of a blind "sent" banner.
 async function sendBulkEmail(recipients, subject, message){
-  const withEmail = recipients.filter(r => (r.email || "").trim());
-  const skipped = recipients.length - withEmail.length;
-  let sent = 0;
-  const failures = [];
-  for(const r of withEmail){
-    const result = await sendEmailViaEmailJS(r.email, r.name, subject, message);
-    if(result.ok) sent++;
-    else failures.push({ name: r.name, email: r.email, error: result.error });
-  }
-  return { attempted: withEmail.length, sent, skippedNoEmail: skipped, failures };
+  const r = await commsSendEmails(recipients.map(x => ({ name: x.name, email: x.email, subject: x.subject || subject, message: x.message || message })));
+  const noEmail = r.failures.filter(f => f.error === 'No email on file').length;
+  return { attempted: r.attempted, sent: r.sent, skippedNoEmail: noEmail, failures: r.failures.filter(f => f.error !== 'No email on file') };
+}
+// Credits are drawn down by what the server actually sent (units = 160-char segments).
+function spendSmsCredits(units){ smsCreditBalance = Math.max(0, smsCreditBalance - (units || 0)); }
+function smsCreditsNeeded(items){ return items.reduce((n, i) => n + splitPhones(i.phone).length * smsUnitsFor(i.message), 0); }
+function smsFailureSummary(label, r){
+  if(!r.failures.length) return '';
+  return `${label}: ${r.sent} sent, ${r.failures.length} failed:\n` + r.failures.slice(0, 8).map(f => `${f.name}: ${f.error}`).join('\n') + (r.failures.length > 8 ? `\n…and ${r.failures.length - 8} more` : '');
 }
 
 // ---- Messaging > Compose Message: step wizard (Recipients -> Message Type
@@ -50314,10 +50747,10 @@ function resolveComposeRecipients(){
     if(composeMessageTypeChecks["Specific Classes"] && composeClassGrade){
       pool = studentsForGrade(composeClassGrade, composeClassStream || "");
     }
-    return pool.map(s => ({ name: s.guardian || fullName(s), email: s.guardianEmail || "" }));
+    return pool.map(s => ({ name: s.guardian || fullName(s), email: s.guardianEmail || "", phone: (s.guardianPhones || []).join(",") }));
   }
   if(composeRecipient === "Teachers"){
-    return teachersList.map(t => ({ name: teacherFullName(t), email: t.email || "" }));
+    return teachersList.map(t => ({ name: teacherFullName(t), email: t.email || "", phone: t.phone || "" }));
   }
   return []; // No stored email addresses yet for BOM/PA, Staff, Alumni, Others.
 }
@@ -50330,7 +50763,7 @@ async function composeSendMessage(){
   const recipients = resolveComposeRecipients();
   if(composeSendEmail){
     if(!emailJsIsConfigured()){
-      alert("Email sending isn't set up yet. Add your EmailJS Service ID, Template ID, and Public Key near the top of the Compose Message code (see the comment above EMAILJS_SERVICE_ID) before sending real emails.");
+      alert(commsBlockedMessage('email'));
       return;
     }
     if(!recipients.length){
@@ -50343,11 +50776,20 @@ async function composeSendMessage(){
     const result = await sendBulkEmail(recipients, composeSubject, composeBody);
     composeSendResult = result;
   } else {
-    composeSendResult = { sending: true, label: 'Sending message…', sub: recipients.length ? `To ${recipients.length} recipient${recipients.length===1?'':'s'}` : '' };
+    if(!commsStatus.sms){ alert(commsBlockedMessage('sms')); return; }
+    const withPhone = recipients.filter(r => splitPhones(r.phone).length);
+    if(!withPhone.length){ alert(`No phone numbers are on file for "${composeRecipient}" yet, so nothing was sent.`); return; }
+    const items = withPhone.map(r => ({ name: r.name, phone: r.phone, message: composeBody }));
+    const need = smsCreditsNeeded(items);
+    if(smsCreditBalance < need){ alert(`You need ${need} SMS credits but only have ${smsCreditBalance}. Visit Communication > Buy SMS to top up.`); return; }
+    composeSendResult = { sending: true, label: 'Sending SMS…', sub: `To ${withPhone.length} recipient${withPhone.length===1?'':'s'}` };
     composeSentBanner = true;
     render();
-    await wait(900); // brief, since there's no real messaging backend wired up yet
-    composeSendResult = null;
+    const sr = await sendBulkSms(withPhone, composeBody);
+    spendSmsCredits(sr.units);
+    composeSendResult = sr;
+    sentMessages.unshift({ to: withPhone.length === 1 ? withPhone[0].name : `${withPhone[0].name} +${withPhone.length - 1} more`, recipientCount: withPhone.length, type: 'SMS', subject: composeSubject || 'Message', message: composeBody, sentBy: currentUserName, date: new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) });
+    const sum = smsFailureSummary('SMS', sr); if(sum) alert(sum);
   }
   composeSentBanner = true;
   composeStep = 1;
@@ -50406,7 +50848,7 @@ function resolveComposeResultsRecipients(){
   } else {
     pool = studentsForGrade(composeResultsGrade, "");
   }
-  return pool.map(s => ({ name: s.guardian || fullName(s), email: s.guardianEmail || "" }));
+  return pool.map(s => ({ name: s.guardian || fullName(s), email: s.guardianEmail || "", phone: (s.guardianPhones || []).join(","), student: s }));
 }
 
 async function composeSendResults(){
@@ -50414,7 +50856,7 @@ async function composeSendResults(){
   composeResultsMessage = msgEl ? msgEl.value.trim() : composeResultsMessage;
   if(composeResultsSendEmail){
     if(!emailJsIsConfigured()){
-      alert("Email sending isn't set up yet. Add your EmailJS Service ID, Template ID, and Public Key near the top of the Compose Message code (see the comment above EMAILJS_SERVICE_ID) before sending real emails.");
+      alert(commsBlockedMessage('email'));
       return;
     }
     const recipients = resolveComposeResultsRecipients();
@@ -50430,14 +50872,21 @@ async function composeSendResults(){
     composeSendResult = await sendBulkEmail(recipients, subject, body);
   } else {
     const recipients = resolveComposeResultsRecipients();
-    composeSendResult = { sending: true, label: 'Sending results…', sub: recipients.length ? `To ${recipients.length} recipient${recipients.length===1?'':'s'}` : '' };
+    if(!commsStatus.sms){ alert(commsBlockedMessage('sms')); return; }
+    const withPhone = recipients.filter(r => splitPhones(r.phone).length);
+    if(!withPhone.length){ alert("No guardian phone numbers found for the selected students, so nothing was sent."); return; }
+    const resTitle = `${composeResultsGrade || ''} ${composeResultsExam || ''}`.trim();
+    const items = withPhone.map(r => ({ name: r.name, phone: r.phone, message: (composeResultsMessage || `Dear parent, ${r.student ? upperStr(fullName(r.student)) : 'your child'}${r.student ? ' (ADM ' + r.student.admissionNumber + ')' : ''}: ${resTitle} results are ready. Please log in to the parent portal to view them.`).split('{{NAME}}').join(r.student ? fullName(r.student) : '').split('{{ADM}}').join(r.student ? r.student.admissionNumber : '') }));
+    const need = smsCreditsNeeded(items);
+    if(smsCreditBalance < need){ alert(`You need ${need} SMS credits but only have ${smsCreditBalance}. Visit Communication > Buy SMS to top up.`); return; }
+    composeSendResult = { sending: true, label: 'Sending results…', sub: `To ${withPhone.length} recipient${withPhone.length===1?'':'s'}` };
     composeSentBanner = true;
     render();
-    await wait(900); // brief, since there's no real messaging backend wired up yet
-    if(recipients.length){
-      smsCreditBalance = Math.max(0, smsCreditBalance - recipients.length);
-    }
-    composeSendResult = null;
+    const sr = await commsSendSms(items);
+    spendSmsCredits(sr.units);
+    composeSendResult = { attempted: sr.attempted, sent: sr.sent, failures: sr.failures, skippedNoPhone: recipients.length - withPhone.length };
+    sentMessages.unshift({ to: `${withPhone[0].name}${withPhone.length > 1 ? ' +' + (withPhone.length - 1) + ' more' : ''}`, recipientCount: withPhone.length, type: 'SMS', subject: 'Send Results', message: items[0].message, sentBy: currentUserName, date: new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) });
+    const sum = smsFailureSummary('Results SMS', sr); if(sum) alert(sum);
   }
   if(sendResultsOrigin){
     sendExamResults(sendResultsOrigin.term, sendResultsOrigin.exam, sendResultsOrigin.cls);
@@ -50680,7 +51129,7 @@ const MESSAGING_TABS = [
   { key:"buySms", label:"Buy SMS", icon:"fa-money-bill-transfer" },
   { key:"modem", label:"MODEM", icon:"fa-tower-cell" },
 ];
-function setMessagingTab(key){ if(key !== 'compose') sendResultsOrigin = null; messagingTab = key; render(); }
+function setMessagingTab(key){ if(key !== 'compose') sendResultsOrigin = null; messagingTab = key; if(commsSignedIn()) refreshCommsStatus().then(() => render()); render(); }
 
 // ---- Messaging > Buy SMS: SMS credit wallet. A bundle purchase simulates
 // an M-Pesa STK push (no real payment gateway wired up), then tops up
@@ -50724,6 +51173,29 @@ function buySmsSelectedAmount(){
   return Math.round(buySmsSelectedQty() * 1.0);
 }
 
+// M-Pesa: the server sends the STK push and Safaricom confirms to the server;
+// we poll its status and only add credits once the payment is confirmed.
+async function pollMpesa(checkoutId, maxSeconds){
+  const end = Date.now() + (maxSeconds || 90) * 1000;
+  while(Date.now() < end){
+    await wait(3000);
+    try{
+      const st = await commsApi('GET', '/mpesa/status/' + encodeURIComponent(checkoutId));
+      if(st.status !== 'pending') return st;
+    }catch(e){ /* transient — keep polling */ }
+  }
+  return { status: 'timeout' };
+}
+// Reusable: ask the customer's phone to pay. Resolves { ok, receipt, amount, status, reason }.
+async function mpesaCharge({ phone, amount, reference, description, purpose, meta }){
+  if(!commsStatus.mpesa) return { ok:false, status:'unavailable', reason: commsBlockedMessage('mpesa') };
+  let start;
+  try{ start = await commsApi('POST', '/mpesa/stkpush', { phone, amount, reference, description, purpose, meta }); }
+  catch(e){ return { ok:false, status:'error', reason: e.message }; }
+  const st = await pollMpesa(start.checkoutId);
+  return { ok: st.status === 'paid', status: st.status, receipt: st.receipt, amount: st.amount, reason: st.reason || (st.status === 'timeout' ? 'No confirmation received yet. If money was deducted, it will show on the M-Pesa statement.' : '') , checkoutId: start.checkoutId };
+}
+
 async function purchaseSms(){
   const qty = buySmsSelectedQty();
   if(!qty){ alert("Choose a bundle or enter a quantity of SMS to buy."); return; }
@@ -50734,20 +51206,34 @@ async function purchaseSms(){
     return;
   }
   const amount = buySmsSelectedAmount();
-  buySmsProcessing = buySmsPaymentMethod === 'mpesa'
-    ? { label: "Sending M-Pesa prompt…", sub: `Check ${buySmsPhone} for the STK push` }
-    : { label: "Recording invoice request…", sub: `${qty.toLocaleString()} SMS · ${formatKsh(amount)}` };
+  if(buySmsPaymentMethod === 'invoice'){
+    // An invoice is only a request: credits are added when someone confirms payment ("Mark paid").
+    smsPurchaseHistory.unshift({ qty, amount, method: 'Invoice', status: 'Pending', ref: "INV-" + Math.random().toString(36).slice(2, 8).toUpperCase(), date: todayDDMMYYYY(), by: currentUserName });
+    buySmsConfirmBanner = { qty, amount, ref: smsPurchaseHistory[0].ref, pending: true };
+    render();
+    return;
+  }
+  buySmsProcessing = { label: "Sending M-Pesa prompt…", sub: `Check ${buySmsPhone} and enter your M-Pesa PIN` };
   render();
-  await wait(1400); // no real payment gateway wired up yet
-  const ref = "SMS-" + Math.random().toString(36).slice(2, 9).toUpperCase();
-  smsCreditBalance += qty;
-  smsPurchaseHistory.unshift({
-    qty, amount, method: buySmsPaymentMethod === 'mpesa' ? 'M-Pesa' : 'Invoice',
-    ref, date: todayDDMMYYYY(), by: currentUserName,
-  });
+  const r = await mpesaCharge({ phone: buySmsPhone, amount, reference: 'SMS' + qty, description: 'SMS credits', purpose: 'sms' });
   buySmsProcessing = null;
-  buySmsConfirmBanner = { qty, amount, ref };
+  if(!r.ok){
+    alert(r.status === 'cancelled' ? "The M-Pesa request was cancelled on the phone. No credits were added." : `Payment not completed: ${r.reason || r.status}`);
+    render();
+    return;
+  }
+  smsCreditBalance += qty;
+  smsPurchaseHistory.unshift({ qty, amount, method: 'M-Pesa', status: 'Paid', ref: r.receipt, date: todayDDMMYYYY(), by: currentUserName });
+  buySmsConfirmBanner = { qty, amount, ref: r.receipt };
   buySmsPhone = "";
+  render();
+}
+function markSmsInvoicePaid(ref){
+  const h = smsPurchaseHistory.find(x => x.ref === ref && x.status === 'Pending');
+  if(!h) return;
+  if(!confirm(`Confirm payment of ${formatKsh(h.amount)} was received for ${h.ref}? ${h.qty.toLocaleString()} SMS credits will be added.`)) return;
+  h.status = 'Paid'; h.paidOn = todayDDMMYYYY();
+  smsCreditBalance += h.qty;
   render();
 }
 
@@ -50770,16 +51256,17 @@ function renderBuySmsTab(){
   const qty = buySmsSelectedQty();
   const amount = buySmsSelectedAmount();
 
-  const historyRows = smsPurchaseHistory.map(h => `
+  const historyRows = smsPurchaseHistory.map((h, i) => `
     <tr>
+      <td>${i+1}</td>
       <td>${h.date}</td>
       <td>${h.qty.toLocaleString()} SMS</td>
       <td>${formatKsh(h.amount)}</td>
-      <td>${h.method}</td>
+      <td>${h.method}${h.status === 'Pending' ? ` <span style="color:var(--orange);font-weight:600;">· Pending</span> <button class="link-btn" onclick="markSmsInvoicePaid('${h.ref}')">Mark paid</button>` : ''}</td>
       <td style="font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${h.ref}</td>
       <td style="color:var(--muted);">${h.by}</td>
     </tr>
-  `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No purchases yet.</td></tr>`;
+  `).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No purchases yet.</td></tr>`;
 
   return `
     <div class="msg-inbox-header" style="padding-bottom:16px;border-bottom:1px solid var(--border);">
@@ -50787,7 +51274,7 @@ function renderBuySmsTab(){
     </div>
     ${buySmsConfirmBanner ? `
       <div style="margin:18px 24px 0;background:#eafbf0;border:1.5px solid #b7ecc8;color:#166534;border-radius:0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <span><i class="fa-solid fa-circle-check"></i>&nbsp; Added ${buySmsConfirmBanner.qty.toLocaleString()} SMS credits (${formatKsh(buySmsConfirmBanner.amount)}, ref ${buySmsConfirmBanner.ref}). New balance: ${smsCreditBalance.toLocaleString()}.</span>
+        <span><i class="fa-solid fa-circle-check"></i>&nbsp; ${buySmsConfirmBanner.pending ? `Invoice ${buySmsConfirmBanner.ref} recorded for ${buySmsConfirmBanner.qty.toLocaleString()} SMS (${formatKsh(buySmsConfirmBanner.amount)}). Credits are added once payment is marked received in Purchase history.` : `Added ${buySmsConfirmBanner.qty.toLocaleString()} SMS credits (${formatKsh(buySmsConfirmBanner.amount)}, ref ${buySmsConfirmBanner.ref}). New balance: ${smsCreditBalance.toLocaleString()}.`}</span>
         <button type="button" class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="dismissBuySmsBanner()">Dismiss</button>
       </div>
     ` : ''}
@@ -50841,7 +51328,7 @@ function renderBuySmsTab(){
       <div class="panel" style="overflow:hidden;">
         <div style="overflow-x:auto;">
           <table class="msg-table">
-            <thead><tr><th>Date</th><th>Quantity</th><th>Amount</th><th>Method</th><th>Reference</th><th>By</th></tr></thead>
+            <thead><tr><th>S/NO</th><th>Date</th><th>Quantity</th><th>Amount</th><th>Method</th><th>Reference</th><th>By</th></tr></thead>
             <tbody>${historyRows}</tbody>
           </table>
         </div>
@@ -50974,41 +51461,80 @@ function toggleBsmsSelectAll(){
   render();
 }
 
+// Builds one personalised text per selected learner for the chosen mode.
+function bsmsBuildMessages(recipients){
+  const sig = (bsmsSignature || '').trim();
+  const withSig = t => sig ? `${t}\n${sig}` : t;
+  return recipients.map(s => {
+    let text;
+    if(bsmsMode === 'fees') text = personalizeFeeSms(bsmsFeeMessage || '', s, Math.abs(bsmsStudentBalance(s)).toLocaleString());
+    else if(bsmsMode === 'results') text = withSig(`Dear parent, ${upperStr(fullName(s))} (ADM ${s.admissionNumber}): ${bsmsExam || 'exam'} results${bsmsTerm ? ' (' + bsmsTerm + ')' : ''} are ready. Please log in to the parent portal to view them.`);
+    else text = withSig(bsmsMessage || '');
+    return { student: s, name: s.guardian || fullName(s), phone: (s.guardianPhones || []).join(','), email: s.guardianEmail || '', text };
+  });
+}
+
 async function bsmsSend(){
   const recipients = bsmsFilteredStudents().filter(s => bsmsSelected[s.admissionNumber]);
-  if(!recipients.length) return;
-  if(bsmsChannel === 'SMS' && smsCreditBalance <= 0){
-    alert("You're out of SMS credits. Visit Messaging > Buy SMS to top up before sending.");
-    return;
-  }
+  const custom = bsmsMode === 'custom';
+  const nums = custom ? String(bsmsCustomNumbers || '').split(/[\s,;]+/).filter(Boolean) : [];
+  if(!custom && !recipients.length) return;
+  if(custom && !nums.length){ alert("Enter at least one phone number."); return; }
+  const text = custom ? withSignature(bsmsCustomMessage) : null;
+  if(custom && !(bsmsCustomMessage || '').trim()){ alert("Type the message to send."); return; }
+  if(!custom && bsmsMode === 'message' && !(bsmsMessage || '').trim()){ alert("Type the message to send."); return; }
+  if(!custom && bsmsMode === 'fees' && !(bsmsFeeMessage || '').trim()){ alert("Type the fee reminder message."); return; }
   const label = BSMS_MODE_LABELS[bsmsMode];
   const viaModem = bsmsChannel === 'SMS' && bsmsMethod === 'gsm';
   if(viaModem && !gsmModem.connected){
     alert("GSM modem is not connected. Open the MODEM tab, connect and identify the modem, then send again.");
     return;
   }
-  bsmsSendState = { sending: true, label: `${label}…`, sub: `To ${recipients.length} recipient${recipients.length===1?'':'s'}` };
+  const items = custom
+    ? nums.map(n => ({ name: n, phone: n, email: '', text }))
+    : bsmsBuildMessages(recipients);
+  if(bsmsChannel === 'Email'){
+    if(custom){ alert("Custom numbers can only be used for SMS."); return; }
+    if(!commsStatus.email){ alert(commsBlockedMessage('email')); return; }
+  } else if(!viaModem){
+    if(!commsStatus.sms){ alert(commsBlockedMessage('sms')); return; }
+    const need = smsCreditsNeeded(items.map(i => ({ phone: i.phone, message: i.text })));
+    if(smsCreditBalance < need){
+      alert(`You need ${need} SMS credit${need===1?'':'s'} but only have ${smsCreditBalance}. Visit Communication > Buy SMS to top up before sending.`);
+      return;
+    }
+  }
+  bsmsSendState = { sending: true, label: `${label}…`, sub: `To ${items.length} recipient${items.length===1?'':'s'}` };
   render();
-  if(viaModem && (bsmsMode === 'message' || bsmsMode === 'custom')){
-    // Real send through the connected GSM modem (plain message / custom numbers).
-    const text = (bsmsMode === 'message' ? bsmsMessage : bsmsCustomMessage) || '';
-    const nums = bsmsMode === 'message'
-      ? recipients.flatMap(s => (s.guardianPhones || []).slice(0,1))
-      : String(bsmsCustomNumbers || '').split(/[\s,;]+/).filter(Boolean);
+  let summary = '';
+  let delivered = items.length;
+  if(viaModem){
     let okN = 0, failN = 0;
-    for(const n of nums){ try{ await modemSendSms(n, text); okN++; }catch(err){ failN++; } }
-    alert(`GSM modem: ${okN} sent, ${failN} failed.`);
+    for(const it of items){
+      const nn = splitPhones(it.phone);
+      if(!nn.length){ failN++; continue; }
+      try{ await modemSendSms(nn[0], it.text); okN++; }catch(err){ failN++; }
+    }
+    delivered = okN;
+    summary = `GSM modem: ${okN} sent, ${failN} failed.`;
+  } else if(bsmsChannel === 'Email'){
+    const subj = bsmsMode === 'fees' ? 'School fee balance' : bsmsMode === 'results' ? `${bsmsExam || 'Exam'} results` : (currentSchool || 'School notice');
+    const er = await commsSendEmails(items.map(i => ({ name: i.name, email: i.email, subject: subj, message: i.text })));
+    delivered = er.sent;
+    summary = `Email: ${er.sent} sent` + (er.failures.length ? `, ${er.failures.length} failed:\n` + er.failures.slice(0, 8).map(f => `${f.name}: ${f.error}`).join('\n') : '.');
   } else {
-    await wait(900); // no messaging backend wired up yet
+    const sr = await commsSendSms(items.map(i => ({ name: i.name, phone: i.phone, message: i.text })));
+    spendSmsCredits(sr.units);
+    delivered = sr.sent;
+    summary = sr.failures.length ? smsFailureSummary('SMS', sr) : '';
   }
-  if(bsmsChannel === 'SMS'){
-    smsCreditBalance = Math.max(0, smsCreditBalance - recipients.length);
-  }
-  logSentMessage(recipients);
+  if(delivered > 0) logSentMessage(custom ? nums.map(n => ({ firstName: n, lastName: '' })) : recipients);
   bsmsSendState = null;
-  bsmsSelected = {};
+  if(delivered > 0) bsmsSelected = {};
   render();
+  if(summary) alert(summary);
 }
+function withSignature(t){ const sig = (bsmsSignature || '').trim(); return sig ? `${t}\n${sig}` : t; }
 
 function renderBulkSmsModeCard(key, title, bodyHtml){
   const isActive = bsmsMode === key;
@@ -51033,7 +51559,7 @@ function renderBulkSms(){
   const list = bsmsFilteredStudents();
   const selInView = list.filter(s => bsmsSelected[s.admissionNumber]).length;
   const allSelected = list.length > 0 && list.every(s => bsmsSelected[s.admissionNumber]);
-  const canSend = bsmsSelectedCount() > 0;
+  const canSend = bsmsMode === 'custom' ? !!String(bsmsCustomNumbers || '').trim() : bsmsSelectedCount() > 0;
 
   const rows = list.map(s => {
     const sel = !!bsmsSelected[s.admissionNumber];
@@ -51514,7 +52040,10 @@ function renderMessaging(){
     const t = MESSAGING_TABS.find(x => x.key === messagingTab);
     body = `<div class="empty" style="padding:60px 24px;text-align:center;">${t ? t.label : ''} — coming soon.</div>`;
   }
+  const notReady = !commsSignedIn() ? commsBlockedMessage('sms')
+    : (commsStatus.loaded && !commsStatus.sms && !commsStatus.email) ? "Sending isn't set up on the server yet. Ask your administrator to add the SMS (AT_*) and email (SMTP_*) settings — see README." : "";
   return `
+    ${notReady ? `<div style="margin-bottom:12px;padding:10px 14px;background:#fff7e6;border:1px solid #f5d38a;color:#7a5200;font-size:13px;"><i class="fa-solid fa-circle-info"></i>&nbsp; ${notReady}</div>` : ''}
     <div class="panel" style="overflow:hidden;padding:0;">
       ${renderMessagingTopbar()}
       ${body}
@@ -52125,6 +52654,7 @@ function renderSettingsUsersRolesTab(){
       <div>
         <div class="name">${u.name}</div>
         <div class="guardian">${u.email}</div>
+        ${u.role !== "System Developer" ? `<div style="font-size:11.5px;margin-top:2px;color:var(--muted);"><i class="fa-solid fa-user"></i> User name: <b>${userLoginName(u.name, u.role === "Sales Agent" ? "@platform" : currentSchool)}</b></div>` : ''}
         ${u.role !== "System Developer" ? `<div style="font-size:11.5px;margin-top:2px;color:${userNeedsPasswordChange(u) ? 'var(--orange)' : 'var(--green)'};"><i class="fa-solid ${userNeedsPasswordChange(u) ? 'fa-hourglass-half' : 'fa-circle-check'}"></i> ${userNeedsPasswordChange(u) ? 'Not signed in yet: welcome password' : 'Has own password'}</div>` : ''}
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -52142,7 +52672,7 @@ function renderSettingsUsersRolesTab(){
     <div class="two-col">
       <div class="panel settings-card">
         <h3 style="margin:0 0 8px;font-size:15px;font-weight:700;">Add a user</h3>
-        <p style="margin:0 0 14px;font-size:12px;color:var(--muted);line-height:1.5;">New users sign in with their first name (or phone number) and the welcome password <b>${WELCOME_PASSWORD}</b>, then must choose their own password straight away.</p>
+        <p style="margin:0 0 14px;font-size:12px;color:var(--muted);line-height:1.5;">New users sign in with the user name the system generates for them (first and second name @ school, shown under each user below) or their phone number, and the welcome password <b>${WELCOME_PASSWORD}</b>, then must choose their own password straight away.</p>
         <form onsubmit="addNewUser(event)">
           <label class="field"><span>Full name&nbsp;<span class="req">*</span></span>
             <select id="newUserName" onchange="onNewUserNameChange(this.value)">
@@ -52545,6 +53075,31 @@ const MEDICAL_ALERT_ROUTES = {
   "Refer to school nurse for review":         { ct:true, boarding:true, nurse:true },
   "Other":                                    { ct:true },
 };
+// PRINCIPAL DECIDES: a new alert is NOT sent to anyone. The principal (Super Admin) opens it and chooses to push it to
+// the teachers/staff it routes to (and which extra details to share), or to keep it confidential. Teachers only ever see
+// alerts that have been pushed, and only the details the principal ticked. Conditions below are never shareable.
+const MEDICAL_CONFIDENTIAL_CONDITIONS = ["HIV/AIDS"];
+const MEDICAL_SHAREABLE_FIELDS = [["allergies","Allergies"],["chronicIllness","Chronic illness"],["otherMedicalInfo","Other medical info"],["previousInjuries","Previous injuries"],["surgeries","Surgeries"],["bloodGroup","Blood group"]];
+function medAlertCanDecide(){ return currentUserRole === "Super Admin"; }
+function medAlertStatus(a){ return (a && (a.status === "pushed" || a.status === "withheld")) ? a.status : "pending"; }
+function medAlertIsConfidential(a){ const st = medAlertStudent(a) || {}; return MEDICAL_CONFIDENTIAL_CONDITIONS.includes(st.chronicIllness); }
+function medAlertDecisionCount(){ try{ return medicalAlerts.filter(a => medAlertStatus(a) === "pending").length; }catch(e){ return 0; } }
+function medAlertNavCount(){ return medAlertCanDecide() ? medAlertDecisionCount() : medAlertPendingCountForMe(); }
+function medAlertPush(id){
+  if(!medAlertCanDecide()) return;
+  const a = medicalAlerts.find(x => x.id === id); if(!a) return;
+  const conf = medAlertIsConfidential(a);
+  a.sharedFields = MEDICAL_SHAREABLE_FIELDS.map(f => f[0]).filter(k => !(conf && k === "chronicIllness") && document.getElementById("ma_sh_" + id + "_" + k)?.checked);
+  a.status = "pushed"; a.decidedBy = currentUserName; a.decidedAt = new Date().toISOString();
+  render();
+}
+function medAlertWithhold(id){
+  if(!medAlertCanDecide()) return;
+  const a = medicalAlerts.find(x => x.id === id); if(!a) return;
+  if(medAlertStatus(a) === "pushed" && !confirm("Take this alert back from the teachers? They will no longer see it.")) return;
+  a.status = "withheld"; a.sharedFields = []; a.decidedBy = currentUserName; a.decidedAt = new Date().toISOString();
+  render();
+}
 const MEDICAL_URGENT_CONDITIONS = ["Asthma","Epilepsy / Seizure disorder","Diabetes (Type 1)","Diabetes (Type 2)","Sickle cell disease","Heart condition"];
 
 function maEsc(v){
@@ -52572,6 +53127,7 @@ function syncMedicalAlert(student, prevAdm, prevRecommendation){
     a.admissionNumber = adm; a.studentName = name;
     if(a.recommendation !== rec){ // changed recommendation -> fresh alert, acknowledgements reset
       a.recommendation = rec; a.createdAt = new Date().toISOString(); a.createdBy = currentUserName; a.acks = {};
+      a.status = "pending"; a.sharedFields = []; delete a.decidedBy; delete a.decidedAt;   // the principal decides again
     }
     return;
   }
@@ -52579,6 +53135,7 @@ function syncMedicalAlert(student, prevAdm, prevRecommendation){
     id: "MA" + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
     admissionNumber: adm, studentName: name, recommendation: rec,
     createdAt: new Date().toISOString(), createdBy: currentUserName, acks: {},
+    status: "pending", sharedFields: [],   // not visible to teachers until the principal pushes it
   });
 }
 
@@ -52629,12 +53186,12 @@ function medAlertRecipients(a){
 }
 
 function medAlertIsMine(a){
-  return medAlertRecipients(a).some(r => tNameEq(r.name, currentUserName));
+  return medAlertStatus(a) === "pushed" && medAlertRecipients(a).some(r => tNameEq(r.name, currentUserName));
 }
-// Alerts the logged-in user can see: Teachers only get theirs; admin-type roles see all.
+// Alerts the logged-in user can see: the principal sees every alert; everyone else only the alerts the principal pushed to them.
 function medAlertsVisible(){
-  if(currentUserRole === "Teacher") return medicalAlerts.filter(medAlertIsMine);
-  return medicalAlerts.slice();
+  if(medAlertCanDecide()) return medicalAlerts.slice();
+  return medicalAlerts.filter(medAlertIsMine);
 }
 function medAlertAckKey(a){
   const k = Object.keys(a.acks || {}).find(n => tNameEq(n, currentUserName));
@@ -52667,20 +53224,30 @@ function medAlertFmtDate(iso){
 }
 
 function renderMedicalAlerts(){
+  const decider = medAlertCanDecide();
   const mine = currentUserRole === "Teacher";
   const all = medAlertsVisible();
   const q = medAlertSearch.trim().toLowerCase();
-  const pendingFor = a => { // is this alert still awaiting anyone's ack (admin) / my ack (recipient)
+  const pendingFor = a => { // is this alert still awaiting anyone's ack (principal view) / my ack (recipient)
     if(medAlertIsMine(a)) return !medAlertAckKey(a);
     return medAlertRecipients(a).some(r => !Object.keys(a.acks || {}).some(n => tNameEq(n, r.name)));
   };
-  const nPending = all.filter(pendingFor).length;
-  const nDone = all.length - nPending;
-  let list = all.filter(a => medAlertFilter === "all" ? true : medAlertFilter === "pending" ? pendingFor(a) : !pendingFor(a));
+  let f = medAlertFilter;
+  if(decider && !["decide","pushed","kept","all"].includes(f)) f = "decide";
+  if(!decider && !["pending","acknowledged","all"].includes(f)) f = "pending";
+  const nDecide = all.filter(a => medAlertStatus(a) === "pending").length;
+  const nPushed = all.filter(a => medAlertStatus(a) === "pushed").length;
+  const nKept = all.filter(a => medAlertStatus(a) === "withheld").length;
+  const nPending = all.filter(a => medAlertStatus(a) === "pushed" && pendingFor(a)).length;
+  const nDone = all.filter(a => medAlertStatus(a) === "pushed").length - nPending;
+  let list = all.filter(a => {
+    if(decider) return f === "all" ? true : f === "decide" ? medAlertStatus(a) === "pending" : f === "pushed" ? medAlertStatus(a) === "pushed" : medAlertStatus(a) === "withheld";
+    return f === "all" ? true : f === "pending" ? pendingFor(a) : !pendingFor(a);
+  });
   if(q) list = list.filter(a => (a.studentName + " " + a.admissionNumber + " " + a.recommendation).toLowerCase().includes(q));
   list.sort((x, y) => (medAlertIsUrgent(y) - medAlertIsUrgent(x)) || String(y.createdAt).localeCompare(String(x.createdAt)));
 
-  const tab = (key, label, n) => `<button type="button" class="btn-ghost" style="${medAlertFilter===key?'background:var(--blue-tint);color:var(--blue-dark);font-weight:700;':''}" onclick="setMedAlertFilter('${key}')">${label} (${n})</button>`;
+  const tab = (key, label, n) => `<button type="button" class="btn-ghost" style="${f===key?'background:var(--blue-tint);color:var(--blue-dark);font-weight:700;':''}" onclick="setMedAlertFilter('${key}')">${label} (${n})</button>`;
 
   const cards = list.map(a => {
     const s = medAlertStudent(a) || {};
@@ -52688,57 +53255,89 @@ function renderMedicalAlerts(){
     const myAck = medAlertAckKey(a);
     const isMine = medAlertIsMine(a);
     const urgent = medAlertIsUrgent(a);
-    const facts = [
-      ["Allergies", s.allergies], ["Chronic illness", s.chronicIllness], ["Other medical info", s.otherMedicalInfo],
-      ["Previous injuries", s.previousInjuries], ["Surgeries", s.surgeries], ["Blood group", s.bloodGroup],
-    ].filter(f => f[1] && f[1] !== "None");
+    const status = medAlertStatus(a);
+    const conf = medAlertIsConfidential(a);
+    const shared = Array.isArray(a.sharedFields) ? a.sharedFields : [];
+    const facts = MEDICAL_SHAREABLE_FIELDS.map(([k, label]) => [label, s[k], k])
+      .filter(x => x[1] && x[1] !== "None")
+      .filter(x => decider || shared.includes(x[2]));
     const recipRows = recips.map(r => {
       const k = Object.keys(a.acks || {}).find(n => tNameEq(n, r.name));
       return `<tr>
         <td style="padding:5px 8px;font-weight:600;">${maEsc(r.name)}</td>
         <td style="padding:5px 8px;color:var(--muted);">${r.via.map(maEsc).join(' · ')}</td>
-        <td style="padding:5px 8px;white-space:nowrap;">${k ? `<span style="color:var(--green);font-weight:600;"><i class="fa-solid fa-circle-check"></i> ${maEsc(medAlertFmtDate(a.acks[k]))}</span>` : `<span style="color:var(--amber);font-weight:600;"><i class="fa-regular fa-clock"></i> Awaiting</span>`}</td>
+        <td style="padding:5px 8px;white-space:nowrap;">${status !== "pushed" ? `<span style="color:var(--muted);">Not sent</span>` : k ? `<span style="color:var(--green);font-weight:600;"><i class="fa-solid fa-circle-check"></i> ${maEsc(medAlertFmtDate(a.acks[k]))}</span>` : `<span style="color:var(--amber);font-weight:600;"><i class="fa-regular fa-clock"></i> Awaiting</span>`}</td>
       </tr>`;
     }).join('');
+    const badge = status === "pushed" ? `<span style="margin-left:8px;font-size:11px;font-weight:700;color:#fff;background:var(--green);padding:2px 8px;">PUSHED TO TEACHERS</span>`
+      : status === "withheld" ? `<span style="margin-left:8px;font-size:11px;font-weight:700;color:#fff;background:#64748b;padding:2px 8px;">KEPT CONFIDENTIAL</span>`
+      : `<span style="margin-left:8px;font-size:11px;font-weight:700;color:#fff;background:var(--amber);padding:2px 8px;">AWAITING YOUR DECISION</span>`;
+    const decisionBox = !decider ? '' : `
+        <div style="margin-top:12px;padding:10px 12px;background:var(--bg);border:1px dashed var(--border);font-size:12.5px;">
+          ${conf ? `<div style="color:var(--rose);font-weight:600;margin-bottom:6px;"><i class="fa-solid fa-lock"></i> Confidential condition: the diagnosis is never shared with teachers or staff.</div>` : ''}
+          ${status === "pushed" ? `
+            <div>Pushed by <b>${maEsc(a.decidedBy || '')}</b> on ${maEsc(medAlertFmtDate(a.decidedAt))}. Teachers see the recommendation${shared.length ? ' plus: <b>' + shared.map(k => maEsc((MEDICAL_SHAREABLE_FIELDS.find(x => x[0] === k) || [k,k])[1])).join(', ') + '</b>' : ' only'}.</div>
+            <div style="margin-top:8px;"><button type="button" class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="medAlertWithhold('${a.id}')"><i class="fa-solid fa-rotate-left"></i> Take back</button></div>`
+          : `
+            <div style="margin-bottom:6px;font-weight:600;">Extra details to share with the teachers (the recommendation itself is always included):</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px 16px;margin-bottom:10px;">
+              ${MEDICAL_SHAREABLE_FIELDS.filter(([k]) => s[k] && s[k] !== "None").map(([k, label]) => {
+                const locked = conf && k === "chronicIllness";
+                return `<label style="display:inline-flex;align-items:center;gap:5px;${locked ? 'opacity:.55;' : ''}"><input type="checkbox" id="ma_sh_${a.id}_${k}" ${locked ? 'disabled' : ''}> ${label}: ${locked ? 'confidential' : maEsc(s[k])}</label>`;
+              }).join('') || '<span style="color:var(--muted);">No other medical details on file.</span>'}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-primary" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="medAlertPush('${a.id}')"><i class="fa-solid fa-paper-plane"></i> Push to teachers</button>
+              ${status === "pending" ? `<button type="button" class="btn-ghost" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="medAlertWithhold('${a.id}')"><i class="fa-solid fa-lock"></i> Keep confidential</button>` : `<span style="color:var(--muted);align-self:center;">Kept confidential on ${maEsc(medAlertFmtDate(a.decidedAt))}.</span>`}
+            </div>`}
+        </div>`;
     return `
       <div class="panel" style="padding:16px 20px;margin-bottom:14px;border-left:5px solid ${urgent ? 'var(--rose)' : 'var(--amber)'};">
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;">
           <div style="min-width:240px;flex:1;">
             <div style="font-size:16px;font-weight:700;">${maEsc(s.firstName ? fullName(s) : a.studentName)}
-              ${urgent ? '<span style="margin-left:8px;font-size:11px;font-weight:700;color:#fff;background:var(--rose);padding:2px 8px;">HIGH PRIORITY</span>' : ''}</div>
+              ${urgent ? '<span style="margin-left:8px;font-size:11px;font-weight:700;color:#fff;background:var(--rose);padding:2px 8px;">HIGH PRIORITY</span>' : ''}${decider ? badge : ''}</div>
             <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">Adm ${maEsc(a.admissionNumber)}${s.grade ? ' · ' + maEsc(s.grade) + ' ' + maEsc(s.stream || '') : ''}${s.boardingStatus ? ' · ' + maEsc(s.boardingStatus) : ''} · Raised ${maEsc(medAlertFmtDate(a.createdAt))}</div>
             <div style="margin-top:10px;font-size:14px;"><i class="fa-solid fa-briefcase-medical" style="color:var(--rose);"></i> <strong>${maEsc(a.recommendation)}</strong></div>
-            ${facts.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;">${facts.map(f => `<span><span style="color:var(--muted);">${f[0]}:</span> <strong>${maEsc(f[1])}</strong></span>`).join('')}</div>` : ''}
+            ${facts.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;">${facts.map(x => `<span><span style="color:var(--muted);">${x[0]}:</span> <strong>${maEsc(x[1])}</strong></span>`).join('')}</div>` : ''}
           </div>
           <div style="text-align:right;">
             ${isMine
               ? (myAck
                   ? `<div style="color:var(--green);font-weight:600;font-size:13px;"><i class="fa-solid fa-circle-check"></i> You acknowledged ${maEsc(medAlertFmtDate(a.acks[myAck]))}</div>`
                   : `<button type="button" class="btn-primary" onclick="acknowledgeMedicalAlert('${a.id}')"><i class="fa-solid fa-check"></i> Acknowledge</button>`)
-              : `<div style="font-size:12.5px;color:var(--muted);">${Object.keys(a.acks||{}).length}/${recips.length} acknowledged</div>`}
+              : (status === "pushed" ? `<div style="font-size:12.5px;color:var(--muted);">${Object.keys(a.acks||{}).length}/${recips.length} acknowledged</div>` : '')}
           </div>
         </div>
-        ${mine ? `<div style="margin-top:10px;font-size:12.5px;color:var(--muted);">You receive this as: ${recips.filter(r => tNameEq(r.name, currentUserName)).map(r => r.via.map(maEsc).join(', ')).join(', ')}</div>` : `
-        <details style="margin-top:10px;"><summary style="cursor:pointer;font-size:12.5px;color:var(--blue-dark);font-weight:600;">Routed to ${recips.length} ${recips.length===1?'person':'people'}</summary>
+        ${decisionBox}
+        ${mine ? `<div style="margin-top:10px;font-size:12.5px;color:var(--muted);">You receive this as: ${recips.filter(r => tNameEq(r.name, currentUserName)).map(r => r.via.map(maEsc).join(', ')).join(', ')}</div>` : (decider ? `
+        <details style="margin-top:10px;"><summary style="cursor:pointer;font-size:12.5px;color:var(--blue-dark);font-weight:600;">${status === "pushed" ? 'Sent to' : 'Would go to'} ${recips.length} ${recips.length===1?'person':'people'}</summary>
           ${recips.length ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;">${recipRows}</table>` : '<div class="empty" style="padding:12px;">No recipients found — assign a class teacher for this learner’s class.</div>'}
-        </details>`}
+        </details>` : '')}
       </div>`;
   }).join('');
 
   const myPending = medAlertPendingCountForMe();
-  return `
-    ${pageHeader("Medical Alerts", mine ? "Learner health recommendations routed to you — please read and acknowledge" : "Health recommendations captured at registration and who they were sent to")}
-    <div class="stat-cards">
+  const statCards = decider ? `
+      <div class="stat-card"><div class="lbl">Awaiting your decision</div><div class="val" style="color:var(--amber);">${nDecide}</div></div>
+      <div class="stat-card"><div class="lbl">Pushed to teachers</div><div class="val" style="color:var(--green);">${nPushed}</div></div>
+      <div class="stat-card"><div class="lbl">Kept confidential</div><div class="val" style="color:#64748b;">${nKept}</div></div>` : `
       <div class="stat-card"><div class="lbl">${mine ? 'Awaiting my acknowledgement' : 'Awaiting acknowledgement'}</div><div class="val" style="color:var(--amber);">${nPending}</div></div>
       <div class="stat-card"><div class="lbl">Acknowledged</div><div class="val" style="color:var(--green);">${nDone}</div></div>
-      <div class="stat-card"><div class="lbl">High priority</div><div class="val" style="color:var(--rose);">${all.filter(medAlertIsUrgent).length}</div></div>
+      <div class="stat-card"><div class="lbl">High priority</div><div class="val" style="color:var(--rose);">${all.filter(medAlertIsUrgent).length}</div></div>`;
+  const tabs = decider
+    ? tab('decide','Awaiting decision',nDecide) + tab('pushed','Pushed',nPushed) + tab('kept','Kept confidential',nKept) + tab('all','All',all.length)
+    : tab('pending','Pending',nPending) + tab('acknowledged','Acknowledged',nDone) + tab('all','All',all.length);
+  return `
+    ${pageHeader("Medical Alerts", decider ? "Decide which health recommendations are pushed to teachers. Nothing is sent until you push it; confidential conditions are never shared." : mine ? "Learner health recommendations the principal has shared with you — please read and acknowledge" : "Health recommendations the principal has shared with you")}
+    <div class="stat-cards">${statCards}
     </div>
     <div class="panel" style="padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-      ${tab('pending','Pending',nPending)}${tab('acknowledged','Acknowledged',nDone)}${tab('all','All',all.length)}
+      ${tabs}
       <input type="search" placeholder="Search learner, admission no. or recommendation..." value="${maEsc(medAlertSearch)}" oninput="setMedAlertSearch(this.value)" style="flex:1;min-width:200px;margin-left:auto;">
       ${myPending > 1 ? `<button type="button" class="btn-ghost" onclick="acknowledgeAllMedicalAlerts()"><i class="fa-solid fa-check-double"></i> Acknowledge all mine (${myPending})</button>` : ''}
     </div>
-    ${cards || `<div class="panel"><div class="empty">${all.length ? 'No alerts in this view.' : (mine ? 'No medical alerts have been routed to you.' : 'No medical alerts yet. They appear here when a learner is registered with a medical recommendation.')}</div></div>`}
+    ${cards || `<div class="panel"><div class="empty">${all.length ? 'No alerts in this view.' : (decider ? 'No medical alerts yet. They appear here, awaiting your decision, when a learner is registered with a medical recommendation.' : 'No medical alerts have been pushed to you.')}</div></div>`}
   `;
 }
 

@@ -14,8 +14,13 @@ const snapshotSchema = new mongoose.Schema({
   updatedBy: String,
 }, { timestamps: true });
 
+const txSchema = new mongoose.Schema({ id: { type: String, required: true, unique: true }, data: mongoose.Schema.Types.Mixed }, { timestamps: true });
+
 class MongoStore {
-  constructor() { this.User = mongoose.models.User || mongoose.model('User', userSchema); this.Snapshot = mongoose.models.Snapshot || mongoose.model('Snapshot', snapshotSchema); }
+  constructor() { this.User = mongoose.models.User || mongoose.model('User', userSchema); this.Snapshot = mongoose.models.Snapshot || mongoose.model('Snapshot', snapshotSchema); this.Tx = mongoose.models.Tx || mongoose.model('Tx', txSchema); }
+  async saveTx(id, data) { await this.Tx.updateOne({ id }, { $set: { data } }, { upsert: true }); }
+  async getTx(id) { const t = await this.Tx.findOne({ id }).lean(); return t ? t.data : null; }
+  async listTx(limit = 200) { return (await this.Tx.find({}).sort({ createdAt: -1 }).limit(limit).lean()).map(t => t.data); }
   async connect(uri) { if (mongoose.connection.readyState !== 1) await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 }); }
   async countUsers() { return this.User.countDocuments(); }
   async findUser(username) { const u = await this.User.findOne({ username: String(username).toLowerCase() }).lean(); return u && { id: String(u._id), ...u }; }
@@ -32,7 +37,10 @@ class MongoStore {
 }
 
 class MemoryStore {
-  constructor() { this.users = new Map(); this.snaps = new Map(); this.n = 0; }
+  constructor() { this.users = new Map(); this.snaps = new Map(); this.txs = new Map(); this.n = 0; }
+  async saveTx(id, data) { this.txs.set(id, data); }
+  async getTx(id) { return this.txs.get(id) || null; }
+  async listTx(limit = 200) { return [...this.txs.values()].reverse().slice(0, limit); }
   async connect() {}
   async countUsers() { return this.users.size; }
   async findUser(username) { return this.users.get(String(username).toLowerCase()) || null; }

@@ -31,7 +31,7 @@
   pill.onclick=function(){ if(!token||state==='err') openDialog(); else if(confirm('Sign out of cloud sync?')){ token=null; ready=false; try{localStorage.removeItem(TOKEN_KEY);}catch(e){} setState('off'); } };
 
   // used by the top-bar / mobile menu "cloud" link
-  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: saving…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; } };
+  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: saving…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; }, api:function(m,path,body){ return api(m,path,body); } };
 
   function openDialog(){
     api('GET','/auth/status').catch(function(){return {};}).then(function(st){

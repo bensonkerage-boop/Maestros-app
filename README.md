@@ -23,6 +23,19 @@ Express + MongoDB API (JWT auth) that hosts the MASMS page and saves its data in
 | GET/PUT | `/api/data` | whole backup JSON; `baseVersion` stops stale saves overwriting newer data (409) |
 | GET | `/api/health` | |
 
+| GET | `/api/comms/status` | which of SMS / email / M-Pesa the server has set up |
+| POST | `/api/sms/send` | `{to,message}` or `{messages:[{to,message}]}` via Africa's Talking; returns `sent`, `failed`, `units` |
+| POST | `/api/email/send` | `{to,subject,message}` or `{messages:[{email,subject,message}]}` via SMTP |
+| POST | `/api/mpesa/stkpush` | sends an M-Pesa prompt; Safaricom confirms to `/api/mpesa/callback/<MPESA_CALLBACK_SECRET>` |
+| GET | `/api/mpesa/status/:id`, `/api/mpesa/recent` | prompt status / confirmed payments (for the Reconciliation tab) |
+
+## Communication & payments setup
+Messages and M-Pesa prompts are sent **by the server**, so provider keys never reach the browser. Staff must be signed in with the cloud button (bottom-left). Set these in `.env` or Vercel's Environment Variables (see `.env.example`); each feature shows a clear "not set up" message until its variables exist:
+- **SMS:** `AT_USERNAME`, `AT_API_KEY`, optional `AT_SENDER_ID` (Africa's Talking; `AT_USERNAME=sandbox` for testing).
+- **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (Gmail: use an App Password).
+- **M-Pesa (Daraja STK push):** `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_SECRET` (any long random string), `PUBLIC_URL` (your deployed https address), `MPESA_ENV=production` when live.
+SMS credits in the app are drawn down by what the server actually sent (160-character segments). Buying credits by M-Pesa only adds them after Safaricom confirms; invoice requests add credits when marked paid.
+
 ## Run locally
 ```
 npm install && npm run build && npm start     # http://localhost:3000 (volatile in-memory DB if MONGODB_URI is unset)
