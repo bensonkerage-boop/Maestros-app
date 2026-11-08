@@ -18,10 +18,26 @@ jobs:
           API_BASE: ${{ vars.API_BASE }}
       - name: Restore signing key
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/masms-upload.jks"
+      - name: Pre-download Gradle (tries gradle.org, then mirrors)
+        run: |
+          V=8.14.3
+          ok=0
+          for url in "https://services.gradle.org/distributions/gradle-$V-bin.zip" \
+                     "https://mirrors.cloud.tencent.com/gradle/gradle-$V-bin.zip" \
+                     "https://mirrors.aliyun.com/gradle/gradle-$V-bin.zip"; do
+            echo "Trying $url"
+            if curl -fL --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 20 --max-time 300 -o "$RUNNER_TEMP/gradle.zip" "$url" && unzip -tq "$RUNNER_TEMP/gradle.zip" >/dev/null; then ok=1; break; fi
+          done
+          if [ "$ok" = 1 ]; then
+            sed -i "s#^distributionUrl=.*#distributionUrl=file\\:$RUNNER_TEMP/gradle.zip#; s#^validateDistributionUrl=.*#validateDistributionUrl=false#" android/gradle/wrapper/gradle-wrapper.properties
+            cat android/gradle/wrapper/gradle-wrapper.properties
+          else
+            echo "Could not pre-download Gradle; the wrapper will try on its own"
+          fi
       - name: Build signed bundle
         run: |
           cd android && chmod +x gradlew
-          for i in 1 2 3; do ./gradlew bundleRelease && exit 0; echo "Attempt $i failed, retrying in 20s"; sleep 20; done; exit 1
+          for i in 1 2 3 4 5; do ./gradlew bundleRelease && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
           KEYSTORE_FILE: ${{ runner.temp }}/masms-upload.jks
