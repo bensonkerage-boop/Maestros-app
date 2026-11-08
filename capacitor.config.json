@@ -1,8 +1,0 @@
-{
-  "appId": "com.maestro.masms",
-  "appName": "MASMS",
-  "webDir": "public",
-  "backgroundColor": "#152c58",
-  "android": { "allowMixedContent": false },
-  "server": { "androidScheme": "https" }
-}

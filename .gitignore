@@ -1,7 +1,0 @@
-node_modules
-.env
-.vercel
-android/app/build
-android/.gradle
-android/build
-public
