@@ -1,0 +1,32 @@
+name: Build Play Store release
+# Needs repository variable API_BASE and secrets KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS
+# (see PLAY_STORE.md). Produces a signed .aab to upload in the Play Console.
+on:
+  workflow_dispatch:
+jobs:
+  aab:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm run build:android
+        env:
+          API_BASE: ${{ vars.API_BASE }}
+      - name: Restore signing key
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/masms-upload.jks"
+      - name: Build signed bundle
+        run: cd android && chmod +x gradlew && ./gradlew bundleRelease
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          KEYSTORE_FILE: ${{ runner.temp }}/masms-upload.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: MASMS-play-release
+          path: android/app/build/outputs/bundle/release/app-release.aab
