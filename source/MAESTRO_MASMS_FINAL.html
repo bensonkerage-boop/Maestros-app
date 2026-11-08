@@ -32419,6 +32419,18 @@ function buildSubjectsTimetablePdf(){
 // actual rendered .tt-printable DOM \u2014 including every Days/Lesson Print
 // setup choice (position, font, full-name toggles) \u2014 via html2canvas and
 // drops each page straight into a PDF, one image per page.
+// Export PDF = the real print layout (same engine and fit-to-page as the Print button), so the PDF is
+// sharp, selectable text that looks exactly like the print preview — not a screenshot of the screen.
+// In the browser/desktop, choose "Save as PDF" as the printer. The Android app has no print dialog,
+// so it uses the built-in vector PDF builder instead.
+function exportTimetablePdf(){
+  let native = false;
+  try{ native = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()); }catch(e){}
+  if(native){ downloadTimetableReportPdf(); return; }
+  alert('In the print window that opens, choose "Save as PDF" as the destination, then press Save.\n\nThis gives a sharp PDF that looks exactly like the print preview.');
+  window.print();
+}
+
 async function downloadTimetablePreviewExactPdf(){
   if(typeof window.jspdf === "undefined" || typeof html2canvas === "undefined"){
     alert("PDF export isn't available right now (couldn't load the PDF/rendering library). Please check your internet connection and try again.");
@@ -32721,7 +32733,7 @@ function renderTimetablePrintoutsPage(){
         <button type="button" class="tt-rib-btn" title="Print" onclick="window.print()">
           <i class="fa-solid fa-print"></i><span>Print</span>
         </button>
-        <button type="button" id="tt_export_pdf_btn" class="tt-rib-btn" title="Download PDF exactly as shown in the print preview" onclick="downloadTimetablePreviewExactPdf()">
+        <button type="button" id="tt_export_pdf_btn" class="tt-rib-btn" title="Save as PDF using the same sharp print layout (choose Save as PDF as the destination)" onclick="exportTimetablePdf()">
           <i class="fa-solid fa-file-pdf"></i><span>Export<br>PDF</span>
         </button>
       </div>

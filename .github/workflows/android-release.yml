@@ -19,7 +19,9 @@ jobs:
       - name: Restore signing key
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/masms-upload.jks"
       - name: Build signed bundle
-        run: cd android && chmod +x gradlew && ./gradlew bundleRelease
+        run: |
+          cd android && chmod +x gradlew
+          for i in 1 2 3; do ./gradlew bundleRelease && exit 0; echo "Attempt $i failed, retrying in 20s"; sleep 20; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
           KEYSTORE_FILE: ${{ runner.temp }}/masms-upload.jks
