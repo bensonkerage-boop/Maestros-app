@@ -12,7 +12,7 @@ const kcse = [['A',12],['A-',11],['B+',10],['B',9],['B-',8],['C+',7],['C',6],['C
 const mk = list => ({ bands: [...list.map(([grade, points], i) => ({ low: 100 - i * 10, high: 100, grade, points })), { low: -1, high: -1, grade: 'X', points: 0 }] });
 const ctx = { gradingSystems: [{ name: 'CBE', ...mk(cbe) }, { name: 'KCSE', ...mk(kcse) }], isEight44Grade: g => /form/i.test(g) };
 vm.createContext(ctx);
-vm.runInContext(fnSrc('gradingSystemForGrade') + fnSrc('gradeFromMeanPoints'), ctx);
+vm.runInContext(fnSrc('gradingSystemCurriculum') + fnSrc('gradingSystemForGrade') + fnSrc('gradeFromMeanPoints'), ctx);
 const g = (p, label) => ctx.gradeFromMeanPoints(p, label);
 
 test('CBC: 5.5 and above is ME1 (6), below 5.5 is ME2 (5)', () => {

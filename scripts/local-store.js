@@ -13,30 +13,65 @@
   function hash(s){ var h=5381,i=s.length; while(i) h=(h*33)^s.charCodeAt(--i); return String(h>>>0)+':'+s.length; }
   function skipExported(k,v){ return k==='exportedAt'?undefined:v; }
 
-  function idb(){
+  // Every storage call is time-limited: a database that never answers (some desktop webviews do this)
+  // must not leave autosave stuck in "busy" forever.
+  function withTimeout(p,ms,what){
     return new Promise(function(res,rej){
+      var t=setTimeout(function(){ rej(new Error(what+' timed out')); },ms);
+      p.then(function(v){ clearTimeout(t); res(v); },function(e){ clearTimeout(t); rej(e); });
+    });
+  }
+  var dbP=null, idbDeadUntil=0;   // after a failed open, skip IndexedDB for a minute and use the fallback straight away
+  function idb(){
+    if(dbP) return dbP;
+    if(Date.now()<idbDeadUntil) return Promise.reject(new Error('IndexedDB unavailable'));
+    dbP=withTimeout(new Promise(function(res,rej){
       if(!window.indexedDB) return rej(new Error('IndexedDB unavailable'));
       var q; try{ q=indexedDB.open(DB,1); }catch(e){ return rej(e); }
       q.onupgradeneeded=function(){ q.result.createObjectStore(STORE); };
-      q.onsuccess=function(){ res(q.result); };
+      q.onsuccess=function(){ var db=q.result; db.onclose=function(){ dbP=null; }; db.onversionchange=function(){ try{ db.close(); }catch(e){} dbP=null; }; res(db); };
       q.onerror=function(){ rej(q.error); };
       q.onblocked=function(){ rej(new Error('IndexedDB blocked')); };
-    });
+    }),6000,'IndexedDB open').catch(function(e){ dbP=null; idbDeadUntil=Date.now()+60000; throw e; });
+    return dbP;
   }
   function lsKey(k){ return 'masmsLocal:'+k; }
+
+  // localStorage fallback (used when IndexedDB is unavailable, e.g. some desktop webviews on file://).
+  // It holds only ~5MB, so large data is gzip-compressed first when the browser supports it.
+  function b64FromBytes(u8){ var s='',i,CH=0x8000; for(i=0;i<u8.length;i+=CH) s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); return btoa(s); }
+  function bytesFromB64(b){ var s=atob(b),u=new Uint8Array(s.length),i; for(i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
+  function streamBytes(stream,input){
+    var w=stream.writable.getWriter(); w.write(input); w.close();
+    return new Response(stream.readable).arrayBuffer().then(function(b){ return new Uint8Array(b); });
+  }
+  function lsSet(k,obj){
+    var json=JSON.stringify(obj);
+    try{ localStorage.setItem(lsKey(k),json); return Promise.resolve(); }catch(e){
+      if(typeof CompressionStream==='undefined') return Promise.reject(e);
+      return streamBytes(new CompressionStream('gzip'),new TextEncoder().encode(json)).then(function(u8){
+        localStorage.setItem(lsKey(k),'gz:'+b64FromBytes(u8));
+      });
+    }
+  }
+  function lsGet(k){
+    var s=localStorage.getItem(lsKey(k)); if(!s) return Promise.resolve(null);
+    if(s.slice(0,3)!=='gz:') return Promise.resolve(JSON.parse(s));
+    return streamBytes(new DecompressionStream('gzip'),bytesFromB64(s.slice(3))).then(function(u8){ return JSON.parse(new TextDecoder().decode(u8)); });
+  }
   function get(k){
-    return idb().then(function(db){ return new Promise(function(res,rej){
+    return idb().then(function(db){ return withTimeout(new Promise(function(res,rej){
       var r=db.transaction(STORE,'readonly').objectStore(STORE).get(k);
       r.onsuccess=function(){ res(r.result||null); }; r.onerror=function(){ rej(r.error); };
-    }); }).catch(function(){
-      var s=localStorage.getItem(lsKey(k)); return s?JSON.parse(s):null;   // throws -> caller treats as a read failure
+    }),10000,'IndexedDB read'); }).catch(function(){
+      return lsGet(k);   // throws -> caller treats as a read failure
     });
   }
   function put(k,obj){
-    return idb().then(function(db){ return new Promise(function(res,rej){
+    return idb().then(function(db){ return withTimeout(new Promise(function(res,rej){
       var t=db.transaction(STORE,'readwrite'); t.objectStore(STORE).put(obj,k);
       t.oncomplete=function(){ res(); }; t.onerror=function(){ rej(t.error); }; t.onabort=function(){ rej(t.error||new Error('write aborted')); };
-    }); }).catch(function(){ localStorage.setItem(lsKey(k),JSON.stringify(obj)); });
+    }),15000,'IndexedDB write'); }).catch(function(){ return lsSet(k,obj); });
   }
 
   function syncedHash(){ try{ return localStorage.getItem(SYNCED)||''; }catch(e){ return ''; } }
@@ -94,15 +129,30 @@
     }).catch(function(e){ alert('Could not read the earlier copy: '+((e&&e.message)||e)); return false; });
   }
 
+  var firstLoad=true;
   function init(){
-    try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
-    get(KEY).then(function(o){
-      if(o&&o.json&&apply(parse(o))){
-        lastObj=o; lastHash=o.hash||'';
-        hadUnsynced=!!o.hash&&o.hash!==syncedHash();
+    if(firstLoad){ try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){} }
+    return get(KEY).then(function(o){
+      readFailed=false; errMsg='';
+      if(firstLoad){
+        if(o&&o.json&&apply(parse(o))){
+          lastObj=o; lastHash=o.hash||'';
+          hadUnsynced=!!o.hash&&o.hash!==syncedHash();
+        }
+      } else if(o&&o.json){
+        // The first read failed, so this copy was never loaded. Saving now would overwrite it with
+        // whatever is on screen, so autosave stays paused until the app is restarted and loads it.
+        readFailed=true; errMsg='an earlier copy exists on this device; restart the app to load it';
       }
     }).catch(function(e){ readFailed=true; errMsg=(e&&e.message)||''; })
-      .then(function(){ ready=true; state=readFailed?'err':'ok'; paint(); resolveReady(); });
+      .then(function(){ firstLoad=false; ready=true; state=readFailed?'err':'ok'; paint(); resolveReady(); });
+  }
+  // A read problem used to pause autosave until the app was restarted. Now it is retried every half minute,
+  // and saving resumes as soon as the stored copy can be read (or is confirmed empty).
+  var retryAt=0;
+  function retryRead(){
+    if(!readFailed||busy||Date.now()<retryAt) return;
+    retryAt=Date.now()+30000; dbP=null; init();
   }
 
   window.MASMS_LOCAL={
@@ -117,7 +167,7 @@
   };
 
   document.addEventListener('DOMContentLoaded',init);
-  setInterval(function(){ save(false); paint(); },TICK);
+  setInterval(function(){ retryRead(); save(false); paint(); },TICK);
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(false); });
   window.addEventListener('pagehide',function(){ save(false); });
 })();

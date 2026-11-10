@@ -10,7 +10,28 @@
   var DROP_HEADER = /^(actions?|options?|manage|edit|delete|view|select|remove|photo|picture|image|tick|✓)$/i;
 
   function clean(s){ return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+  // Attendance picker cell (X / 0 / L / E buttons): export only the selected mark, not every button's text ("X0").
+  var ATT_LETTER = { present: 'X', absent: '0', late: 'L', excused: 'E' };
+  function attendanceMark(td){
+    var btns = td.querySelectorAll('.att-btns .att-btn');
+    if (!btns.length) return null;
+    for (var i = 0; i < btns.length; i++) {
+      for (var k in ATT_LETTER) if (btns[i].classList.contains(k)) return ATT_LETTER[k];
+    }
+    return '';
+  }
   function cellText(td){
+    var mark = attendanceMark(td);
+    if (mark !== null) return mark;
+    // A dropdown (e.g. absence reason) exports its chosen value, never the whole option list; "Select…" placeholders export blank.
+    var sel = td.querySelector('select');
+    if (sel) {
+      var parts = [];
+      var o = sel.options[sel.selectedIndex];
+      if (o && o.value !== '') parts.push(clean(o.text));
+      Array.prototype.forEach.call(td.querySelectorAll('input[type=text],input:not([type]),textarea'), function(i){ if (clean(i.value)) parts.push(clean(i.value)); });
+      return parts.join(' - ');
+    }
     var inp = td.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea');
     if (inp && !clean(td.innerText)) {
       if (inp.tagName === 'SELECT') return clean(inp.options[inp.selectedIndex] ? inp.options[inp.selectedIndex].text : '');
@@ -29,7 +50,18 @@
     var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
     if (!rows.length && table.querySelector('thead')) rows = [];
     if (!table.querySelector('thead')) rows = Array.prototype.slice.call(table.querySelectorAll('tr')).slice(1);
-    var data = rows.map(function(r){ return Array.prototype.slice.call(r.children).map(cellText); })
+    // A cell with colspan="n" must occupy n columns, otherwise everything after it (e.g. the figures on a
+    // TOTAL row whose label spans several columns) slides left under the wrong headings.
+    var data = rows.map(function(r){
+      var cells = Array.prototype.slice.call(r.children);
+      if (cells.length === 1) return cells.map(cellText);     // a single full-width message row, dropped below as before
+      var out = [];
+      cells.forEach(function(c){
+        out.push(cellText(c));
+        for (var k = 1, span = Math.max(1, c.colSpan || 1); k < span; k++) out.push('');
+      });
+      return out;
+    })
       .filter(function(r){ return r.some(function(c){ return c !== ''; }); });
     var heads = headCells.map(function(h){ return clean(h.innerText != null ? h.innerText : h.textContent); });
     var keep = heads.map(function(h, i){
@@ -57,6 +89,7 @@
 
   function titleFor(table){
     var d = win.document;
+    if (table.dataset && table.dataset.pdfTitle) return clean(table.dataset.pdfTitle);   // explicit title wins
     var panel = table.closest('.panel,.settings-card');
     var h = panel && panel.querySelector('.panel-header h3,h3,h2');
     var page = d.querySelector('.subbar-title');
