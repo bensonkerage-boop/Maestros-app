@@ -909,7 +909,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   }
   .announcement-box .ann-head i{color:var(--blue);font-size:16px;}
   .announcement-box .ann-head h3{margin:0;font-size:15px;font-weight:700;color:var(--blue-dark);}
-  .announcement-box .ann-title{font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px;}
+  .announcement-box .ann-title{font-weight:700;font-size:14px;color:#0057FF;margin-bottom:4px;}
   .announcement-box .ann-body{font-size:13.5px;color:#3b4a63;line-height:1.5;}
   .announcement-box .ann-meta{font-size:12px;color:var(--blue);margin-top:10px;font-weight:600;}
 
@@ -986,7 +986,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     box-shadow:0 12px 30px rgba(30,63,120,0.08);
   }
   @media(max-width:900px){ .dash2-stats{grid-template-columns:repeat(2,1fr);} }
-  @media(max-width:520px){ .dash2-stats{grid-template-columns:1fr;} }
   .dash2-stat-card{
     background:var(--blue-tint);border:1px solid var(--border);border-radius:0;
     padding:14px;display:flex;align-items:flex-start;gap:10px;
@@ -1005,6 +1004,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .dash2-stat-card.colored .dash2-stat-val{color:#fff;}
   .dash2-stat-card.colored .dash2-stat-delta{color:rgba(255,255,255,0.9);}
   .dash2-stat-card.colored .dash2-stat-delta.flat{color:rgba(255,255,255,0.7);}
+  .dash2-stat-card > div:last-child{min-width:0;flex:1;}
+  /* Phones / Android: overview cards sit 2 in a row (compact so they fit) */
+  @media(max-width:520px){
+    .dash2-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;}
+    .dash2-stat-card{padding:10px;gap:8px;}
+    .dash2-stat-icon{width:32px;height:32px;font-size:13px;}
+    .dash2-stat-label{font-size:11px;}
+    .dash2-stat-val{font-size:17px;}
+    .dash2-stat-delta{font-size:10px;}
+  }
 
   .dash2-grid{
     display:grid;grid-template-columns:1.7fr 1.3fr 1fr;
@@ -4024,6 +4033,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .att-btn.absent{background:var(--rose);color:#fff;}
   .att-btn.late{background:var(--amber);color:#fff;}
   .att-btn.excused{background:var(--purple);color:#fff;}
+  .sa-name-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+  @media (max-width:640px){ .sa-name-row{grid-template-columns:1fr;} }
   .att-segs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
   .att-seg{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border-radius:0;transition:.15s;}
   .att-seg:hover{background:#f1f5f9;}
@@ -5244,9 +5255,10 @@ const ALL_MODULE_KEYS = [...NAV_ITEMS.filter(n => n.key !== "sysdev").map(n => n
 // System Developer is a platform-level account — it sees everything: every
 // school module plus the System Developer console itself.
 ROLE_MODULE_ACCESS["System Developer"] = [...ALL_MODULE_KEYS, "sysdev"];
-// Sales Agent is a platform-level login: it reaches only the registry console
-// (renderSystemDeveloperPage shows it a trimmed, own-schools-only view).
-ROLE_MODULE_ACCESS["Sales Agent"] = ["sysdev"];
+// Sales Agent is a platform-level login: it sees the same dashboard and modules as other staff,
+// plus the System Developer console trimmed to two tabs - Registered Schools and School Dashboard
+// Management - limited to the schools that agent registered (renderSystemDeveloperPage).
+ROLE_MODULE_ACCESS["Sales Agent"] = [...ALL_MODULE_KEYS, "sysdev"];
 function allowedNavKeysForRole(role){
   if(role === "Teacher"){
     try{ return teacherModuleKeys().concat(["legal"]); }catch(e){ return ["dashboard", "legal"]; }
@@ -5851,7 +5863,6 @@ function completeStaffLogin(u){
   currentUserName = u.name;
   currentUserRole = u.role;
   currentAgentId = u.role === "Sales Agent" ? u.agentId : null;
-  if(u.role === "Sales Agent") active = "sysdev";
   loginError = "";
   pwChangePending = false;
   document.getElementById('portalAppRoot').style.display = "none";
@@ -7910,7 +7921,7 @@ function renderPortalApp(){
   const annList = announcementsList.slice(0,5).map(a => `
     <div class="dash2-ann-row">
       <span class="dash2-ann-dot"></span>
-      <span class="dash2-ann-text">${a.title}${a.body ? `. ${a.body}` : ''}</span>
+      <span class="dash2-ann-text"><strong style="color:#0057FF;">${a.title}</strong>${a.body ? `. ${a.body}` : ''}</span>
       <span class="dash2-ann-date">${a.date}</span>
     </div>
   `).join('') || `<div class="empty">No announcements yet.</div>`;
@@ -9711,6 +9722,21 @@ function sdSyncSchoolLocation(sc){
   schoolProfiles[sc.name] = { ...prev, country: "Kenya", region: sc.region || "", county: sc.county || "", subCounty: sc.subCounty || "" };
 }
 
+// Principal, mobile, gender type and boarding status captured at registration. They are written into the
+// school's own profile so the school can log in, check them and complete the rest of its profile.
+// `only` limits the write to the fields that changed (so a later edit never overwrites what the school corrected).
+function sdSyncSchoolDetails(sc, only){
+  if(!sc || !sc.name) return;
+  const prev = schoolProfiles[sc.name] ? schoolProfiles[sc.name] : getSchoolProfile(sc.name);
+  const next = { ...prev };
+  const want = f => !only || only.indexOf(f) !== -1;
+  if(want('principalName')) next.principalName = sc.principalName || "";
+  if(want('mobile')) next.phone = sc.mobile || "";
+  if(want('genderType') && sc.genderType) next.genderType = sc.genderType;
+  if(want('boardingStatus') && sc.boardingStatus) next.boardingStatus = sc.boardingStatus;
+  schoolProfiles[sc.name] = next;
+}
+
 let sdSchools = [];
 let sdNextId = 11;
 let sdSortKey = "sno", sdSortDir = 1;
@@ -9822,7 +9848,7 @@ function sdOnLevelPick(v){
 let sdModalDraft = null;
 function sdSnapshotForm(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
-  sdModalDraft = Object.assign(sdModalDraft || {}, { name:g('sd_name'), enrollment:g('sd_enrollment'), dor:g('sd_dor'), expiry:g('sd_expiry'), status:g('sd_status'), subCounty:g('sd_subCounty'), agent:g('sd_agent') });
+  sdModalDraft = Object.assign(sdModalDraft || {}, { name:g('sd_name'), enrollment:g('sd_enrollment'), dor:g('sd_dor'), expiry:g('sd_expiry'), status:g('sd_status'), subCounty:g('sd_subCounty'), agent:g('sd_agent'), principal:g('sd_principal'), mobile:g('sd_mobile'), gender:g('sd_gender'), boarding:g('sd_boarding') });
 }
 function sdOpenModal(id){
   if(id && !sdOwnsSchool(sdSchools.find(x => x.id === id))) return;
@@ -9883,6 +9909,10 @@ function sdSaveSchool(e){
   const expiry = document.getElementById('sd_expiry').value;
   const status = document.getElementById('sd_status').value;
   const level = document.getElementById('sd_level').value;
+  const principalName = document.getElementById('sd_principal').value.trim().replace(/\s+/g,' ');
+  const mobile = document.getElementById('sd_mobile').value.replace(/\D/g,'');
+  const genderType = document.getElementById('sd_gender').value;
+  const boardingStatus = document.getElementById('sd_boarding').value;
 
   if(!level){
     document.getElementById('sd_level').focus();
@@ -9896,6 +9926,8 @@ function sdSaveSchool(e){
     document.getElementById('sd_expiry').focus();
     return;
   }
+  if(!principalName){ document.getElementById('sd_principal').focus(); return; }
+  if(mobile.length < 9 || mobile.length > 12){ const m = document.getElementById('sd_mobile'); m.setCustomValidity('Enter a valid mobile number (9 to 12 digits).'); m.reportValidity(); m.oninput = () => m.setCustomValidity(''); return; }
 
   const agentSel = document.getElementById('sd_agent');
   const pickedAgent = agentSel && agentSel.value !== "" ? Number(agentSel.value) : null;
@@ -9903,14 +9935,19 @@ function sdSaveSchool(e){
     const s = sdSchools.find(x => x.id === sdEditingId);
     if(!sdOwnsSchool(s)) return;
     sdRenameInSwitcher(s.name, name);
-    Object.assign(s, { name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo });
+    const before = { principalName: s.principalName || (schoolProfiles[s.name]||{}).principalName || "", mobile: s.mobile || (schoolProfiles[s.name]||{}).phone || "", genderType: s.genderType || "", boardingStatus: s.boardingStatus || "" };
+    Object.assign(s, { name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo, principalName, mobile, genderType, boardingStatus });
+    s.__changedDetails = ["principalName","mobile","genderType","boardingStatus"].filter(f => before[f] !== s[f]);
     if(!isSalesAgentRole()) s.agentId = pickedAgent;
   } else {
     const agentId = isSalesAgentRole() ? currentAgentId : pickedAgent;
-    sdSchools = [...sdSchools, { id:sdNextId++, name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo, agentId }];
+    sdSchools = [...sdSchools, { id:sdNextId++, name, region, county, subCounty, level, enrollment:Number(enrollment), dor, expiry, status, logo:sdModalFormLogo, agentId, principalName, mobile, genderType, boardingStatus }];
   }
   sdEnsureSchoolsListed();
   sdSyncSchoolLocation(sdSchools.find(x => x.name === name));
+  { const saved = sdSchools.find(x => x.name === name);
+    const only = saved && saved.__changedDetails; if(saved) delete saved.__changedDetails;
+    sdSyncSchoolDetails(saved, sdEditingId ? only : null); }
   sdCloseModal();
 }
 
@@ -10089,6 +10126,22 @@ function renderSystemDeveloperModal(){
             <div class="field" style="grid-column:1 / -1;"><span>Subjects for this level</span>
               <div id="sd_level_subjects">${sdLevelSubjectsHtml(sdModalFormLevel)}</div>
             </div>
+            <div class="field"><span>Name of Principal *</span>
+              <input id="sd_principal" type="text" autocomplete="off" oninput="nameOnly(this)" placeholder="Principal's full name" value="${String(dv('principal', s ? (s.principalName || (schoolProfiles[s.name]||{}).principalName || '') : '')).replace(/"/g,'&quot;')}">
+            </div>
+            <div class="field"><span>Mobile No *</span>
+              <input id="sd_mobile" type="tel" inputmode="numeric" maxlength="12" autocomplete="off" oninput="digitsOnlyInput(this)" placeholder="e.g. 0712345678" value="${String(dv('mobile', s ? (s.mobile || (schoolProfiles[s.name]||{}).phone || '') : '')).replace(/"/g,'&quot;')}">
+            </div>
+            <div class="field"><span>Gender Type *</span>
+              <select id="sd_gender">
+                ${["Mixed School","Boys School","Girls School"].map(g => `<option ${g===dv('gender', s ? (s.genderType || (schoolProfiles[s.name]||{}).genderType || 'Mixed School') : 'Mixed School')?'selected':''}>${g}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field"><span>Boarding Status *</span>
+              <select id="sd_boarding">
+                ${["Day","Boarding","Mixed"].map(b => `<option ${b===dv('boarding', s ? (s.boardingStatus || (schoolProfiles[s.name]||{}).boardingStatus || 'Day') : 'Day')?'selected':''}>${b}</option>`).join('')}
+              </select>
+            </div>
             <div class="field"><span>Students Enrollment *</span>
               <input id="sd_enrollment" type="number" min="0" placeholder="e.g. 640" value="${dv('enrollment', s ? s.enrollment : '')}">
             </div>
@@ -10193,9 +10246,20 @@ function saResetPassword(id){
   render();
 }
 
+// Agents keep a combined `name` (used by logins, schools and reports) plus the three parts it is built from.
+function saSplitName(a){
+  if(!a) return { first:"", middle:"", last:"" };
+  if(a.firstName !== undefined || a.lastName !== undefined) return { first:a.firstName||"", middle:a.middleName||"", last:a.lastName||"" };
+  const t = String(a.name || "").trim().split(/\s+/).filter(Boolean);
+  if(t.length <= 1) return { first:t[0]||"", middle:"", last:"" };
+  return { first:t[0], middle:t.slice(1, -1).join(" "), last:t[t.length-1] };
+}
 function saSaveAgent(e){
   e.preventDefault();
-  const name = document.getElementById('sa_name').value.trim();
+  const clean = id => document.getElementById(id).value.trim().replace(/\s+/g,' ');
+  const firstName = clean('sa_first'), middleName = clean('sa_middle'), lastName = clean('sa_last');
+  const idNo = document.getElementById('sa_idno').value.replace(/\D/g,'');
+  const name = [firstName, middleName, lastName].filter(Boolean).join(' ');
   const phone = document.getElementById('sa_phone').value.trim();
   const email = document.getElementById('sa_email').value.trim();
   const region = document.getElementById('sa_region').value;
@@ -10209,7 +10273,13 @@ function saSaveAgent(e){
     if(box){ box.textContent = msg; box.style.display = 'block'; }
     const el = document.getElementById(id); if(el) el.focus();
   };
-  if(!name){ showErr('Enter the agent name.', 'sa_name'); return; }
+  if(!firstName){ showErr('Enter the agent\'s first name.', 'sa_first'); return; }
+  if(!lastName && !isDevRec){ showErr('Enter the agent\'s last name.', 'sa_last'); return; }
+  if(!isDevRec){
+    if(idNo.length < 6 || idNo.length > 10){ showErr('Enter a valid ID number (6 to 10 digits).', 'sa_idno'); return; }
+    const idDup = saAgents.find(x => x.id !== saEditingId && !x.isDeveloper && x.idNo && String(x.idNo) === idNo);
+    if(idDup){ showErr('Another agent (' + idDup.name + ') already uses that ID number.', 'sa_idno'); return; }
+  }
   if(!phone && !isDevRec){ showErr('Enter the agent phone number.', 'sa_phone'); return; }
   const dup = saAgents.find(x => x.id !== saEditingId && !x.isDeveloper && phone && String(x.phone).replace(/\D/g,'').slice(-9) === phone.replace(/\D/g,'').slice(-9));
   if(dup){ showErr('Another agent (' + dup.name + ') already uses that phone number.', 'sa_phone'); return; }
@@ -10218,9 +10288,9 @@ function saSaveAgent(e){
 
   if(saEditingId){
     const a = saAgents.find(x => x.id === saEditingId);
-    Object.assign(a, { name, phone, email, region, schoolsReferred:schools, commissionRate:rate, status });
+    Object.assign(a, { name, firstName, middleName, lastName, idNo, phone, email, region, schoolsReferred:schools, commissionRate:rate, status });
   } else {
-    saAgents = [...saAgents, { id:saNextId++, name, phone, email, region, schoolsReferred:schools, commissionRate:rate, status }];
+    saAgents = [...saAgents, { id:saNextId++, name, firstName, middleName, lastName, idNo, phone, email, region, schoolsReferred:schools, commissionRate:rate, status }];
   }
   saCloseModal();
 }
@@ -10244,6 +10314,7 @@ function renderSalesAgentModal(){
   const isEdit = !!saEditingId;
   const a = isEdit ? saAgents.find(x => x.id === saEditingId) : null;
   const region = a ? a.region : Object.keys(SD_REGION_COUNTIES)[0];
+  const nm = saSplitName(a);
   return `
   <div class="preview-overlay" onclick="if(event.target===this) saCloseModal()">
     <div class="preview-modal" style="max-width:600px;">
@@ -10257,8 +10328,19 @@ function renderSalesAgentModal(){
       <form onsubmit="saSaveAgent(event)">
         <div class="preview-modal-body" style="padding:20px 22px;">
           <div id="sa_error" style="display:none;margin-bottom:12px;padding:10px 12px;background:#fdecea;color:#b42318;border:1px solid #f5c2c0;font-size:13px;"></div><div class="profile-form-grid">
-            <div class="field" style="grid-column:1 / -1;"><span>Agent Name *</span>
-              <input id="sa_name" type="text" oninput="nameOnly(this)" placeholder="e.g. Peter Mwangi" value="${a ? a.name : ''}">
+            <div class="sa-name-row" style="grid-column:1 / -1;">
+              <div class="field"><span>First Name *</span>
+                <input id="sa_first" type="text" autocomplete="off" oninput="nameOnly(this)" placeholder="e.g. Peter" value="${nm.first.replace(/"/g,'&quot;')}">
+              </div>
+              <div class="field"><span>Middle Name</span>
+                <input id="sa_middle" type="text" autocomplete="off" oninput="nameOnly(this)" placeholder="Optional" value="${nm.middle.replace(/"/g,'&quot;')}">
+              </div>
+              <div class="field"><span>Last Name *</span>
+                <input id="sa_last" type="text" autocomplete="off" oninput="nameOnly(this)" placeholder="e.g. Mwangi" value="${nm.last.replace(/"/g,'&quot;')}">
+              </div>
+            </div>
+            <div class="field"><span>ID No *</span>
+              <input id="sa_idno" type="text" inputmode="numeric" maxlength="10" autocomplete="off" oninput="digitsOnlyInput(this)" placeholder="National ID number" value="${a && a.idNo ? String(a.idNo).replace(/"/g,'&quot;') : ''}">
             </div>
             <div class="field"><span>Phone *</span>
               <input id="sa_phone" type="text" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this)" placeholder="Phone number" value="${a ? a.phone : ''}">
@@ -11291,8 +11373,8 @@ function sdModAll(on){
   const c = sdDashCfg[sc.name] = Object.assign({}, sdDashCfg[sc.name]); c.mods = {}; SD_OPTIONAL_MODULES.forEach(([k]) => { c.mods[k] = on; }); sdDashPersist(); render();
 }
 function renderSchoolModules(){
-  if(!sdSchools.length) return "";
-  if(sdModSchoolIdx >= sdSchools.length) sdModSchoolIdx = 0;
+  if(!sdSchools.filter(sdOwnsSchool).length) return "";
+  if(sdModSchoolIdx >= sdSchools.length || !sdOwnsSchool(sdSchools[sdModSchoolIdx])) sdModSchoolIdx = Math.max(0, sdSchools.findIndex(sdOwnsSchool));
   const sc = sdSchools[sdModSchoolIdx];
   const optOn = SD_OPTIONAL_MODULES.filter(([k]) => sdModuleOn(sc.name, k)).length;
   const card = (k, l, ic, locked, on) => `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border,#e2e8f0);background:${on ? "#fff" : "#f8fafc"};${locked ? "" : "cursor:pointer;"}">
@@ -11304,7 +11386,7 @@ function renderSchoolModules(){
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <h3><i class="fa-solid fa-cubes" style="color:var(--blue);"></i>&nbsp;School modules</h3>
-        <select onchange="sdModSelect(this.value)" style="padding:10px 12px;border:1px solid var(--border,#cbd5e1);min-width:240px;">${sdSchools.map((x, i) => `<option value="${i}" ${i===sdModSchoolIdx?"selected":""}>${lmEsc(x.name)}</option>`).join("")}</select>
+        <select onchange="sdModSelect(this.value)" style="padding:10px 12px;border:1px solid var(--border,#cbd5e1);min-width:240px;">${sdSchools.map((x, i) => sdOwnsSchool(x) ? `<option value="${i}" ${i===sdModSchoolIdx?"selected":""}>${lmEsc(x.name)}</option>` : "").join("")}</select>
       </div>
       <div style="padding:14px 20px 0;font-weight:800;font-size:13px;text-transform:uppercase;color:var(--muted);">Core modules <span style="font-weight:400;text-transform:none;">&nbsp;&mdash; included for every school (${SD_CORE_MODULES.length})</span></div>
       ${grid(SD_CORE_MODULES.map(([k,l,ic]) => card(k, l, ic, true, true)).join(""))}
@@ -11326,7 +11408,7 @@ function sdDashSetNotice(idx, v){
   const c = sdDashCfg[sc.name] = Object.assign({}, sdDashCfg[sc.name]); c.notice = v; sdDashPersist();
 }
 function sdDashAll(on){
-  sdSchools.forEach(sc => { const c = sdDashCfg[sc.name] = Object.assign({}, sdDashCfg[sc.name]); SD_DASH_SECTIONS.forEach(([k]) => { c[k] = on; }); });
+  sdSchools.filter(sdOwnsSchool).forEach(sc => { const c = sdDashCfg[sc.name] = Object.assign({}, sdDashCfg[sc.name]); SD_DASH_SECTIONS.forEach(([k]) => { c[k] = on; }); });
   sdDashPersist(); render();
 }
 function sdDashReset(idx){
@@ -11335,9 +11417,10 @@ function sdDashReset(idx){
 }
 function renderSchoolDashMgmt(){
   const q = sdDashSearch.trim().toLowerCase();
-  const list = sdSchools.map((sc, i) => ({ sc, i })).filter(({ sc }) => !q || [sc.name, sc.region, sc.county].join(" ").toLowerCase().includes(q));
+  const mySchools = sdSchools.filter(sdOwnsSchool);
+  const list = sdSchools.map((sc, i) => ({ sc, i })).filter(({ sc }) => sdOwnsSchool(sc)).filter(({ sc }) => !q || [sc.name, sc.region, sc.county].join(" ").toLowerCase().includes(q));
   const tile = (label, val, color) => `<div class="panel" style="flex:1;min-width:150px;margin:0;padding:14px 16px;"><div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;">${label}</div><div style="font-size:26px;font-weight:800;color:${color||"var(--text)"};">${val}</div></div>`;
-  const cfgs = sdSchools.map(sc => sdDashCfgFor(sc.name));
+  const cfgs = mySchools.map(sc => sdDashCfgFor(sc.name));
   const customised = cfgs.filter(c => SD_DASH_SECTIONS.some(([k]) => !c[k])).length;
   const withNotice = cfgs.filter(c => c.noticeOn && c.notice.trim()).length;
   const sw = (i, k, on) => `<label title="${on ? "Shown" : "Hidden"}" style="cursor:pointer;display:inline-block;"><input type="checkbox" ${on ? "checked" : ""} onchange="sdDashToggle(${i},'${k}',this.checked)" style="width:17px;height:17px;cursor:pointer;accent-color:var(--blue);"></label>`;
@@ -11354,7 +11437,7 @@ function renderSchoolDashMgmt(){
   }).join("");
   return `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-      ${tile("Registered schools", sdSchools.length)}${tile("With hidden sections", customised, customised ? "#b45309" : "")}${tile("Showing a notice", withNotice, withNotice ? "var(--blue)" : "")}${tile("Sections managed", SD_DASH_SECTIONS.length)}
+      ${tile("Registered schools", mySchools.length)}${tile("With hidden sections", customised, customised ? "#b45309" : "")}${tile("Showing a notice", withNotice, withNotice ? "var(--blue)" : "")}${tile("Sections managed", SD_DASH_SECTIONS.length)}
     </div>
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
@@ -11364,7 +11447,7 @@ function renderSchoolDashMgmt(){
       <div style="padding:14px 20px;"><input type="text" data-sddq placeholder="Search school, county..." value="${lmEsc(sdDashSearch)}" oninput="sdDashSetSearch(this.value)" style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border,#cbd5e1);"></div>
       ${list.length ? `<div class="bsms-table-card"><div class="bsms-table-scroll"><table class="bsms-table" style="width:100%;">
         <thead><tr style="text-transform:uppercase;font-weight:700;"><th>S/No</th><th>School</th>${SD_DASH_SECTIONS.map(([k,l,ic]) => `<th style="text-align:center;font-size:11px;"><i class="fa-solid ${ic}"></i><br>${l}</th>`).join("")}<th>Dashboard notice</th><th></th></tr></thead>
-        <tbody>${rows}</tbody></table></div></div>` : `<div style="padding:30px 20px;text-align:center;color:var(--muted);">${sdSchools.length ? "No schools match your search." : "No schools registered yet."}</div>`}
+        <tbody>${rows}</tbody></table></div></div>` : `<div style="padding:30px 20px;text-align:center;color:var(--muted);">${mySchools.length ? "No schools match your search." : "No schools registered yet."}</div>`}
     </div>
     <div style="font-size:12px;color:var(--muted);padding:0 4px 8px;">Ticked sections are visible on that school's administrator Dashboard. Settings are kept in this browser, like the other console data.</div>`;
 }
@@ -12260,7 +12343,11 @@ function renderSdDocuments(){
 function renderSystemDeveloperPage(){
   if(currentUserRole === "System Developer") saEnsureDeveloperAgent();
   if(isSalesAgentRole()){
-    return `<div class="dash2-topline"><div><h1 class="dash2-title">My Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + renderSystemDeveloperPageSchools();
+    if(sdMainTab !== "dashmgmt") sdMainTab = "schools";
+    const aTabs = [["schools","Registered Schools","fa-school"],["dashmgmt","School Dashboard Management","fa-table-columns"]];
+    const aBar = `<div class="class-tab-row" style="margin-bottom:16px;">${aTabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
+    if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections the schools you registered see, and post a notice on their dashboard</p></div></div>` + aBar + renderSchoolModules() + renderSchoolDashMgmt();
+    return `<div class="dash2-topline"><div><h1 class="dash2-title">Registered Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + aBar + renderSystemDeveloperPageSchools();
   }
   const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"]];
   const bar = `<div class="class-tab-row" style="margin-bottom:16px;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
@@ -12651,6 +12738,7 @@ function saveSchoolProfile(){
   try{
     const reg = sdSchools.find(x => x.name === currentSchool), np = schoolProfiles[currentSchool];
     if(reg && np && np.region && np.county){ reg.region = np.region; reg.county = np.county; if(np.subCounty) reg.subCounty = np.subCounty; }
+    if(reg && np){ reg.principalName = np.principalName || ""; reg.mobile = np.phone || ""; reg.genderType = np.genderType || reg.genderType; reg.boardingStatus = np.boardingStatus || reg.boardingStatus; }
   }catch(_e){}
   profileGeoDraft = null;
   schoolProfileSaved = true;
@@ -14304,7 +14392,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   const annHtml = announcementsList.slice(0,3).map(a => `
     <div class="dash2-ann-row">
       <span class="dash2-ann-dot"></span>
-      <span class="dash2-ann-text">${a.title}${a.body ? `. ${a.body}` : ''}</span>
+      <span class="dash2-ann-text"><strong style="color:#0057FF;">${a.title}</strong>${a.body ? `. ${a.body}` : ''}</span>
       <span class="dash2-ann-date">${a.date}</span>
     </div>
   `).join('') || `<div class="empty">No announcements yet.</div>`;
@@ -14332,7 +14420,6 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
         <p class="dash2-sub">Overview of school activities</p>
       </div>
       <div class="dash2-topline-right">
-        <div class="dash2-date" title="Click to switch curriculum system" onclick="setCurriculumSystem(curriculumSystem==='844'?'CBC':'844')"><i class="fa-solid fa-graduation-cap"></i>${curriculumSystem==='844'?'8-4-4':'CBC'}</div>
         <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
         <div class="dash2-date"><i class="fa-regular fa-calendar"></i>${todayLabel}<i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--muted);"></i></div>
       </div>
@@ -50073,17 +50160,6 @@ function renderCocurricular(){
     </div>
     ${cocurricularRosterSheetClub===c ? renderCocurricularRosterSheet(c) : ''}
 
-    <div class="section-label" style="margin-top:22px;">All activities</div>
-    <div class="cocurricular-grid">
-      ${clubs.filter(name => name!==c).map(name => `
-        <div class="cocurricular-tile" onclick="setSelectedCocurricular('${name.replace(/'/g,"\\'")}')">
-          <div class="club-icon"><i class="fa-solid fa-trophy"></i></div>
-          <span class="cc-name">${name}</span>
-          <span class="cc-meta">${(clubMembers[name]||[]).length} student${(clubMembers[name]||[]).length===1?'':'s'}${clubJoined[name] ? ' · Enrolled' : ''}</span>
-          ${clubPatrons[name] ? `<span class="cc-meta">Patron: ${clubPatrons[name]}</span>` : ''}
-        </div>
-      `).join('')}
-    </div>
   `;
 }
 
@@ -51425,7 +51501,7 @@ function renderAnnouncements(){
   const rows = announcementsList.map((a, i) => `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-header">
-        <h3>${a.title}</h3>
+        <h3 style="color:#0057FF;">${a.title}</h3>
         ${canDeleteAnnouncement(a) ? `<button class="link-btn danger" onclick="deleteAnnouncement(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>` : ''}
       </div>
       <div style="padding:18px 24px;">

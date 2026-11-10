@@ -16,7 +16,8 @@ function injectDark(html) {
 // on-device storage module, appended to the end of <body> (needs the app's globals)
 function injectLocal(html) {
   const i = html.lastIndexOf('</body>');
-  return html.slice(0, i) + '<script>' + fs.readFileSync(path.join(__dirname, 'local-store.js'), 'utf8') + '</script>\n' + html.slice(i);
+  const js = ['local-store.js', 'keep-session.js'].map(f => '<script>' + fs.readFileSync(path.join(__dirname, f), 'utf8') + '</script>').join('\n');
+  return html.slice(0, i) + js + '\n' + html.slice(i);
 }
 module.exports = { injectDark, injectLocal };
 if (require.main !== module) return;

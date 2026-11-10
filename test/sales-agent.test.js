@@ -59,7 +59,7 @@ describe('Sales Agent access', () => {
 
 describe('Sales Agent wiring in the source', () => {
   test('role is limited to the registry console and hidden from school admins', () => {
-    expect(src).toMatch(/ROLE_MODULE_ACCESS\["Sales Agent"\] = \["sysdev"\];/);
+    expect(src).toMatch(/ROLE_MODULE_ACCESS\["Sales Agent"\] = \[\.\.\.ALL_MODULE_KEYS, "sysdev"\];/);
     expect(src).toMatch(/u\.role !== "System Developer" && u\.role !== "Sales Agent"\)/);
   });
   test('sales-agent-only restrictions: no delete, no status change, no roster, pricing or switcher', () => {
