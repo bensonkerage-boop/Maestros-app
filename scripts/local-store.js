@@ -3,10 +3,28 @@
    Works with no internet or server. Cloud sync (cloud-sync.js) still runs on top when signed in.
    Uses the app's own globals (collectBackupData, applyPlatformData, loadSchoolData, render). */
 (function(){
+  // Change tracker shared with cloud-sync.js. The autosave timers used to serialize and hash the whole dataset
+  // every few seconds even when nothing had changed; now they skip that while this epoch has not moved.
+  // The epoch moves on every render() and on any user input/click/key, which covers every way data is edited.
+  // A full check still happens at least every RECHECK ms, and always when the app is hidden or closed.
+  var D=window.MASMS_DIRTY;
+  if(!D){
+    D=window.MASMS_DIRTY={ epoch:1, RECHECK:60*1000, bump:function(){ D.epoch++; } };
+    ['input','change','click','keydown','paste','drop'].forEach(function(t){ document.addEventListener(t,D.bump,true); });
+  }
+  (function wrapRender(){
+    var r=window.render;
+    if(typeof r==='function'&&!r.__dirtyWrapped){
+      var w=function(){ D.epoch++; return r.apply(this,arguments); };
+      w.__dirtyWrapped=true; window.render=w;
+    }
+  })();
+
   var DB='masmsLocal', STORE='kv', KEY='snapshot', PREV='snapshotPrev', SYNCED='masmsLocalSyncedHash';
   var PREV_EVERY=30*60*1000, TICK=5000;
   var ready=false, readFailed=false, busy=false, state='load', errMsg='';
   var lastHash='', lastObj=null, prevAt=0, hadUnsynced=false, resolveReady;
+  var seenEpoch=-1, seenAt=0;   // change-tracker state at the last full serialization
   var readyP=new Promise(function(r){ resolveReady=r; });
 
   // same hash + replacer as cloud-sync.js so both sides can compare snapshots
@@ -95,9 +113,12 @@
     return { snap:snap, json:json, h:hash(json) };
   }
 
-  function save(force){
+  // idle=true is the timer path: skip the expensive serialize+hash while nothing has changed.
+  function save(force,idle){
     if(!ready||readFailed||busy) return Promise.resolve();
-    var s; try{ s=snapshot(); }catch(e){ return Promise.resolve(); }
+    if(idle&&!force&&D.epoch===seenEpoch&&Date.now()-seenAt<D.RECHECK) return Promise.resolve();
+    var ep=D.epoch, s; try{ s=snapshot(); }catch(e){ return Promise.resolve(); }
+    seenEpoch=ep; seenAt=Date.now();
     if(!force&&s.h===lastHash) return Promise.resolve();
     busy=true; state='saving';
     var now=Date.now(), obj={ savedAt:new Date(now).toISOString(), hash:s.h, json:s.json };   // serialized: the live app objects keep changing
@@ -106,6 +127,7 @@
       lastHash=s.h; lastObj=obj; state='ok'; errMsg='';
     }).catch(function(e){
       state='err'; errMsg=(e&&e.message)||'could not write to phone storage';
+      seenEpoch=-1;   // a failed write must be retried on the next tick even if nothing else changes
     }).then(function(){ busy=false; paint(); });
   }
 
@@ -158,6 +180,7 @@
   window.MASMS_LOCAL={
     ready:readyP,
     saveNow:function(){ return save(true); },
+    tick:function(){ retryRead(); save(false,true); paint(); },   // what the autosave timer runs
     status:savedLabel,
     restorePrevious:restorePrevious,
     // cloud-sync tells us which snapshot hash the server holds, so we can tell if this device has un-uploaded changes
@@ -167,7 +190,7 @@
   };
 
   document.addEventListener('DOMContentLoaded',init);
-  setInterval(function(){ retryRead(); save(false); paint(); },TICK);
+  setInterval(function(){ window.MASMS_LOCAL.tick(); },TICK);
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(false); });
   window.addEventListener('pagehide',function(){ save(false); });
 })();

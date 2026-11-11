@@ -974,6 +974,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     padding:10px 16px;font-size:13.5px;font-weight:600;color:var(--text);
     cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,0.03);
   }
+  /* Administrator + date cards: always two in one row */
+  .dash2-topline-right.dash2-pair{flex-wrap:nowrap;}
+  .dash2-pair .dash2-date{min-width:0;white-space:nowrap;}
+  @media (max-width:700px){
+    .dash2-topline-right.dash2-pair{width:100%;gap:8px;}
+    .dash2-pair .dash2-date{flex:1 1 0;justify-content:center;padding:10px 8px;font-size:12px;gap:6px;overflow:hidden;}
+    .dash2-pair .dash2-date + .dash2-date{flex:1.8 1 0;}
+  }
   .dash2-date i.fa-calendar{color:var(--blue);}
   .dash2-date i.fa-graduation-cap{color:var(--blue);}
 
@@ -2322,12 +2330,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   table.tt-asc-t-table .tt-asc-timeoff-x{font-family:Arial,sans-serif;font-size:20px;font-weight:800;color:#000;}
 
 
+  /* ---- \"Timetable for Each Subject\" \u2014 aSc look: big code, class count top-right, classes underneath ---- */
+  .tt-sj-title{font-size:40px !important;letter-spacing:.03em;font-family:Arial,Helvetica,sans-serif !important;font-weight:400 !important;}
+  .tt-sj-inner{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;min-height:62px;padding:3px 3px 4px;box-sizing:border-box;text-align:center;}
+  .tt-sj-count{position:absolute;top:2px;right:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;line-height:1;}
+  .tt-sj-code{font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:400;line-height:1.05;margin-top:6px;white-space:nowrap;}
+  .tt-sj-code.tt-sj-code-sm{font-size:16px;}
+  .tt-sj-code.tt-sj-code-xs{font-size:12px;}
+  .tt-sj-cls{font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.15;text-transform:uppercase;word-break:break-word;}
+  .tt-sj-cls.tt-sj-cls-sm{font-size:7px;}
+  .tt-sj-cls.tt-sj-cls-xs{font-size:6px;}
+  .tt-sj-key{font-size:9px;color:#444;margin-top:6px;}
+  html.tt-printing .tt-printable .tt-sj-key{font-size:10px;}
+
   /* All text black (screen, print preview and PDF). */
   .tt-sm-page, .tt-sm-page *{color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   /* ---- "Summary Timetable of Classes" print preview — classic aSc look (matches reference printout) ----
      One landscape sheet: classes as rows, each day a thick-bordered block of period columns,
      stacked upright subject codes, tiny rotated teacher names (orange) and rooms (blue). */
   .tt-sm-page{font-family:'Times New Roman',Times,serif;color:#000;background:#fff;padding:4px 2px 8px;}
+  .tt-sm-head.tt-sm-head2{display:block;position:relative;margin-bottom:6px;}
+  .tt-sm-head.tt-sm-head2 .tt-sm-logo{position:absolute;left:0;top:0;}
+  .tt-sm-hschool{font-family:'Times New Roman',Times,serif;font-size:26px;font-weight:700;line-height:1.15;text-align:center;text-transform:uppercase;}
+  .tt-sm-htitle{font-family:'Times New Roman',Times,serif;font-size:15px;font-weight:700;line-height:1.3;text-align:center;text-decoration:underline;text-underline-offset:2px;text-transform:uppercase;}
   .tt-sm-head{display:flex;align-items:center;justify-content:center;gap:8px;min-height:20px;margin-bottom:2px;text-align:center;}
   .tt-sm-logo{width:26px;height:26px;object-fit:contain;}
   .tt-sm-titlebox{display:inline-block;text-align:right;}
@@ -2355,6 +2380,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .tt-sm-in{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;min-height:100px;padding:2px 0 2px;box-sizing:border-box;}
   .tt-sm-sub{writing-mode:vertical-rl;text-orientation:upright;font-size:8px;font-weight:700;text-transform:uppercase;line-height:1.02;letter-spacing:0;white-space:nowrap;}
   .tt-sm-sub.tt-sm-side{text-orientation:mixed;transform:rotate(180deg);font-size:8px;}
+  .tt-sm-hor{display:grid;grid-template-rows:auto 1fr auto;align-items:stretch;justify-content:stretch;}
+  .tt-sm-hr{display:flex;flex-direction:column;min-width:0;width:100%;}
+  .tt-sm-hr1{justify-content:center;}
+  .tt-sm-hr2{justify-content:flex-end;}
+  .tt-sm-h{min-width:0;max-width:100%;overflow:hidden;overflow-wrap:anywhere;text-transform:uppercase;line-height:1.05;font-weight:700;}
+  .tt-sm-h-sub{font-size:6px;}
+  .tt-sm-h-tch,.tt-sm-h-room{font-size:4.5px;}
   .tt-sm-low{display:flex;flex-direction:row-reverse;align-items:flex-end;justify-content:center;gap:1px;}
   .tt-sm-tch{font-size:5.5px;font-weight:700;color:#000;text-transform:uppercase;}
   .tt-sm-room{font-size:5.5px;font-weight:700;color:#000;text-transform:uppercase;}
@@ -2439,6 +2471,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .tt-g-demo.tt-g-nodiv .tt-g-part + .tt-g-part{border-top:0;}
   .tt-s-x{font-family:Arial,sans-serif;font-size:18px;font-weight:800;align-self:center;margin:auto;}
   .tt-s-foot-line{display:flex;justify-content:space-between;font-size:9px;margin-top:3px;}
+  .tt-r-title{text-decoration:underline;text-underline-offset:3px;}
+  .tt-r-part{display:grid;grid-template-rows:auto 1fr auto;height:100%;min-height:84px;box-sizing:border-box;padding:3px 4px;font-family:Arial,Helvetica,sans-serif;}
+  .tt-r-row{display:flex;gap:4px;min-width:0;}
+  .tt-r-row > span{flex:1 1 0;min-width:0;word-break:break-word;}
+  .tt-r-row1{align-items:center;}
+  .tt-r-row2{align-items:flex-end;}
+  .tt-r-sub,.tt-r-tch{font-size:8px;line-height:1.1;text-transform:uppercase;}
+  .tt-r-cls{font-size:15px;line-height:1.1;text-transform:uppercase;}
+  .tt-r-cls.tt-r-cls-sm{font-size:11px;}
+  .tt-printable .tt-r-sub,.tt-printable .tt-r-tch,html.tt-printing .tt-printable .tt-r-sub,html.tt-printing .tt-printable .tt-r-tch{font-size:10px;}
+  .tt-printable .tt-r-cls,html.tt-printing .tt-printable .tt-r-cls{font-size:22px;}
+  .tt-printable .tt-r-cls.tt-r-cls-sm,html.tt-printing .tt-printable .tt-r-cls.tt-r-cls-sm{font-size:15px;}
   @media print{
     .tt-printable .tt-asc-spage{width:100%;height:100%;padding:0;display:flex;flex-direction:column;flex:1 1 auto;}
     .tt-printable table.tt-asc-s-table{width:100%;height:100%;flex:1 1 auto;}
@@ -3352,6 +3396,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .preview-modal-title{font-size:15.5px;font-weight:700;color:var(--text);}
   .preview-modal-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
   .preview-modal-body{overflow:auto;padding:0;}
+  /* Dialogs whose body+footer sit inside a <form> (Add Sales Agent, etc.): without this the form grows to its full
+     height and the modal clips it, so on a phone the fields/buttons below the fold could not be scrolled to. */
+  .preview-modal > form{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
+  .preview-modal > form > .preview-modal-body{flex:1 1 auto;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
   .preview-frame{margin:16px 22px 20px;border:1.5px solid var(--navy);border-radius:0;overflow:hidden;}
 
   /* Exam publishing processing overlay */
@@ -3687,7 +3735,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   }
   .profile-section-title:first-child{margin-top:0;}
   @media(max-width:600px){
-    .preview-modal{max-height:90vh;}
+    .preview-modal{max-height:90vh;max-height:calc(100dvh - 40px);}   /* dvh: excludes the phone browser's URL bar */
     .preview-table{font-size:12px;}
   }
 
@@ -14640,7 +14688,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
         <h1 class="dash2-title">Dashboard</h1>
         <p class="dash2-sub">Overview of school activities</p>
       </div>
-      <div class="dash2-topline-right">
+      <div class="dash2-topline-right dash2-pair">
         <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
         <div class="dash2-date"><i class="fa-regular fa-calendar"></i>${todayLabel}<i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--muted);"></i></div>
       </div>
@@ -27240,6 +27288,7 @@ function setTtDaysFontFamily(v){ ttDaysPrintSetup.fontFamily = v; render(); }
 function setTtDaysFontSize(v){ ttDaysPrintSetup.fontSize = v; render(); }
 function toggleTtDaysFontBold(){ ttDaysPrintSetup.bold = !ttDaysPrintSetup.bold; render(); }
 function toggleTtDaysFontItalic(){ ttDaysPrintSetup.italic = !ttDaysPrintSetup.italic; render(); }
+function ttDaysIsVertical(){ return !!ttDaysPrintSetup.vertical; }
 function toggleTtDaysFontUnderline(){ ttDaysPrintSetup.underline = !ttDaysPrintSetup.underline; render(); }
 
 // Label shown for a day in the printouts, per the current Print setup.
@@ -27273,6 +27322,9 @@ function timetableDayCellStyle(){
 // number text, a Bell times shortcut, a time format choice, whether the
 // time wraps onto two lines, and whether the header numbers print as
 // sequential "Bell N" labels. ----
+let ttClassPrintSetupOpen = false;
+let ttClassPrintSetupSnapshot = null;
+let ttClassPrintSetup = { fontFamily:"", fontSize:"", bold:true, italic:false, underline:false, direction:"auto" }; // fontSize blank = automatic
 let ttBreakPrintSetupOpen = false;
 let ttBreakPrintSetupSnapshot = null;
 let ttBreakPrintSetup = { fontFamily:"", fontSize:"12", bold:true, italic:false, underline:false, direction:"auto" }; // direction: auto | up | down | horizontal
@@ -27582,6 +27634,12 @@ function ttHeaderFontStyle(field){
 }
 // The banner heading text actually printed — the user's free-text
 // override if they typed one, else the auto "<school> MASTER TIMETABLE".
+// Heading for the Summary Timetable of Classes: "MASTER TEACHING TIMETABLE - TERM 3 2026"
+// (the timetable's usual heading with MASTER in front).
+function ttSummaryHeadingText(){
+  const t = String(ttHeaderComputedText() || '').toUpperCase();
+  return /^MASTER\b/.test(t) ? t : ('MASTER ' + t).trim();
+}
 function ttHeaderComputedText(){
   if(ttHeaderPrintSetup.headerText) return ttHeaderPrintSetup.headerText;
   // Automatic: the heading follows the type of the timetable currently open
@@ -27709,14 +27767,21 @@ function renderTimetableHeaderFontPickerModal(){
 let ttLessonPrintSetupOpen = false;
 let ttLessonPrintSetupSnapshot = null;
 let ttLessonPrintSetup = {
-  subject:   { enabled:true,  fullName:false, posRow:0, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false },
+  subject:   { enabled:true,  fullName:false, posRow:0, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false, direction:"auto" },
   teacher:   { enabled:true,  fullName:true,  posRow:2, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false },
   class:     { enabled:false, posRow:0, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false },
   group:     { enabled:true,  doNotPrintIfEntireClass:true, posRow:1, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false },
   classroom: { enabled:true,  doNotPrintIfHomeClassroom:true, posRow:1, posCol:1, fontFamily:"", fontSize:"", bold:true, italic:false, underline:false },
   count:     { enabled:false },
   bellTimes: { enabled:true,  posRow:1, posCol:1, fontFamily:"", fontSize:"", bold:false, italic:false, underline:false },
+  // Timetable for Classrooms (laboratories): its own card layout.
+  labSubject: { enabled:true, fullName:false, posRow:0, posCol:0, fontFamily:"", fontSize:"", bold:false, italic:false, underline:false },
+  labTeacher: { enabled:true, fullName:false, posRow:0, posCol:2, fontFamily:"", fontSize:"", bold:false, italic:false, underline:false },
+  labClass:   { enabled:true, posRow:1, posCol:1, fontFamily:"", fontSize:"", bold:false, italic:false, underline:false },
 };
+const TT_LAB_FIELD_TITLES = { labSubject:"Subject", labTeacher:"Teacher", labClass:"Class" };
+// True while the Print setup dialog is being used for the laboratory report.
+function ttLessonSetupIsLab(){ return timetablePrintReportType === "classrooms" && timetableView === "printouts"; }
 let ttLessonFontPickerField = null; // which field's Font dialog is currently open, or null
 let ttLessonFieldLabels = { subject:"Subject", teacher:"Teacher", class:"Class", group:"Group", classroom:"Classroom", count:"Count", bellTimes:"Bell times" };
 let ttLessonEditTextsOpen = false;
@@ -28189,16 +28254,21 @@ function renderTimetableLessonPrintSetupModal(){
         <div class="preview-modal-body" style="padding:20px 22px;">
           <div class="tt-lessonprint-layout">
             <div class="tt-lessonprint-side">
-              <div class="tt-lessonprint-sidetext">Timetable for each class</div>
+              <div class="tt-lessonprint-sidetext">${ttLessonSetupIsLab() ? 'Timetable for each classroom (laboratory)' : 'Timetable for each class'}</div>
               <div class="tt-lessonprint-sidetext" style="margin-top:8px;">Set the print style for the cards where:</div>
               <div class="tt-lessonprint-sidetext" style="margin-top:10px;">Length: Single<br>Size: 1</div>
               <div class="tt-lessonprint-preview">
-                <div class="tt-lessonprint-preview-subject">${s.subject.fullName ? 'ENGLISH' : 'ENG'}</div>
-                <div class="tt-lessonprint-preview-teacher">SURNAME<br>FIRSTNAME</div>
+                <div class="tt-lessonprint-preview-subject">${ttLessonSetupIsLab() ? (s.labSubject.fullName ? 'BIOLOGY' : 'BIO') : (s.subject.fullName ? 'ENGLISH' : 'ENG')}</div>
+                <div class="tt-lessonprint-preview-teacher">${ttLessonSetupIsLab() ? '10 NORTH' : 'SURNAME<br>FIRSTNAME'}</div>
               </div>
               <button type="button" class="btn-ghost" style="width:100%;margin-top:10px;" onclick="ttLessonSetForMore()">Set for more</button>
             </div>
             <div class="tt-lessonprint-grid">
+              ${ttLessonSetupIsLab() ? `
+              ${box('labSubject','Subject', `<label class="tt-lessonprint-sub"><input type="checkbox" ${s.labSubject.fullName?'checked':''} onchange="ttLessonToggleSub('labSubject','fullName')"> Print full name</label>`, true)}
+              ${box('labTeacher','Teacher', `<label class="tt-lessonprint-sub"><input type="checkbox" ${s.labTeacher.fullName?'checked':''} onchange="ttLessonToggleSub('labTeacher','fullName')"> Print full name (otherwise surname only)</label>`, true)}
+              ${box('labClass','Class', '', true)}
+              ` : `
               ${box('subject','Subject', `<label class="tt-lessonprint-sub"><input type="checkbox" ${s.subject.fullName?'checked':''} onchange="ttLessonToggleSub('subject','fullName')"> Print full name</label>`, true)}
               ${box('teacher','Teacher', `<label class="tt-lessonprint-sub"><input type="checkbox" ${s.teacher.fullName?'checked':''} onchange="ttLessonToggleSub('teacher','fullName')"> Print full name</label>`, true)}
               ${box('class','Class', '', false)}
@@ -28206,6 +28276,7 @@ function renderTimetableLessonPrintSetupModal(){
               ${box('classroom','Classroom', `<label class="tt-lessonprint-sub"><input type="checkbox" ${s.classroom.doNotPrintIfHomeClassroom?'checked':''} onchange="ttLessonToggleSub('classroom','doNotPrintIfHomeClassroom')"> Do not print if home classroom</label>`, true)}
               ${box('count','Count', '', false)}
               ${box('bellTimes','Bell times', '', true)}
+              `}
             </div>
           </div>
           <div class="tt-lessonprint-other">
@@ -28238,7 +28309,7 @@ function renderTimetableLessonFontPickerModal(){
     <div class="preview-overlay" onclick="if(event.target===this) ttLessonCloseFontPicker()">
       <div class="preview-modal" style="max-width:360px;">
         <div class="preview-modal-header">
-          <div class="preview-modal-title">Font \u2014 ${ttLessonFieldLabels[ttLessonFontPickerField] || ''}</div>
+          <div class="preview-modal-title">Font \u2014 ${ttLessonFieldLabels[ttLessonFontPickerField] || TT_LAB_FIELD_TITLES[ttLessonFontPickerField] || ''}</div>
           <button class="link-btn" onclick="ttLessonCloseFontPicker()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="preview-modal-body" style="padding:20px 22px;">
@@ -28827,6 +28898,126 @@ function ttPdfBreakUnits(period, defaultPx){
   }
   return Math.max(12, Math.min(60, Math.round(15 * px / defaultPx)));
 }
+// ---- Text direction (shared by every Print setup): auto | horizontal | up | down ----
+// "up" reads bottom-to-top, "down" reads top-to-bottom. Table cells use
+// sideways-lr for "up" (rotating a cell would flip its whole box); other
+// elements are rotated 180deg from vertical-rl.
+function ttDirCss(dir, isCell){
+  if(dir === "horizontal") return 'writing-mode:horizontal-tb;transform:none;';
+  if(dir === "down") return 'writing-mode:vertical-rl;transform:none;text-orientation:mixed;';
+  if(dir === "up"){
+    // Older browsers / Android WebViews have no sideways-lr: fall back to vertical-rl turned 180deg.
+    let sl = false; try{ sl = !!(window.CSS && CSS.supports && CSS.supports('writing-mode', 'sideways-lr')); }catch(e){}
+    return (isCell && sl)
+      ? 'writing-mode:sideways-lr;transform:none;'
+      : 'writing-mode:vertical-rl;transform:rotate(180deg);text-orientation:mixed;';
+  }
+  return '';
+}
+function ttDirIsVertical(dir){ return dir === "up" || dir === "down"; }
+function ttDirSelectHtml(cur, onchangeJs){
+  const o = (v, l) => `<option value="${v}" ${(cur || 'auto') === v ? 'selected' : ''}>${l}</option>`;
+  return `<label class="field" style="margin:14px 0 0;"><span>Text direction</span>
+    <select onchange="${onchangeJs}">
+      ${o('auto','Automatic (layout default)')}${o('horizontal','Horizontal')}${o('up','Vertical — reads bottom to top')}${o('down','Vertical — reads top to bottom')}
+    </select></label>`;
+}
+// jsPDF angle for a direction, or null for horizontal/automatic.
+function ttPdfDirAngle(dir){ return dir === "up" ? 90 : dir === "down" ? 270 : null; }
+
+// ---- Class column "Print setup" (right-click a class name on the Summary
+// Timetable of Classes): font, size, bold/italic/underline for the class
+// labels. The label itself is shortened to e.g. "GRD 10N". ----
+function ttSummaryClassLabel(c){
+  const g = String((c && c.grade) || '').trim().replace(/^grade\s*/i, 'GRD ').trim();
+  let st = String((c && c.stream) || '').trim();
+  if(/^(north|south|east|west)$/i.test(st)) st = st.charAt(0).toUpperCase();
+  const glue = /^[A-Za-z]$/.test(st) && /\d$/.test(g) ? '' : ' ';
+  return [g, st].filter(Boolean).join(glue).toUpperCase();
+}
+function openTimetableClassPrintSetup(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  ttClassPrintSetupSnapshot = JSON.stringify(ttClassPrintSetup);
+  ttClassPrintSetupOpen = true;
+  render();
+}
+function closeTimetableClassPrintSetup(){ ttClassPrintSetupOpen = false; ttClassPrintSetupSnapshot = null; render(); }
+function cancelTimetableClassPrintSetup(){
+  if(ttClassPrintSetupSnapshot){ try{ ttClassPrintSetup = JSON.parse(ttClassPrintSetupSnapshot); }catch(e){} }
+  closeTimetableClassPrintSetup();
+}
+function setTtClassPrintField(k, v){ ttClassPrintSetup[k] = v; render(); }
+function toggleTtClassPrintField(k){ ttClassPrintSetup[k] = !ttClassPrintSetup[k]; render(); }
+function resetTtClassPrintSetup(){ ttClassPrintSetup = { fontFamily:"", fontSize:"", bold:true, italic:false, underline:false, direction:"auto" }; render(); }
+function ttClassCellStyle(w){
+  const s = ttClassPrintSetup;
+  let st = 'text-align:center;vertical-align:middle;padding:0 3px;';
+  if(w) st += `width:${w}px;`;
+  if(s.fontFamily) st += `font-family:${s.fontFamily};`;
+  if(Number(s.fontSize) > 0) st += `font-size:${Number(s.fontSize)}px;`;
+  st += `font-weight:${s.bold ? 800 : 400};`;
+  if(s.italic) st += 'font-style:italic;';
+  if(s.underline) st += 'text-decoration:underline;';
+  st += ttDirCss(s.direction, true);
+  return st;
+}
+// Width (px) the class column needs: follows the label length, font size and
+// text direction, so the column grows or shrinks in proportion.
+function ttClassColPx(classes){
+  const s = ttClassPrintSetup;
+  const px = Number(s.fontSize) > 0 ? Number(s.fontSize) : 17;
+  if(ttDirIsVertical(s.direction)) return Math.max(30, Math.ceil(px * 1.4) + 14);
+  const longest = (classes || []).reduce((m, c) => Math.max(m, ttMeasureTextPx(ttSummaryClassLabel(c), px, s.fontFamily || "Times New Roman", s.bold)), 0);
+  return Math.min(160, Math.max(56, Math.ceil(longest) + 18));
+}
+function ttPdfClassFont(){
+  const s = ttClassPrintSetup;
+  const fam = String(s.fontFamily || 'Times New Roman').toLowerCase();
+  const pdfFam = /courier|consolas|lucida console|jetbrains|mono/.test(fam) ? 'courier'
+    : /times|georgia|garamond|palatino|cambria|book antiqua|serif/.test(fam) ? 'times' : (s.fontFamily ? 'helvetica' : 'times');
+  const style = s.bold ? (s.italic ? 'bolditalic' : 'bold') : (s.italic ? 'italic' : 'normal');
+  const pt = Number(s.fontSize) > 0 ? Number(s.fontSize) * 0.75 : 15;
+  return { fam:pdfFam, style, pt };
+}
+function renderTimetableClassPrintSetupModal(){
+  if(!ttClassPrintSetupOpen) return '';
+  const s = ttClassPrintSetup;
+  const fontOptions = TT_PRINT_FONT_CHOICES.map(f => `<option value="${f}" ${s.fontFamily===f?'selected':''}>${f}</option>`).join('');
+  return `
+    <div class="preview-overlay" onclick="if(event.target===this) cancelTimetableClassPrintSetup()">
+      <div class="preview-modal tt-printsetup-scaled" style="max-width:420px;">
+        <div class="preview-modal-header">
+          <div class="preview-modal-title">Print setup — Class</div>
+          <button class="link-btn" onclick="cancelTimetableClassPrintSetup()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px 24px;">
+          <label class="field" style="margin-bottom:14px;"><span>Font</span>
+            <select onchange="setTtClassPrintField('fontFamily', this.value)">
+              <option value="" ${!s.fontFamily?'selected':''}>Default</option>
+              ${fontOptions}
+            </select>
+          </label>
+          <label class="field" style="margin-bottom:14px;"><span>Size (px) — blank = automatic</span>
+            <input type="number" min="5" max="60" step="1" value="${s.fontSize || ''}" placeholder="Auto" onchange="setTtClassPrintField('fontSize', this.value)">
+          </label>
+          <div style="display:flex;gap:22px;margin-bottom:14px;font-size:13.5px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" ${s.bold?'checked':''} onchange="toggleTtClassPrintField('bold')"> <b>Bold</b></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" ${s.italic?'checked':''} onchange="toggleTtClassPrintField('italic')"> <i>Italic</i></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" ${s.underline?'checked':''} onchange="toggleTtClassPrintField('underline')"> <u>Underline</u></label>
+          </div>
+          ${ttDirSelectHtml(s.direction, "setTtClassPrintField('direction', this.value)")}
+          <div style="font-size:12px;color:var(--muted);margin-top:12px;">Applies to the class names (e.g. GRD 10N) on the Summary Timetable of Classes.</div>
+        </div>
+        <div class="wizard-nav" style="padding:16px 22px;border-top:1px solid var(--border);justify-content:center;gap:12px;">
+          <button type="button" class="btn-ghost" style="width:auto;padding:9px 22px;" onclick="resetTtClassPrintSetup()">Reset</button>
+          <button type="button" class="btn-ghost" style="width:auto;padding:9px 30px;" onclick="cancelTimetableClassPrintSetup()">Cancel</button>
+          <button type="button" class="btn-primary" style="width:auto;padding:9px 44px;" onclick="closeTimetableClassPrintSetup()">OK</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderTimetableBreakPrintSetupModal(){
   if(!ttBreakPrintSetupOpen) return '';
   const s = ttBreakPrintSetup;
@@ -31182,7 +31373,7 @@ const TT_PRINT_REPORTS = [
   { key:"whole", label:"1. Whole Timetable" },
   { key:"streams", label:"2. Timetable for Streams" },
   { key:"teachers", label:"3. Timetable for Teachers" },
-  { key:"classrooms", label:"4. Timetable for Classrooms" },
+  { key:"classrooms", label:"4. Timetable for Classrooms (Laboratories)" },
   { key:"summaryStreams", label:"5. Summary Timetable of Classes" },
   { key:"subjects", label:"6. Timetable for Each Subject" },
   { key:"summaryTeachers", label:"7. Summary Timetable for Teachers" },
@@ -31205,6 +31396,7 @@ function timetablePrintPageCount(){
     case "streams": return timetableClasses().length || 1;
     case "summaryStreams": return ttSummaryPages().length || 1;
     case "teachers": return teachersList.length || 1;
+    case "classrooms": return ttLabRooms().length || 1;
     case "subjects": return timetableSubjectNamesList().length || 1;
     default: return 1;
   }
@@ -31283,7 +31475,7 @@ function renderTimetableStreamsAscGrid(c){
   const maxDayLen = Math.max(1, ...dayLabels.map(t => t.length));
   const userDayFs = Number(ttDaysPrintSetup.fontSize) || 0;
   const dayFs = userDayFs || (maxDayLen <= 3 ? 30 : maxDayLen <= 5 ? 22 : maxDayLen <= 7 ? 17 : 13);
-  const dayW = ttDaysPrintSetup.vertical
+  const dayW = ttDaysIsVertical()
     ? Math.round(dayFs * 1.5 + 20)
     : Math.max(40, Math.round(maxDayLen * dayFs * 0.82 + 20));
 
@@ -31475,8 +31667,9 @@ function ttTeacherSubjectLoad(t){
   if(!rows.length) rows = (t.subjects || []).filter(sub => !ttIsLoadExcludedSubject(sub)).map(sub => ({ subject:sub, count:0 }));
   return { rows, total: rows.reduce((n, r) => n + r.count, 0) };
 }
-function renderTeacherSubjectLoadTable(t){
-  const { rows, total } = ttTeacherSubjectLoad(t);
+function renderTeacherSubjectLoadTable(t){ return renderLoadTable(ttTeacherSubjectLoad(t)); }
+function renderLoadTable(load){
+  const { rows, total } = load;
   const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const shown = rows.length ? rows : [null, null, null]; // blank rows to hand-fill, like the template
   const body = shown.map((r, i) => `<tr><td class="tt-tl-no">${i + 1}</td><td class="tt-tl-sub">${r ? esc(r.subject) : ''}</td><td class="tt-tl-n">${r ? r.count : ''}</td></tr>`).join('');
@@ -31639,7 +31832,9 @@ function renderTimetableSummaryGrid(){
   const titleText = `${ttHeaderComputedText()} \u2014 Summary Timetable of Classes \u2014 ${(currentSchool||'').toUpperCase()}`;
 
   // Fixed column widths: narrow class column + narrow break columns, lessons share the rest equally.
-  const colgroup = `<colgroup><col style="width:88px;">${TIMETABLE_DAYS.map(() =>
+  const allSummaryClasses = pages.reduce((a, r) => a.concat(r), []);
+  const clsColPx = ttClassColPx(allSummaryClasses);
+  const colgroup = `<colgroup><col style="width:${clsColPx}px;">${TIMETABLE_DAYS.map(() =>
     ttBreakColgroup(columnMeta, 7, 'up', 15)).join('')}</colgroup>`;
 
   const dayHead = TIMETABLE_DAYS.map((d, k) =>
@@ -31664,15 +31859,22 @@ function renderTimetableSummaryGrid(){
     const grp = (L.group && L.group.enabled && l.division) ? esc(l.division) : '';
     return `<div class="tt-sm-sp"><div class="tt-sm-sp-sub" style="${ttLessonFontOnlyStyle('subject')}">${esc(code)}</div><div class="tt-sm-sp-tch" style="${ttLessonFontOnlyStyle('teacher')}">${tch}</div><div class="tt-sm-sp-grp" style="${ttLessonFontOnlyStyle('group')}">${grp}</div></div>`;
   };
+  // Horizontal lesson text, placed by Print setup (Subject / Teacher / Classroom: 3 x 3 position, font, on-off).
+  const alignOf = f => ["left","center","right"][Number(L[f].posCol)] || "center";
   const cellInner = (c, subject, teacher, merged) => {
-    const code = String(ttSummarySubjectText(subject) || '');
+    const rows3 = [[], [], []];
+    const put = (field, cls, lines) => {
+      lines = lines.filter(Boolean);
+      if(!lines.length) return;
+      const r = Math.min(2, Math.max(0, Number(L[field].posRow)));
+      rows3[r].push(`<div class="tt-sm-h ${cls}" style="${ttLessonFontOnlyStyle(field)}text-align:${alignOf(field)};">${lines.map(esc).join('<br>')}</div>`);
+    };
+    if(L.subject.enabled) put('subject', 'tt-sm-h-sub', [String(ttSummarySubjectText(subject) || '')]);
     const lab = merged ? ttDoubleLessonLab(subject) : '';
-    const room = ttSummaryRoomText(subject, c);
-    return `<div class="tt-sm-in">
-      <div class="tt-sm-sub ${code.length > 6 ? 'tt-sm-side' : ''}" style="${ttLessonFontOnlyStyle('subject')}">${esc(code)}</div>
-      ${lab ? `<div class="tt-sm-vt tt-sm-lab">${esc(lab)}</div>` : ''}
-      <div class="tt-sm-low">${teacherHtml(ttTchOrNone(teacher, subject))}${room ? `<span class="tt-sm-vt tt-sm-room" style="${ttLessonFontOnlyStyle('classroom')}">${esc(room)}</span>` : ''}</div>
-    </div>`;
+    const room = lab || ttSummaryRoomText(subject, c);
+    if(L.classroom.enabled || lab) put('classroom', 'tt-sm-h-room', [room]);
+    put('teacher', 'tt-sm-h-tch', ttSummaryTeacherParts(ttTchOrNone(teacher, subject)));
+    return `<div class="tt-sm-in tt-sm-hor">${rows3.map((items, r) => `<div class="tt-sm-hr tt-sm-hr${r}">${items.join('')}</div>`).join('')}</div>`;
   };
 
   const sheets = pages.map((rows, pageIdx) => {
@@ -31724,19 +31926,16 @@ function renderTimetableSummaryGrid(){
           i += span;
         }
       });
-      return `<tr><td class="tt-sm-cls">${esc([c.grade, c.stream].filter(Boolean).join(' '))}</td>${cells}</tr>`;
+      return `<tr><td class="tt-sm-cls" style="${ttClassCellStyle(clsColPx)}" oncontextmenu="openTimetableClassPrintSetup(event)">${esc(ttSummaryClassLabel(c))}</td>${cells}</tr>`;
     }).join('');
     return `
       <div class="tt-preview-page ${pageIdx===timetablePrintPageIndex?'tt-preview-page-active':''} ${pageIdx < pages.length-1 ? 'tt-print-page-break' : ''}">
         <div class="tt-asc-page tt-sm-page">
-          <div class="tt-sm-head" oncontextmenu="openTimetableHeaderPrintSetup(event)">
+          <div class="tt-sm-head tt-sm-head2" oncontextmenu="openTimetableHeaderPrintSetup(event)">
             ${profile && profile.logo ? `<img src="${profile.logo}" class="tt-sm-logo" alt="">` : ''}
-            <div class="tt-sm-titlebox">
-              <div class="tt-sm-title">${esc(ttHeaderComputedText())}</div>
-              <div class="tt-sm-subtitle">Summary timetable of classes</div>
-            </div>
+            <div class="tt-sm-hschool">${esc((currentSchool||'').toUpperCase())}</div>
+            <div class="tt-sm-htitle">${esc(ttSummaryHeadingText())}</div>
           </div>
-          <div class="tt-sm-school">${esc(currentSchool||'')}</div>
           <table class="tt-sm-table">
             ${colgroup}
             <thead>
@@ -31753,48 +31952,131 @@ function renderTimetableSummaryGrid(){
   return sheets;
 }
 
-// 6 (print). One occurrences table per subject \u2014 everywhere it's taught,
-// by whom \u2014 the on-screen/print counterpart to buildSubjectsTimetablePdf.
+// 6 (print). \u201cTimetable for Each Subject\u201d \u2014 one aSc-style weekly grid per
+// subject. Each lesson cell shows the subject code, how many classes have it
+// in that slot (top-right) and which classes they are (bottom). The
+// on-screen/print counterpart to buildSubjectsTimetablePdf.
+function ttSubjectClassLabel(key){
+  const c = classObjFromKey(key);
+  if(!c) return timetableClassKeyLabel(key).toUpperCase();
+  const gradeShort = GRADE_SHORT_NAMES[c.grade] || autoGradeShortName(c.grade) || c.grade || "";
+  return `${gradeShort} ${c.stream || ""}`.trim().toUpperCase();
+}
+// Every class that has `subject` in this day/period (a split lesson counts
+// once per class), sorted for a stable label.
+function ttSubjectSlotClasses(subject, day, periodId){
+  const keys = [];
+  for(const key in timetableData){
+    const entry = timetableData[key] && timetableData[key][day] && timetableData[key][day][periodId];
+    if(!entry) continue;
+    const hit = (Array.isArray(entry.divisions) && entry.divisions.length > 1)
+      ? entry.divisions.some(d => d.subject === subject)
+      : entry.subject === subject;
+    if(hit) keys.push(key);
+  }
+  return keys.sort((a, b) => ttSubjectClassLabel(a).localeCompare(ttSubjectClassLabel(b), undefined, { numeric:true }));
+}
+function ttSubjectSlotInfo(subject, day, periodId){
+  const keys = ttSubjectSlotClasses(subject, day, periodId);
+  const own = timetableSubjectTimeOffAt(day, periodId, subject);
+  if(!keys.length) return { empty:true, sig:'', timeoff: own === 'unavailable' ? 'unavailable' : null, keys };
+  const timeoff = ttCombineTimeOffStates(own, ...keys.map(k => timetableClassTimeOffAt(day, periodId, k)));
+  const labels = keys.map(ttSubjectClassLabel);
+  return { empty:false, keys, labels, count:keys.length, timeoff, sig: labels.join('|') };
+}
+function ttSubjectCode(subject){
+  const sn = ttShortSubjectName(subject);
+  return String((sn !== subject ? sn : (timetableSubjectCode(subject) || sn)) || '').toUpperCase();
+}
+function renderTimetableSubjectAscGrid(subject){
+  const periods = ttPrintPeriods('teacher');
+  let lessonNo = 0;
+  const columnMeta = periods.map(p => p.isBreak ? { type:"break", period:p } : { type:"lesson", period:p, number:++lessonNo });
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const code = ttSubjectCode(subject);
+  const codeCls = code.length > 6 ? ' tt-sj-code-xs' : (code.length > 4 ? ' tt-sj-code-sm' : '');
+  const classSize = txt => txt.length > 46 ? ' tt-sj-cls-xs' : (txt.length > 22 ? ' tt-sj-cls-sm' : '');
+  const showIntervals = ttTimePrintSetup.showIntervals !== false;
+
+  const headRow1 = columnMeta.map((cm, idx) => {
+    const label = ttTimePrintSetup.showBellsInHeader ? `Bell ${idx + 1}` : (cm.type === "lesson" ? cm.number : "");
+    const isBrk = cm.type !== "lesson" && !ttTimePrintSetup.showBellsInHeader;
+    return `<th class="${isBrk ? 'tt-asc-t-brkhead' : 'tt-asc-t-num'}" style="${ttTimeCellStyle('lesson')}" oncontextmenu="${isBrk ? 'openTimetableBreakPrintSetup(event)' : 'openTimetableTimePrintSetup(event)'}">${isBrk ? '' : label}</th>`;
+  }).join('');
+  const headRow2 = showIntervals ? columnMeta.map(cm => {
+    const sep = ttTimePrintSetup.twoLines ? '<br>' : '\u2013';
+    return `<th class="tt-asc-time tt-asc-t-time" style="${ttTimeCellStyle('time')}" oncontextmenu="openTimetableTimePrintSetup(event)">${ttFormatPeriodTime(cm.period.start)}${sep}${ttFormatPeriodTime(cm.period.end)}</th>`;
+  }).join('') : '';
+
+  const bodyRows = TIMETABLE_DAYS.map((day, dayIdx) => {
+    let cells = '';
+    const slots = columnMeta.map(cm => cm.type === "lesson" ? ttSubjectSlotInfo(subject, day, cm.period.id) : null);
+    let i = 0;
+    while(i < columnMeta.length){
+      const cm = columnMeta[i];
+      if(cm.type === "break"){
+        if(dayIdx === 0) cells += `<td class="tt-asc-break tt-asc-t-break" rowspan="${TIMETABLE_DAYS.length}" style="writing-mode:horizontal-tb;" oncontextmenu="openTimetableBreakPrintSetup(event)"><span style="${ttBreakSpanStyle(22, 'down')}">${ttTeacherBreakText(ttBreakText(cm.period))}</span></td>`;
+        i++; continue;
+      }
+      const sl = slots[i];
+      if(sl.timeoff){
+        cells += `<td class="tt-asc-lesson tt-asc-timeoff"><div class="tt-asc-lesson-inner"><div class="tt-asc-timeoff-x">X</div></div></td>`;
+        i++; continue;
+      }
+      if(sl.empty){ cells += `<td class="tt-asc-lesson"></td>`; i++; continue; }
+      let span = 1;
+      while(i + span < columnMeta.length && columnMeta[i + span].type === "lesson"){
+        const n = slots[i + span];
+        if(!n.empty && !n.timeoff && n.sig === sl.sig) span++; else break;
+      }
+      const clsTxt = sl.labels.join(', ');
+      cells += `<td class="tt-asc-lesson" colspan="${span}" oncontextmenu="openTimetableLessonPrintSetup(event)"><div class="tt-sj-inner">`
+        + `<div class="tt-sj-count" title="${sl.count} class${sl.count === 1 ? '' : 'es'}">${sl.count}</div>`
+        + `<div class="tt-sj-code${codeCls}">${esc(code)}</div>`
+        + `<div class="tt-sj-cls${classSize(clsTxt)}">${esc(clsTxt)}</div>`
+        + `</div></td>`;
+      i += span;
+    }
+    return `<tr><td class="tt-asc-daycell tt-asc-t-day" style="${timetableDayCellStyle()}" oncontextmenu="openTimetableDaysPrintSetup(event)">${timetableDayPrintLabel(day, dayIdx)}</td>${cells}</tr>`;
+  }).join('');
+
+  let weekly = 0;
+  TIMETABLE_DAYS.forEach(day => periods.forEach(p => { if(!p.isBreak) weekly += ttSubjectSlotClasses(subject, day, p.id).length; }));
+  const now = new Date();
+  const dateStr = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
+  const profile = (typeof getSchoolProfile === "function") ? getSchoolProfile(currentSchool) : null;
+  return `
+    <div class="tt-asc-page tt-asc-tpage tt-sj-page">
+      <div class="tt-asc-t-top">
+        <div class="tt-asc-t-top-left">${profile && profile.logo ? `<img src="${profile.logo}" class="tt-asc-t-logo" alt="">` : ''}</div>
+        <div class="tt-asc-t-top-mid">
+          ${renderTimetablePdfBanner({ noLogo:true, noSchool:true })}
+          <div class="tt-asc-title tt-asc-t-title tt-sj-title" style="${ttHeaderFontStyle('font')}" oncontextmenu="openTimetableHeaderPrintSetup(event)">${esc(String(subject).toUpperCase())}</div>
+          <div class="tt-asc-t-school" style="${ttHeaderFontStyle('schoolFont')}" oncontextmenu="openTimetableSchoolFontSetup(event)">${esc((currentSchool || '').toUpperCase())}</div>
+        </div>
+        <div class="tt-asc-t-top-right"><table class="tt-t-load"><tbody><tr><th>LESSONS PER WEEK</th><td class="tt-tl-total">${weekly}</td></tr></tbody></table></div>
+      </div>
+      <table class="tt-asc-table tt-asc-t-table">
+        <colgroup><col>${ttBreakColgroup(columnMeta, 22, 'down', 26)}</colgroup>
+        <thead>
+          <tr><th class="tt-asc-corner tt-asc-t-corner" ${showIntervals ? 'rowspan="2"' : ''} oncontextmenu="openTimetableTimePrintSetup(event)"></th>${headRow1}</tr>
+          ${showIntervals ? `<tr>${headRow2}</tr>` : ''}
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+      <div class="tt-sj-key">The small number in each lesson is how many classes have ${esc(code)} at that time.</div>
+      <div class="tt-asc-footer"><span>Timetable generated: ${dateStr}</span><span>MAESTRO</span></div>
+    </div>
+  `;
+}
 function renderTimetableSubjectsBulk(){
   const subjectNames = timetableSubjectNamesList();
   if(!subjectNames.length) return `<div class="panel"><div class="empty" style="padding:40px 24px;">No subjects set up yet.</div></div>`;
-  return subjectNames.map((subject, idx) => {
-    const rows = [];
-    TIMETABLE_DAYS.forEach(day => {
-      timetablePeriods.filter(p => !p.isBreak).forEach(p => {
-        for(const key in timetableData){
-          const entry = timetableData[key] && timetableData[key][day] && timetableData[key][day][p.id];
-          if(!entry || entry.subject !== subject) continue;
-          const timeOff = ttCombineTimeOffStates(
-            timetableSubjectTimeOffAt(day, p.id, subject),
-            timetableTeacherTimeOffAt(day, p.id, entry.teacher),
-            timetableClassTimeOffAt(day, p.id, key)
-          );
-          if(timeOff) continue;
-          rows.push({ day, period:ttPeriodNumberLabel(p.label), cls:timetableClassKeyLabel(key), teacher:entry.teacher || '\u2014' });
-        }
-      });
-    });
-    const bodyRows = rows.length
-      ? rows.map(r => `<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border);">${r.day}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);">${r.period}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);">${r.cls}</td><td style="padding:7px 10px;border-bottom:1px solid var(--border);">${r.teacher}</td></tr>`).join('')
-      : `<tr><td colspan="4" style="padding:16px 10px;text-align:center;color:var(--muted);">No lessons scheduled for this subject yet</td></tr>`;
-    return `
-      <div class="panel tt-preview-page ${idx===timetablePrintPageIndex?'tt-preview-page-active':''} ${idx < subjectNames.length-1 ? 'tt-print-page-break' : ''}" style="overflow:hidden;">
-        <div class="panel-header"><h3>${subject}</h3></div>
-        <div style="padding:0 4px;">
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
-            <thead><tr>
-              <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;">Day</th>
-              <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;">Period</th>
-              <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;">Class</th>
-              <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;">Teacher</th>
-            </tr></thead>
-            <tbody>${bodyRows}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }).join('');
+  return subjectNames.map((subject, idx) => `
+    <div class="tt-preview-page ${idx===timetablePrintPageIndex?'tt-preview-page-active':''} ${idx < subjectNames.length-1 ? 'tt-print-page-break' : ''}">
+      ${renderTimetableSubjectAscGrid(subject)}
+    </div>
+  `).join('');
 }
 
 // 7 (print). One condensed table: every teacher as a row, every Day\u2192Period
@@ -31975,8 +32257,9 @@ function ttPdfDayColumnFit(doc, fontSize, minWidth, maxWidth){
 // Small S/NO | SUBJECTS | NO OF LESSONS table in the top-right corner of a
 // teacher's PDF page. Returns the y just below it.
 const TT_PDF_LOAD_W = 184;
-function ttPdfTeacherLoadTable(doc, t){
-  const { rows, total } = ttTeacherSubjectLoad(t);
+function ttPdfTeacherLoadTable(doc, t){ return ttPdfLoadTable(doc, ttTeacherSubjectLoad(t)); }
+function ttPdfLoadTable(doc, load){
+  const { rows, total } = load;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 28;
   const shown = rows.length ? rows : [null, null, null];
@@ -32727,7 +33010,16 @@ function buildSummaryTimetablePdf(){
     doc.text("No classes or lesson periods set up yet.", pageW/2, 140, { align:"center" });
     ttPdfStampFooters(doc); return doc;
   }
-  const classW = 66;
+  let classW = 66;
+  {
+    const cf = ttPdfClassFont();
+    if(ttPdfDirAngle(ttClassPrintSetup.direction) !== null) classW = Math.max(22, Math.ceil(cf.pt * 1.4) + 10);
+    else {
+      doc.setFont(cf.fam, cf.style); doc.setFontSize(cf.pt);
+      const lw = pages.reduce((m, r) => r.reduce((m2, c) => Math.max(m2, doc.getTextWidth(ttSummaryClassLabel(c))), m), 0);
+      classW = Math.min(100, Math.max(44, Math.ceil(lw) + 12));
+    }
+  }
   const brkWs = cols.map(c => c.brk ? ttPdfBreakWidthPt(c.period, 9) : 0);
   const lessonW = (pageW - margin*2 - classW - nDays * brkWs.reduce((a,b) => a+b, 0)) / (nDays * lessonNo);
   const colW = cols.map((c, i) => c.brk ? brkWs[i] : lessonW);
@@ -32762,31 +33054,49 @@ function buildSummaryTimetablePdf(){
     doc.setFont(fam || "times", style || "bold"); doc.setFontSize(sz); doc.setTextColor(0,0,0);
     chars.forEach((ch, i) => doc.text(ch, cx, topY + sz*0.85 + i*sz*0.98, { align:"center" }));
   };
+  // Horizontal lesson text placed by Print setup (Subject / Teacher / Classroom: position, font, size, on-off).
   const drawLesson = (c, subject, teacher, merged, x, y, w, h) => {
-    const code = String(ttSummarySubjectText(subject) || "").toUpperCase();
     const lab = merged ? ttDoubleLessonLab(subject) : "";
-    const room = ttSummaryRoomText(subject, c);
-    const cx = x + w/2;
-    // teacher (last, first) and room: rotated, along the bottom — each in its own Print-setup font
-    const lowItems = [];
-    ttSummaryTeacherParts(ttTchOrNone(teacher, subject)).forEach(t => lowItems.push({ t:String(t).toUpperCase(), f:tchF }));
-    if(room) lowItems.push({ t:String(room).toUpperCase(), f:roomF });
-    const lowMax = h * 0.5;
-    const step = Math.min(7, (w - 2) / Math.max(lowItems.length, 1));
-    let lowTallest = 0;
-    lowItems.forEach((it, i) => {
-      const pt = Math.min(it.f.pt || 5.5, step * 1.05);
-      const lx = x + w/2 + ((lowItems.length - 1)/2 - i) * step;
-      rot(it.t, lx, y + h - 2, pt, it.f.style, lowMax, false, it.f.fam);
-      doc.setFont(it.f.fam, it.f.style); doc.setFontSize(pt);
-      lowTallest = Math.max(lowTallest, Math.min(lowMax, doc.getTextWidth(it.t)));
+    const room = lab || ttSummaryRoomText(subject, c);
+    const fields = [];
+    if(L.subject.enabled) fields.push({ cfg:L.subject, f:subjF, lines:[String(ttSummarySubjectText(subject) || "")], def:5.5 });
+    if(L.classroom.enabled || lab) fields.push({ cfg:L.classroom, f:roomF, lines:[room], def:4.2 });
+    fields.push({ cfg:L.teacher, f:tchF, lines:ttSummaryTeacherParts(ttTchOrNone(teacher, subject)), def:4.2 });
+    const maxW = Math.max(w - 1.6, 3);
+    const rowsOf = [[], [], []];
+    fields.forEach(fd => {
+      const lines = fd.lines.map(t => String(t || "").toUpperCase()).filter(Boolean);
+      if(!lines.length) return;
+      let pt = fd.f.pt || fd.def;
+      doc.setFont(fd.f.fam, fd.f.style); doc.setFontSize(pt);
+      const longest = () => Math.max(...lines.map(t => doc.getTextWidth(t)));
+      while(pt > 3.2 && longest() > maxW){ pt -= 0.2; doc.setFontSize(pt); }
+      // still too wide: break the text into characters-per-line chunks
+      const out = [];
+      lines.forEach(t => doc.splitTextToSize(t, maxW).forEach(piece => {   // words first, then characters
+        if(doc.getTextWidth(piece) <= maxW){ out.push(piece); return; }
+        let cur = "";
+        Array.from(piece).forEach(ch => { if(cur && doc.getTextWidth(cur + ch) > maxW){ out.push(cur); cur = ch; } else cur += ch; });
+        if(cur) out.push(cur);
+      }));
+      const r = Math.min(2, Math.max(0, Number(fd.cfg.posRow)));
+      rowsOf[r].push({ fd, pt, out });
     });
-    if(code){
-      const subjMax = Math.max(h - 4 - (lowItems.length ? lowTallest + 3 : 0), 12);
-      if(code.length > 6) rot(code, cx, y + subjMax + 2, Math.min(subjF.pt || 7, w * 0.9), subjF.style, subjMax, false, subjF.fam);
-      else stacked(code, cx, y + 2, subjMax, Math.min(subjF.pt || 8, w * 0.7), subjF.style, subjF.fam);
-    }
-    if(lab) rot(String(lab).toUpperCase(), x + w - 3.2, y + h/2 + 12, 5.5, "bold", h*0.5);
+    const lh = pt => pt * 1.08;
+    const blockH = items => items.reduce((n, it) => n + it.out.length * lh(it.pt), 0);
+    const drawBlock = (items, startY) => {
+      let yy = startY;
+      items.forEach(it => {
+        doc.setFont(it.fd.f.fam, it.fd.f.style); doc.setFontSize(it.pt); doc.setTextColor(0,0,0);
+        const col = Number(it.fd.cfg.posCol);
+        const tx = col === 0 ? x + 0.8 : (col === 2 ? x + w - 0.8 : x + w/2);
+        const al = col === 0 ? "left" : (col === 2 ? "right" : "center");
+        it.out.forEach(t => { doc.text(t, tx, yy + it.pt * 0.82, { align:al }); yy += lh(it.pt); });
+      });
+    };
+    if(rowsOf[0].length) drawBlock(rowsOf[0], y + 1.5);
+    if(rowsOf[1].length) drawBlock(rowsOf[1], y + (h - blockH(rowsOf[1])) / 2);
+    if(rowsOf[2].length) drawBlock(rowsOf[2], y + h - 1.5 - blockH(rowsOf[2]));
   };
 
   pages.forEach((rows, pageIdx) => {
@@ -32801,26 +33111,16 @@ function buildSummaryTimetablePdf(){
       }catch(e){ /* unsupported image, skip */ }
     }
     {
-      const hfS = ttHeaderPrintSetup.headerFont || {};
       const maxTW = pageW - margin*2 - 60;
-      const sumTitle = String((typeof ttHeaderComputedText === "function") ? ttHeaderComputedText() : "TEACHING TIMETABLE").toUpperCase();
-      const usedSz = ttPdfDrawFittedText(doc, sumTitle, pageW/2, margin + 14, maxTW, hfS.fontFamily, hdrF.pt || 20, 8, hfS.bold !== false, !!hfS.italic, "#000000", hdrF.fam);
-      if(hfS.underline){
-        let tw;
-        if(hfS.fontFamily) tw = ttPdfRenderTextImage(sumTitle, hfS.fontFamily, usedSz, !!hfS.bold, !!hfS.italic, "#000000").widthPt;
-        else { doc.setFont(hdrF.fam, hdrF.style); doc.setFontSize(usedSz); tw = doc.getTextWidth(sumTitle); }
-        doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-        doc.line(pageW/2 - tw/2, margin + 11, pageW/2 + tw/2, margin + 11);
-      }
-      // aSc-style rule under the title, tiny subtitle at its right end, school name at the left.
-      doc.setFont("times", "bold"); doc.setFontSize(usedSz);
-      const rw = Math.min(doc.getTextWidth(sumTitle) + 8, maxTW);
-      doc.setDrawColor(0,0,0); doc.setLineWidth(1.6);
-      doc.line(pageW/2 - rw/2, margin + 18, pageW/2 + rw/2, margin + 18);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(3.6);
-      doc.text("Summary timetable of classes", pageW/2 + rw/2, margin + 22, { align:"right" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      doc.text(String(currentSchool||"").toUpperCase(), margin, margin + 33);
+      const schoolTxt = String(currentSchool||"").toUpperCase();
+      const sumTitle = ttSummaryHeadingText();
+      // School name (large, bold) with the underlined master heading beneath, centred.
+      ttPdfDrawFittedText(doc, schoolTxt, pageW/2, margin + 14, maxTW, "", 21, 9, true, false, "#000000", "times");
+      const tSz = ttPdfDrawFittedText(doc, sumTitle, pageW/2, margin + 29, maxTW, "", 12, 7, true, false, "#000000", "times");
+      doc.setFont("times", "bold"); doc.setFontSize(tSz);
+      const tw = doc.getTextWidth(sumTitle);
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.6);
+      doc.line(pageW/2 - tw/2, margin + 31, pageW/2 + tw/2, margin + 31);
     }
     const top = margin + 38;
     const bottom = pageH - 34;
@@ -32873,14 +33173,26 @@ function buildSummaryTimetablePdf(){
     rows.forEach((c, r) => {
       const ry = top + headH + r * rowH;
       if(r > 0) line(xL, ry, xR, ry, 0.75);
-      doc.setFont("times","bold"); doc.setTextColor(0,0,0);
-      const lblTxt = [c.grade, c.stream].filter(Boolean).join(" ").toUpperCase();
-      let lSz = 15; doc.setFontSize(lSz);
+      const clsF = ttPdfClassFont();
+      doc.setFont(clsF.fam, clsF.style); doc.setTextColor(0,0,0);
+      const lblTxt = ttSummaryClassLabel(c);
+      let lSz = clsF.pt; doc.setFontSize(lSz);
       // Wrap onto several lines (like the aSc sheet) and only shrink if the longest word still doesn't fit.
-      let lblLines = doc.splitTextToSize(lblTxt, classW - 6);
-      while(lSz > 5 && (lblLines.length > 3 || lblLines.some(t => doc.getTextWidth(t) > classW - 5))){ lSz -= 0.5; doc.setFontSize(lSz); lblLines = doc.splitTextToSize(lblTxt, classW - 6); }
+      const clsAng = ttPdfDirAngle(ttClassPrintSetup.direction);
+      if(clsAng !== null){
+        // vertical class name: one rotated line, centred in the cell
+        let vSz = clsF.pt; doc.setFontSize(vSz);
+        while(vSz > 5 && doc.getTextWidth(lblTxt) > rowH - 6){ vSz -= 0.5; doc.setFontSize(vSz); }
+        const tw = doc.getTextWidth(lblTxt), cx = xL + classW/2, cy = ry + rowH/2;
+        if(clsAng === 90) doc.text(lblTxt, cx + vSz*0.33, cy + tw/2, { angle:90 });
+        else doc.text(lblTxt, cx - vSz*0.33, cy - tw/2, { angle:270 });
+        if(ttClassPrintSetup.underline){ doc.setLineWidth(0.5); doc.setDrawColor(0,0,0); const ux = clsAng === 90 ? cx + vSz*0.33 + 1.5 : cx - vSz*0.33 - 1.5; doc.line(ux, cy - tw/2, ux, cy + tw/2); }
+      }
+      let lblLines = clsAng !== null ? [] : doc.splitTextToSize(lblTxt, classW - 6);
+      while(clsAng === null && lSz > 5 && (lblLines.length > 3 || lblLines.some(t => doc.getTextWidth(t) > classW - 5))){ lSz -= 0.5; doc.setFontSize(lSz); lblLines = doc.splitTextToSize(lblTxt, classW - 6); }
       const lblLH = lSz * 1.1;
-      doc.text(lblLines, xL + 3, ry + rowH/2 - (lblLines.length - 1) * lblLH / 2 + lSz*0.33, { lineHeightFactor: 1.1 });
+      if(lblLines.length) doc.text(lblLines, xL + classW/2, ry + rowH/2 - (lblLines.length - 1) * lblLH / 2 + lSz*0.33, { lineHeightFactor: 1.1, align:"center" });
+      if(ttClassPrintSetup.underline){ lblLines.forEach((t, li) => { const ly = ry + rowH/2 - (lblLines.length - 1) * lblLH / 2 + lSz*0.33 + li*lblLH + 1.2; doc.setLineWidth(0.5); doc.setDrawColor(0,0,0); { const tw2 = doc.getTextWidth(t); doc.line(xL + classW/2 - tw2/2, ly, xL + classW/2 + tw2/2, ly); } }); }
       const key = timetableClassKey(c);
       const entryAt = (day, pid) => timetableData[key] && timetableData[key][day] && timetableData[key][day][pid];
       const offAt = (day, pid, subj, tch) => subj ? ttCombineTimeOffStates(
@@ -32935,42 +33247,236 @@ function buildSummaryTimetablePdf(){
 
 // 4. One occurrences table per subject: everywhere it's taught, by whom.
 function buildSubjectsTimetablePdf(){
-  const doc = ttPdfNewDoc("portrait");
-  const subjectNames = Array.from(new Set(
-    timetableClasses().flatMap(c => c.subjects || []).concat(timetableSubjects.map(s => s.name))
-  )).filter(Boolean).sort();
-  if(!subjectNames.length) subjectNames.push(null);
-  subjectNames.forEach((subject, idx) => {
-    const { margin, y } = ttPdfSectionHeader(doc, subject || "Timetable for Subjects");
-    const rows = [];
-    if(subject){
-      TIMETABLE_DAYS.forEach(day => {
-        timetablePeriods.filter(p => !p.isBreak).forEach(p => {
-          for(const key in timetableData){
-            const entry = timetableData[key] && timetableData[key][day] && timetableData[key][day][p.id];
-            if(!entry || entry.subject !== subject) continue;
-            // A lesson during a declared Time off — for the subject itself,
-            // its teacher, or the class/stream — shouldn't exist, so it's
-            // left out here rather than listed with a highlight.
-            const timeOff = ttCombineTimeOffStates(
-              timetableSubjectTimeOffAt(day, p.id, subject),
-              timetableTeacherTimeOffAt(day, p.id, entry.teacher),
-              timetableClassTimeOffAt(day, p.id, key)
-            );
-            if(timeOff) continue;
-            rows.push([day, ttPeriodNumberLabel(p.label), timetableClassKeyLabel(key), entry.teacher ? String(entry.teacher).toUpperCase() : "\u2014"]);
+  const ttTeacherSet = timetableSubjectNamesList();
+  if(!ttTeacherSet.length) ttTeacherSet.push("");
+  const doc = ttPdfNewDoc("landscape");
+  const periods = ttPrintPeriods('teacher');
+  let lessonNo = 0;
+  const columnMeta = periods.map(p => p.isBreak ? { type:"break", period:p } : { type:"lesson", period:p, number:++lessonNo });
+
+  // Column widths scale to always fill the full printable page width
+  // (rather than using fixed pt widths, which left a large blank gap on
+  // the right for schools with fewer periods and would overflow the page
+  // for schools with more). The 34:15:40 ratio from the original fixed
+  // widths is preserved, just scaled up or down to fit exactly.
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pdfMargin = 28;
+  const availWidth = pageWidth - pdfMargin * 2;
+  const breakCount = columnMeta.filter(cm => cm.type === "break").length;
+  const lessonCount = columnMeta.length - breakCount;
+  const widthUnit = availWidth / (34 + breakCount * 15 + lessonCount * 40);
+  const dayColWidth = 34 * widthUnit;
+  const breakColWidth = 15 * widthUnit;
+  const lessonColWidth = 40 * widthUnit;
+  const dayFontSize = dayColWidth >= 60 ? 14 : (dayColWidth >= 45 ? 11 : 9);
+
+  // Row heights scale to fill the full printable page height too (rather
+  // than a fixed 32pt per row, which left most of the page blank below a
+  // short table). The two head rows get fixed, predictable heights so the
+  // remaining space can be divided evenly among the body rows (one per day).
+  const pageHeight = doc.internal.pageSize.getHeight();
+  // 40pt (not 32pt) so the header comfortably fits its 3 lines -- period
+  // number, start time, end time -- now that the interval is split across
+  // two lines instead of one dash-joined "8:00-8:40" line.
+  const headRowHeight = 40;
+  const footerReserve = 42; // room for the "Timetable generated…" footer line
+  const baseRowHeight = 32;
+
+  ttTeacherSet.forEach((name, idx) => {
+    const hdr = ttPdfSectionHeader(doc, String(name || "Timetable for Subjects").toUpperCase(), 40, { noLogo:true, schoolFont:true, tightTitle:true });
+    const margin = hdr.margin;
+    // small subjects/lessons summary in the top-right corner; push the grid
+    // below it if it is taller than the header block
+    const y = hdr.y;
+
+    const availBodyHeight = (pageHeight - pdfMargin - footerReserve) - (y + headRowHeight);
+    const bodyRowHeight = Math.max(availBodyHeight / TIMETABLE_DAYS.length, baseRowHeight);
+    const fontScale = Math.min(Math.max(bodyRowHeight / baseRowHeight, 1), 1.8);
+
+    // Day column: same font size as the subjects, widened to fit; the other
+    // columns share whatever width is left.
+    const dayFit = ttPdfDayColumnFit(doc, 7.5 * fontScale, dayColWidth, availWidth * 0.18);
+    const dayW = dayFit.width * 1.5;
+    const dayFontSize = dayFit.fontSize;
+    const restUnit = (availWidth - dayW) / (breakCount * 15 + lessonCount * 40);
+
+    // Period number and time interval are drawn manually in didDrawCell
+    // below (number pinned to the top of the cell, time centred at the
+    // bottom) rather than relying on autoTable's own centred multi-line
+    // text, which would stack all three lines together in the middle.
+    const head = [
+      ["", ...columnMeta.map(cm => ({
+        content: "",
+        _ttPeriodNumber: cm.type === "lesson" ? ttPdfPeriodHeaderLabel(cm.number, String(cm.number)) : "",
+        _ttPeriodStart: ttPdfShowIntervals() ? ttFormatPeriodTime(cm.period.start) : "",
+        _ttPeriodEnd: ttPdfShowIntervals() ? ttFormatPeriodTime(cm.period.end) : "",
+      }))],
+    ];
+
+    // For a given period, a teacher may be covering several streams at once
+    // (e.g. one Geography teacher for the whole of Form 4) \u2014 gather every
+    // class matching that teacher in this slot rather than just the first.
+    // Consecutive periods with the same class-set + subject (a double
+    // lesson) are then merged into one spanning cell, matching the printed
+    // aSc-style timetable.
+    const subjCode = name ? ttSubjectCode(name) : "";
+    const slotInfo = (day, period) => {
+      const info = ttSubjectSlotInfo(name, day, period.id);
+      if(info.timeoff) return { timeOff:true, subject:"", classLabel:"", count:0 };
+      if(info.empty) return { timeOff:false, subject:"", classLabel:"", count:0 };
+      return { timeOff:false, subject:subjCode, classLabel:info.labels.join(", "), classTokens:info.labels, count:info.count };
+    };
+
+    const body = TIMETABLE_DAYS.map((day, dayIdx) => {
+      const row = [{ content: ttPdfDayLabel(day, dayIdx), styles:{ fontStyle:"bold", fontSize:dayFontSize, halign:"center", valign:"middle" } }];
+      let i = 0;
+      while(i < columnMeta.length){
+        const cm = columnMeta[i];
+        if(cm.type === "break"){
+          if(dayIdx === 0) row.push({ content:"", rowSpan: TIMETABLE_DAYS.length, _ttBreakLabel: ttPdfBreakLabel(cm.period) });
+          i++;
+          continue;
+        }
+        const info = slotInfo(day, cm.period);
+        const cellTimeOff = info.timeOff;
+        const subject = info.subject;
+        const classLabel = info.classLabel;
+        let span = 1;
+        if(subject){
+          let j = i + 1;
+          while(j < columnMeta.length && columnMeta[j].type === "lesson"){
+            const n = slotInfo(day, columnMeta[j].period);
+            if(!n.timeOff && n.subject === subject && n.classLabel === classLabel){ span++; j++; } else break;
           }
-        });
-      });
-    }
-    doc.autoTable({
-      startY:y, margin:{left:margin,right:margin},
-      head:[["Day","Period","Class","Teacher"]],
-      body: rows.length ? rows : [["\u2014","\u2014","No subjects set up yet","\u2014"]],
-      theme:"grid", styles:{ ...TT_PDF_TABLE_STYLES, fontSize:9, cellPadding:5, halign:"left" },
-      headStyles: TT_PDF_HEAD_STYLES,
+        }
+        row.push({ content:"", colSpan: span, _ttSubject: subject, _ttTeacher: classLabel, _ttSubjectTokens: [subject], _ttClassTokens: info.classTokens, _ttCount: info.count, _ttTimeOff: !!cellTimeOff });
+        i += span;
+      }
+      return row;
     });
-    if(idx < subjectNames.length - 1) doc.addPage();
+
+    // School logo directly above the blank corner cell (the one above MONDAY),
+    // fitted inside a box the same size as that cell.
+    const logoProfile = (typeof getSchoolProfile === "function") ? getSchoolProfile(currentSchool) : null;
+    if(logoProfile && logoProfile.logo){
+      try{
+        const boxW = dayW, boxH = headRowHeight, boxX = margin, boxY = y - boxH - 3;
+        const props = doc.getImageProperties(logoProfile.logo);
+        const ratio = Math.min(boxW / props.width, boxH / props.height);
+        const w = props.width * ratio, h = props.height * ratio;
+        const fmt = (/^data:image\/jpe?g/i.test(logoProfile.logo)) ? "JPEG" : "PNG";
+        doc.addImage(logoProfile.logo, fmt, boxX + (boxW - w) / 2, boxY + (boxH - h) / 2, w, h);
+      }catch(e){ /* unsupported image, skip */ }
+    }
+
+    const columnStyles = { 0:{ cellWidth:dayW } };
+    columnMeta.forEach((cm, i) => { columnStyles[i+1] = { cellWidth: (cm.type === "break" ? ttPdfBreakUnits(cm.period, 22) : 40) * restUnit }; });
+
+    doc.autoTable({
+      startY:y, margin:{left:margin,right:margin}, tableWidth:availWidth,
+      head, body, theme:"grid",
+      styles:{ font:"times", fontSize:8, cellPadding:2, lineColor:[0,0,0], lineWidth:0.6, textColor:[0,0,0], halign:"center", valign:"middle", minCellHeight:bodyRowHeight },
+      headStyles:{ font:"times", fontStyle:"bold", fillColor:[255,255,255], textColor:[0,0,0], lineColor:[0,0,0], lineWidth:0.6, fontSize:8 },
+      columnStyles,
+      didParseCell: (data) => {
+        // Give the head row a fixed, predictable height (independent of
+        // the body row height above) and leave everything else untouched.
+        if(data.section === "head"){
+          data.cell.styles.minCellHeight = headRowHeight;
+        }
+      },
+      didDrawCell: (data) => {
+        const raw = data.cell.raw;
+        if(!raw || typeof raw !== "object") return;
+        const { x, y:cy, width, height } = data.cell;
+        if(data.section === "head"){
+          if(!("_ttPeriodNumber" in raw)) return;
+          if(raw._ttPeriodNumber){
+            doc.setFont("times","bold");
+            doc.setFontSize(8.5);
+            doc.setTextColor(0,0,0);
+            doc.text(raw._ttPeriodNumber, x + width/2, cy + 10, { align:"center" });
+          }
+          if(raw._ttPeriodStart || raw._ttPeriodEnd){
+            doc.setFont("times","normal");
+            let tSz = 7;
+            doc.setFontSize(tSz);
+            doc.setTextColor(0,0,0);
+            // break columns are narrow: shrink the time to fit the column
+            const tW = Math.max(doc.getTextWidth(raw._ttPeriodStart || ""), doc.getTextWidth(raw._ttPeriodEnd || ""));
+            if(tW > width - 1){ tSz = Math.max(3.5, tSz * (width - 1) / tW); doc.setFontSize(tSz); }
+            doc.text(raw._ttPeriodStart || "", x + width/2, cy + height - 12, { align:"center" });
+            doc.text(raw._ttPeriodEnd || "", x + width/2, cy + height - 4, { align:"center" });
+          }
+          return;
+        }
+        if(data.section !== "body") return;
+        if(raw._ttBreakLabel){
+          ttPdfDrawBreakLabel(doc, raw._ttBreakLabel, x, cy, width, height, 8.5 * fontScale);
+        } else if(raw._ttTimeOff){
+          doc.setFillColor(241,242,245);
+          doc.rect(x, cy, width, height, "F");
+          doc.setFont("times","bold");
+          doc.setFontSize(11 * fontScale);
+          doc.setTextColor(148,163,184);
+          doc.text("X", x + width/2, cy + height/2 + 3, { align:"center" });
+        } else if("_ttSubject" in raw){
+          const cx = x + width/2;
+          const maxTextWidth = Math.max(width - 6, 10);
+          const lineHeightFactor = 1.15;
+          if(raw._ttSubject){
+            // Short subject codes wrap along the TOP of the cell; stream labels
+            // ("10 E / 10 W") wrap along the BOTTOM centre. Both shrink together
+            // until they fit the cell height.
+            const pad = 3;
+            let subjSize = 13 * fontScale;
+            { doc.setFont("times","bold"); doc.setFontSize(10); const w10 = doc.getTextWidth(raw._ttSubject); const fitW = Math.max(restUnit * 40 - 16, 10); if(w10 > 0) subjSize = Math.min(subjSize, 10 * fitW / w10); }
+            let clsSize = 6.5 * fontScale;
+            const wrapTokens = (tokens, sep, size) => {
+              const lines = [];
+              let line = "";
+              tokens.forEach(t => {
+                const trial = line ? line + sep + t : t;
+                if(line && doc.getTextWidth(trial) > maxTextWidth){ lines.push(line + sep.trimEnd()); line = t; }
+                else line = trial;
+              });
+              if(line) lines.push(line);
+              return lines;
+            };
+            let subjLines = [raw._ttSubject], clsLines = raw._ttTeacher ? [raw._ttTeacher] : [];
+            for(let attempt = 0; attempt < 8; attempt++){
+              doc.setFont("times","bold"); doc.setFontSize(subjSize);
+              subjLines = wrapTokens(raw._ttSubjectTokens && raw._ttSubjectTokens.length ? raw._ttSubjectTokens : [raw._ttSubject], "/", subjSize);
+              doc.setFontSize(clsSize);
+              clsLines = raw._ttTeacher ? wrapTokens(raw._ttClassTokens && raw._ttClassTokens.length ? raw._ttClassTokens : [raw._ttTeacher], ", ", clsSize) : [];
+              const widest = Math.max(...subjLines.map(l => (doc.setFontSize(subjSize), doc.getTextWidth(l))), ...clsLines.map(l => (doc.setFontSize(clsSize), doc.getTextWidth(l))), 0);
+              const totalH = subjLines.length * subjSize * lineHeightFactor + (clsLines.length ? 3 + clsLines.length * clsSize * lineHeightFactor : 0);
+              if((totalH <= height - pad*2 && widest <= maxTextWidth + 0.5) || clsSize <= 3.5) break;
+              clsSize *= 0.88;
+            }
+            doc.setTextColor(0,0,0);
+            doc.setFont("times","bold");
+            doc.setFontSize(subjSize);
+            subjLines.forEach((ln, i) => {
+              doc.text(ln, cx, cy + pad + subjSize * 0.8 + i * subjSize * lineHeightFactor, { align:"center" });
+            });
+            if(raw._ttCount){
+              doc.setFont("times","bold"); doc.setFontSize(7);
+              doc.text(String(raw._ttCount), x + width - 3, cy + 3 + 7 * 0.8, { align:"right" });
+            }
+            if(clsLines.length){
+              doc.setFontSize(clsSize);
+              const lastBase = cy + height - pad - clsSize * 0.2;
+              clsLines.forEach((ln, i) => {
+                doc.text(ln, cx, lastBase - (clsLines.length - 1 - i) * clsSize * lineHeightFactor, { align:"center" });
+              });
+            }
+          }
+          // Free periods are left blank (no "Free" label).
+        }
+      },
+    });
+    if(idx < ttTeacherSet.length - 1) doc.addPage();
   });
   ttPdfStampFooters(doc);
   return doc;
@@ -33066,12 +33572,7 @@ function downloadTimetableReportPdf(){
   switch(timetablePrintReportType){
     case "streams": doc = buildStreamsTimetablePdf(); filenameBase = "Timetable_Streams"; break;
     case "teachers": doc = buildTeachersTimetablePdf(); filenameBase = "Timetable_Teachers"; break;
-    case "classrooms": {
-      const cls = timetableClasses().find(c => timetableClassKey(c) === timetablePrintSelection);
-      doc = buildStreamsTimetablePdf(cls ? [cls] : []);
-      filenameBase = `Timetable_${cls ? `${cls.grade}_${cls.stream}`.replace(/\s+/g,'_') : 'Classroom'}`;
-      break;
-    }
+    case "classrooms": doc = buildRoomsTimetablePdf(); filenameBase = "Timetable_Classrooms_Labs"; break;
     case "summaryStreams": doc = buildSummaryTimetablePdf(); filenameBase = "Timetable_Summary_Streams"; break;
     case "subjects": doc = buildSubjectsTimetablePdf(); filenameBase = "Timetable_Subjects"; break;
     case "summaryTeachers": doc = buildTeacherSummaryTimetablePdf(); filenameBase = "Timetable_Summary_Teachers"; break;
@@ -33232,44 +33733,332 @@ function buildTeacherSummaryTimetablePdf(){
   return doc;
 }
 
+// ============================================================================
+// Timetable for Classrooms = LABORATORIES / rooms (Timetable > Classrooms list),
+// NOT each class's home stream. One weekly grid per lab showing which class,
+// subject and teacher uses it in every period. A lesson counts as being in a
+// lab when its subject's Class Type (Lessons Allocation) points at that room,
+// or when it is a DOUBLE lesson whose Double Lessons room is that lab.
+// ============================================================================
+function ttLabRooms(){
+  const labs = ttRooms.filter(r => /\blab(oratory)?\b/i.test(r));
+  return labs.length ? labs : ttRooms.slice();   // no "Lab" rooms set up: list every room
+}
+function ttLessonRoomName(subject, isDouble){
+  const row = lessonsAllocationRowFor(subject);
+  const type = (row && row.classType) || "Home classroom";
+  if(type !== "Home classroom") return (row && row.doubleRoom) || "";
+  return isDouble ? (ttDoubleLessonLab(subject) || "") : "";
+}
+// Every lesson held in `room` at one day+period, across all classes.
+function ttRoomSlotLessons(room, day, periodId){
+  const out = [];
+  const idx = timetablePeriods.findIndex(p => p.id === periodId);
+  const adj = [timetablePeriods[idx - 1], timetablePeriods[idx + 1]].filter(p => p && !p.isBreak);
+  const isSplit = e => Array.isArray(e.divisions) && e.divisions.length > 1;
+  for(const key in timetableData){
+    const byDay = timetableData[key] && timetableData[key][day];
+    const entry = byDay && byDay[periodId];
+    if(!entry) continue;
+    (isSplit(entry) ? entry.divisions : [entry]).forEach(l => {
+      if(!l || !l.subject) return;
+      const isDouble = adj.some(p => { const n = byDay[p.id]; return n && !isSplit(n) && n.subject === l.subject && (n.teacher || "") === (l.teacher || ""); });
+      if(ttLessonRoomName(l.subject, isDouble) === room) out.push({ key, subject:l.subject, teacher:l.teacher || "" });
+    });
+  }
+  return out;
+}
+function ttRoomSubjectLoad(room){
+  const counts = {};
+  timetablePeriods.filter(p => !p.isBreak).forEach(p => {
+    TIMETABLE_DAYS.forEach(day => {
+      Array.from(new Set(ttRoomSlotLessons(room, day, p.id).map(l => l.subject))).forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+    });
+  });
+  const rows = Object.keys(counts).map(s => ({ subject:s, count:counts[s] }))
+    .sort((a, b) => b.count - a.count || String(a.subject).localeCompare(String(b.subject)));
+  return { rows, total: rows.reduce((n, r) => n + r.count, 0) };
+}
+function ttHeaderRoomLabel(room){
+  const label = String(room || '').toUpperCase();
+  return ttHeaderPrintSetup.printPrefix ? `Classroom: ${label}` : label;
+}
+function ttRoomTeacherText(name){
+  return name ? ttSummaryTeacherParts(name).join(' ') : '';
+}
+// Laboratory page in the classic aSc "classroom" look: just the lab name
+// (bold, underlined) above a thick-framed grid; each lesson shows the subject
+// (top-left), the teacher (top-right) and the class big in the centre.
+// Teacher text for a lab card, per Print setup > Teacher (surname only, or full name).
+function ttRoomTeacherShort(name){
+  const t = ttLessonPrintSetup.labTeacher;
+  if(!name || !t.enabled) return '';
+  if(name === TT_NO_TEACHER) return '';
+  const parts = String(ttTwoNames(name)).trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '';
+  const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  return t.fullName && parts.length > 1 ? `${last} ${parts.slice(0, -1).join(' ')}` : last;
+}
+function ttRoomSubjectText(subject){
+  if(!ttLessonPrintSetup.labSubject.enabled) return '';
+  return ttLessonPrintSetup.labSubject.fullName ? subject : (ttProgramPrintLabel(subject) || ttShortSubjectName(subject));
+}
+function renderTimetableRoomAscGrid(room){
+  const periods = ttPrintPeriods('class');
+  let lessonNo = 0;
+  const columnMeta = periods.map(p => p.isBreak ? { type:"break", period:p } : { type:"lesson", period:p, number:++lessonNo });
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const TP = ttTimePrintSetup, HP = ttHeaderPrintSetup;
+  const wt = o => `font-weight:${o && o.bold ? 800 : 400};`;
+  const dayLabels = TIMETABLE_DAYS.map((d, k) => String(timetableDayPrintLabel(d, k) || ''));
+  const maxDayLen = Math.max(1, ...dayLabels.map(t => t.length));
+  const userDayFs = Number(ttDaysPrintSetup.fontSize) || 0;
+  const dayFs = userDayFs || (maxDayLen <= 3 ? 30 : maxDayLen <= 5 ? 22 : maxDayLen <= 7 ? 17 : 13);
+  const dayW = ttDaysIsVertical() ? Math.round(dayFs * 1.5 + 20) : Math.max(40, Math.round(maxDayLen * dayFs * 0.82 + 20));
+  const showIntervals = TP.showIntervals !== false;
+  const timeCtx = 'oncontextmenu="openTimetableTimePrintSetup(event)"';
+  const headNum = columnMeta.map((cm, idx) => {
+    const first = idx === 0 ? ' tt-s-first' : '';
+    const solo = showIntervals ? '' : ' tt-s-solo';
+    if(cm.type === "lesson"){
+      const lbl = TP.showBellsInHeader ? 'Bell ' + (idx+1) : cm.number;
+      return `<th class="tt-s-num${first}${solo}" style="${ttTimeCellStyle('lesson')}${wt(TP.lesson)}" ${timeCtx}>${lbl}</th>`;
+    }
+    const brkStyle = (ttBreakPrintSetup.fontFamily ? `font-family:${ttBreakPrintSetup.fontFamily};` : '') + `font-weight:${ttBreakPrintSetup.bold ? 800 : 400};`;
+    return `<th class="tt-s-brk${solo}" style="${brkStyle}" oncontextmenu="openTimetableBreakPrintSetup(event)">${esc(ttBreakText(cm.period))}</th>`;
+  }).join('');
+  const headTime = showIntervals ? columnMeta.map((cm, idx) => {
+    const cls = cm.type === "break" ? ' tt-s-brk-t' : (idx === 0 ? ' tt-s-first' : '');
+    const sep = TP.twoLines === false ? ' – ' : '<br>';
+    return `<th class="tt-s-time${cls}" style="${ttTimeCellStyle('time')}${wt(TP.time)}" ${cm.type === "break" ? 'oncontextmenu="openTimetableBreakPrintSetup(event)"' : timeCtx}>${ttFormatPeriodTime(cm.period.start)}${sep}${ttFormatPeriodTime(cm.period.end)}</th>`;
+  }).join('') : '';
+  const uniq = arr => Array.from(new Set(arr.filter(Boolean)));
+  const slotFor = (day, cm) => {
+    const lessons = ttRoomSlotLessons(room, day, cm.period.id);
+    if(!lessons.length) return { sig:'', empty:true };
+    const subject = uniq(lessons.map(l => ttRoomSubjectText(l.subject))).join('/');
+    const teacher = uniq(lessons.map(l => ttRoomTeacherShort(l.teacher))).join('/');
+    const cls = ttLessonPrintSetup.labClass.enabled ? uniq(lessons.map(l => ttHomeClassroomCode(classObjFromKey(l.key)))).join(' / ') : '';
+    return { sig:`${subject}|${teacher}|${cls}`, subject, teacher, cls, empty:false };
+  };
+  const lessonCtx = 'oncontextmenu="openTimetableLessonPrintSetup(event)"';
+  const bodyRows = TIMETABLE_DAYS.map((day, dayIdx) => {
+    let cells = '';
+    const slots = columnMeta.map(cm => cm.type === "lesson" ? slotFor(day, cm) : null);
+    let i = 0;
+    while(i < columnMeta.length){
+      const cm = columnMeta[i];
+      if(cm.type === "break"){
+        if(dayIdx === 0){
+          const lbl = String(ttBreakText(cm.period) || '');
+          cells += `<td class="tt-s-brkcell" rowspan="${TIMETABLE_DAYS.length}" oncontextmenu="openTimetableBreakPrintSetup(event)"><span class="tt-s-brk-txt ${lbl.length > 9 ? 'tt-s-brk-sm' : ''}" style="${ttBreakSpanStyle(lbl.length > 9 ? 18 : 26, 'up')}">${esc(lbl)}</span></td>`;
+        }
+        i++; continue;
+      }
+      const sl = slots[i];
+      if(sl.empty){ cells += `<td class="tt-s-cell" ${lessonCtx}></td>`; i++; continue; }
+      let span = 1;
+      while(i + span < columnMeta.length && columnMeta[i + span].type === "lesson"){
+        const n = slots[i + span];
+        if(!n.empty && n.sig === sl.sig) span++; else break;
+      }
+      // place subject / teacher / class by their Print setup position (3 x 3)
+      const rows3 = [[], [], []];
+      [['labSubject','tt-r-sub',sl.subject],['labTeacher','tt-r-tch',sl.teacher],['labClass',`tt-r-cls${sl.cls.length > 9 ? ' tt-r-cls-sm' : ''}`,sl.cls]].forEach(([f, cl, txt]) => {
+        if(!txt) return;
+        const cfg = ttLessonPrintSetup[f];
+        const r = Math.min(2, Math.max(0, Number(cfg.posRow) || 0));
+        rows3[r].push({ col:Number(cfg.posCol) || 0, html:`<span class="${cl}" style="${ttLessonFieldStyle(f)}">${esc(txt)}</span>` });
+      });
+      const rowsHtml = rows3.map((items, r) => `<div class="tt-r-row tt-r-row${r}">${items.sort((x, y) => x.col - y.col).map(it => it.html).join('')}</div>`).join('');
+      cells += `<td class="tt-s-cell" colspan="${span}" ${lessonCtx}><div class="tt-r-part">${rowsHtml}</div></td>`;
+      i += span;
+    }
+    return `<tr><td class="tt-s-day" style="${timetableDayCellStyle()}${wt(ttDaysPrintSetup)}" oncontextmenu="openTimetableDaysPrintSetup(event)">${dayLabels[dayIdx]}</td>${cells}</tr>`;
+  }).join('');
+  const now = new Date();
+  const dateStr = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
+  return `
+    <div class="tt-asc-page tt-asc-spage">
+      <div class="tt-s-head" oncontextmenu="openTimetableHeaderPrintSetup(event)">
+        <div class="tt-s-headtext">
+          <div class="tt-s-banner" style="${ttHeaderFontStyle('headerFont')}${wt(HP.headerFont)}">${esc(ttHeaderComputedText())}</div>
+          <div class="tt-s-title tt-r-title" style="${ttHeaderFontStyle('font')}${wt(HP.font)}">${esc(String(room).toUpperCase())}</div>
+          <div class="tt-s-school" style="${ttHeaderFontStyle('schoolFont')}">${esc((currentSchool || '').toUpperCase())}</div>
+        </div>
+      </div>
+      <table class="tt-asc-s-table" style="--s-day-w:${dayW}px;--s-day-fs:${dayFs}px;">
+        <colgroup><col>${ttBreakColgroup(columnMeta, 22, 'up', 26)}</colgroup>
+        <thead>
+          <tr><th class="tt-s-corner" rowspan="${showIntervals ? 2 : 1}" ${timeCtx}></th>${headNum}</tr>
+          ${showIntervals ? `<tr>${headTime}</tr>` : ''}
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+      <div class="tt-s-foot-line"><span>Timetable generated:${dateStr}</span><span></span></div>
+    </div>
+  `;
+}
+// 4 (print). Every laboratory/room, one full weekly grid each.
+function renderTimetableRoomsBulk(){
+  const rooms = ttLabRooms();
+  if(!rooms.length) return `<div class="panel"><div class="empty" style="padding:40px 24px;">No laboratories set up yet. Add them in Timetable &gt; Classrooms.</div></div>`;
+  return rooms.map((r, idx) => `
+    <div class="tt-preview-page ${idx===timetablePrintPageIndex?'tt-preview-page-active':''} ${idx < rooms.length-1 ? 'tt-print-page-break' : ''}">
+      ${renderTimetableRoomAscGrid(r)}
+    </div>
+  `).join('');
+}
+// PDF counterpart: one landscape page per laboratory.
+function buildRoomsTimetablePdf(onlyRooms){
+  const roomSet = onlyRooms || ttLabRooms();
+  const doc = ttPdfNewDoc("landscape");
+  const periods = ttPrintPeriods('teacher');
+  let lessonNo = 0;
+  const columnMeta = periods.map(p => p.isBreak ? { type:"break", period:p } : { type:"lesson", period:p, number:++lessonNo });
+  const pageWidth = doc.internal.pageSize.getWidth(), pageHeight = doc.internal.pageSize.getHeight();
+  const pdfMargin = 28, availWidth = pageWidth - pdfMargin * 2;
+  const breakCount = columnMeta.filter(cm => cm.type === "break").length;
+  const lessonCount = columnMeta.length - breakCount;
+  const dayColWidth = 34 * availWidth / (34 + breakCount * 15 + lessonCount * 40);
+  const headRowHeight = 40, footerReserve = 42, baseRowHeight = 32;
+  if(!roomSet.length){
+    ttPdfSectionHeader(doc, "Timetable for Classrooms");
+    doc.setFont("times","normal"); doc.setFontSize(10); doc.setTextColor(0,0,0);
+    doc.text("No laboratories set up yet.", pageWidth/2, 140, { align:"center" });
+    ttPdfStampFooters(doc); return doc;
+  }
+  roomSet.forEach((room, idx) => {
+    // Header text, lab name and school name (Header print setup).
+    const hdr = ttPdfSectionHeader(doc, String(room).toUpperCase(), 0, { noLogo:true, schoolFont:true });
+    const margin = hdr.margin;
+    const y = hdr.y;
+    const availBodyHeight = (pageHeight - pdfMargin - footerReserve) - (y + headRowHeight);
+    const bodyRowHeight = Math.max(availBodyHeight / TIMETABLE_DAYS.length, baseRowHeight);
+    const fontScale = Math.min(Math.max(bodyRowHeight / baseRowHeight, 1), 1.8);
+    const dayFit = ttPdfDayColumnFit(doc, 7.5 * fontScale, dayColWidth, availWidth * 0.18);
+    const dayW = dayFit.width * 1.5;
+    const dayFontSize = dayFit.fontSize;
+    const restUnit = (availWidth - dayW) / (breakCount * 15 + lessonCount * 40);
+    const head = [["", ...columnMeta.map(cm => ({
+      content: "",
+      _ttPeriodNumber: cm.type === "lesson" ? ttPdfPeriodHeaderLabel(cm.number, String(cm.number)) : "",
+      _ttPeriodStart: ttPdfShowIntervals() ? ttFormatPeriodTime(cm.period.start) : "",
+      _ttPeriodEnd: ttPdfShowIntervals() ? ttFormatPeriodTime(cm.period.end) : "",
+    }))]];
+    const uniq = arr => Array.from(new Set(arr.filter(Boolean)));
+    const slotInfo = (day, period) => {
+      const lessons = ttRoomSlotLessons(room, day, period.id);
+      if(!lessons.length) return { subject:"", teacher:"", cls:"" };
+      const subject = uniq(lessons.map(l => ttRoomSubjectText(l.subject))).join("/");
+      return {
+        subject,
+        teacher: uniq(lessons.map(l => ttRoomTeacherShort(l.teacher))).join("/"),
+        cls: ttLessonPrintSetup.labClass.enabled ? uniq(lessons.map(l => ttHomeClassroomCode(classObjFromKey(l.key)))).join(" / ") : "",
+      };
+    };
+    const body = TIMETABLE_DAYS.map((day, dayIdx) => {
+      const row = [{ content: ttPdfDayLabel(day, dayIdx), styles:{ font:"helvetica", fontStyle:"normal", fontSize:dayFontSize, halign:"center", valign:"middle" } }];
+      let i = 0;
+      while(i < columnMeta.length){
+        const cm = columnMeta[i];
+        if(cm.type === "break"){
+          if(dayIdx === 0) row.push({ content:"", rowSpan: TIMETABLE_DAYS.length, _ttBreakLabel: ttPdfBreakLabel(cm.period) });
+          i++; continue;
+        }
+        const info = slotInfo(day, cm.period);
+        let span = 1;
+        if(info.subject || info.teacher || info.cls){
+          let j = i + 1;
+          while(j < columnMeta.length && columnMeta[j].type === "lesson"){
+            const n = slotInfo(day, columnMeta[j].period);
+            if(n.subject === info.subject && n.cls === info.cls && n.teacher === info.teacher){ span++; j++; } else break;
+          }
+        }
+        row.push({ content:"", colSpan: span, _ttSubject: info.subject, _ttTeacher: info.teacher, _ttClass: info.cls });
+        i += span;
+      }
+      return row;
+    });
+    const columnStyles = { 0:{ cellWidth:dayW } };
+    columnMeta.forEach((cm, i) => { columnStyles[i+1] = { cellWidth: (cm.type === "break" ? ttPdfBreakUnits(cm.period, 22) : 40) * restUnit }; });
+    doc.autoTable({
+      startY:y, margin:{left:margin,right:margin}, tableWidth:availWidth,
+      head, body, theme:"grid",
+      styles:{ font:"times", fontSize:8, cellPadding:2, lineColor:[0,0,0], lineWidth:0.6, textColor:[0,0,0], halign:"center", valign:"middle", minCellHeight:bodyRowHeight },
+      headStyles:{ font:"times", fontStyle:"bold", fillColor:[255,255,255], textColor:[0,0,0], lineColor:[0,0,0], lineWidth:0.6, fontSize:8 },
+      columnStyles,
+      didParseCell: (data) => { if(data.section === "head") data.cell.styles.minCellHeight = headRowHeight; },
+      didDrawCell: (data) => {
+        const raw = data.cell.raw;
+        if(!raw || typeof raw !== "object") return;
+        const { x, y:cy, width, height } = data.cell;
+        if(data.section === "head"){
+          if(!("_ttPeriodNumber" in raw)) return;
+          if(raw._ttPeriodNumber){
+            doc.setFont("times","bold"); doc.setFontSize(8.5); doc.setTextColor(0,0,0);
+            doc.text(raw._ttPeriodNumber, x + width/2, cy + 10, { align:"center" });
+          }
+          if(raw._ttPeriodStart || raw._ttPeriodEnd){
+            doc.setFont("times","normal");
+            let tSz = 7; doc.setFontSize(tSz); doc.setTextColor(0,0,0);
+            const tW = Math.max(doc.getTextWidth(raw._ttPeriodStart || ""), doc.getTextWidth(raw._ttPeriodEnd || ""));
+            if(tW > width - 1){ tSz = Math.max(3.5, tSz * (width - 1) / tW); doc.setFontSize(tSz); }
+            doc.text(raw._ttPeriodStart || "", x + width/2, cy + height - 12, { align:"center" });
+            doc.text(raw._ttPeriodEnd || "", x + width/2, cy + height - 4, { align:"center" });
+          }
+          return;
+        }
+        if(data.section !== "body") return;
+        if(raw._ttBreakLabel){
+          ttPdfDrawBreakLabel(doc, raw._ttBreakLabel, x, cy, width, height, 8.5 * fontScale);
+        } else if(raw._ttSubject || raw._ttTeacher || raw._ttClass){
+          // Subject / teacher / class placed by Print setup (3 x 3 position, size, bold, italic).
+          const pad = 3, def = 6.5 * Math.min(fontScale, 1.4);
+          const place = (field, text, defSize) => {
+            const cfg = ttLessonPrintSetup[field];
+            if(!text) return;
+            let sz = Number(cfg.fontSize) > 0 ? Number(cfg.fontSize) * 0.75 : defSize;
+            const fam = /courier|consolas|mono/i.test(cfg.fontFamily || "") ? "courier" : (/times|georgia|serif/i.test(cfg.fontFamily || "") ? "times" : "helvetica");
+            doc.setFont(fam, cfg.bold ? (cfg.italic ? "bolditalic" : "bold") : (cfg.italic ? "italic" : "normal"));
+            doc.setFontSize(sz); doc.setTextColor(0,0,0);
+            const t = String(text).toUpperCase();
+            while(sz > 4 && doc.getTextWidth(t) > width - pad * 2){ sz -= 0.5; doc.setFontSize(sz); }
+            const col = Number(cfg.posCol) || 0, row = Math.min(2, Math.max(0, Number(cfg.posRow) || 0));
+            const tx = col === 0 ? x + pad : (col === 2 ? x + width - pad : x + width / 2);
+            const ty = row === 0 ? cy + pad + sz * 0.8 : (row === 2 ? cy + height - pad - sz * 0.2 : cy + height / 2 + sz * 0.35);
+            doc.text(t, tx, ty, { align: col === 0 ? "left" : (col === 2 ? "right" : "center") });
+            if(cfg.underline){ const w = doc.getTextWidth(t); const lx = col === 0 ? tx : (col === 2 ? tx - w : tx - w/2); doc.setLineWidth(0.5); doc.line(lx, ty + 1.2, lx + w, ty + 1.2); }
+          };
+          place('labSubject', raw._ttSubject, def);
+          place('labTeacher', raw._ttTeacher, def);
+          place('labClass', raw._ttClass, 13 * fontScale);
+        }
+      },
+    });
+    // thick outer frame, day column and header rules like the aSc printout
+    const endY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || (y + headRowHeight + bodyRowHeight * TIMETABLE_DAYS.length);
+    doc.setDrawColor(0,0,0); doc.setLineWidth(2);
+    doc.rect(margin, y, availWidth, endY - y);
+    doc.line(margin + dayW, y, margin + dayW, endY);
+    doc.line(margin, y + headRowHeight, margin + availWidth, y + headRowHeight);
+    if(idx < roomSet.length - 1) doc.addPage();
+  });
+  ttPdfStampFooters(doc);
+  return doc;
+}
+
 function renderTimetablePrintoutsPage(){
   if(!timetableClasses().length){
     return `<div class="panel"><div class="empty" style="padding:40px 24px;">No classes set up yet. Add classes first in Manage Classes.</div></div>`;
   }
   if(!TT_PRINT_REPORTS.some(r => r.key === timetablePrintReportType)) timetablePrintReportType = 'whole';
 
-  const validKeys = timetableClasses().map(c => timetableClassKey(c));
-  if(!timetablePrintSelection || !validKeys.includes(timetablePrintSelection)){
-    timetablePrintSelection = validKeys[0];
-  }
-
-  const classroomOptions = timetableClasses().map(c => {
-    const key = timetableClassKey(c);
-    return `<option value="${key}" ${key===timetablePrintSelection?'selected':''}>${c.grade} ${c.stream}</option>`;
-  }).join('');
-
   let printBody;
   switch(timetablePrintReportType){
     case "streams": printBody = renderTimetableStreamsBulk(); break;
     case "teachers": printBody = renderTimetableTeachersBulk(); break;
-    case "classrooms": {
-        // Reuse the same "classic aSc" grid used by the Streams report
-        // (renderTimetableStreamsAscGrid) instead of the interactive editor
-        // grid (renderTimetableGrid). The editor grid has no branded
-        // heading/footer, doesn't stretch to fill the printed page, and
-        // crams every period into an equal-width column regardless of
-        // content length \u2014 for classes with long subject names (e.g. CBC
-        // senior-school electives like "Pastoral Programme" or "Information
-        // Communication Technology") that made adjacent cells' text visibly
-        // overlap once rasterised for PDF export. The aSc-style grid merges
-        // consecutive identical lessons into one wider cell and already
-        // matches the other reports' look, so it doesn't have any of those
-        // problems.
-        const cls = timetableClasses().find(c => timetableClassKey(c) === timetablePrintSelection);
-        printBody = cls
-          ? renderTimetableStreamsAscGrid(cls)
-          : `<div class="panel"><div class="empty" style="padding:40px 24px;">Select a classroom.</div></div>`;
-      } break;
+    case "classrooms": printBody = renderTimetableRoomsBulk(); break;
     case "summaryStreams": printBody = renderTimetableSummaryGrid(); break;
     case "subjects": printBody = renderTimetableSubjectsBulk(); break;
     case "summaryTeachers": printBody = renderTimetableTeacherSummaryGrid(); break;
@@ -33306,11 +34095,6 @@ function renderTimetablePrintoutsPage(){
         <select title="Select what to print" onchange="setTimetablePrintReportType(this.value)">${reportOptions}</select>
         <span class="tt-print-page-count">Page: ${timetablePrintPageIndex+1}/${totalPages}</span>
       </div>
-      ${timetablePrintReportType === 'classrooms' ? `
-      <div class="tt-print-toolbar-select">
-        <label>Classroom</label>
-        <select onchange="setTimetablePrintSelection(this.value)">${classroomOptions}</select>
-      </div>` : ''}
       <div class="tt-print-toolbar-group">
         <button type="button" class="tt-rib-btn" title="Colors" onclick="ttRibbonInfo('Colors')"><i class="fa-solid fa-fill-drip"></i><span>Colors</span></button>
       </div>
@@ -33323,6 +34107,7 @@ function renderTimetablePrintoutsPage(){
     ${renderTimetableLessonPrintSetupModal()}
     ${renderTimetableTimePrintSetupModal()}
     ${renderTimetableBreakPrintSetupModal()}
+    ${renderTimetableClassPrintSetupModal()}
     ${renderTimetableHeaderPrintSetupModal()}
     ${renderTimetableBellTimesModal()}
   `;
@@ -56893,23 +57678,52 @@ if(isLoggedIn){
     return o;
   }
   var SKIP = { SCRIPT:1, STYLE:1, TEXTAREA:1, NOSCRIPT:1 };
-  var busy = false, timer = null;
+  var busy = false, timer = null, pending = new Set(), memo = new Map();
+  // Lists repeat the same strings (grades, names, statuses) hundreds of times; run the regexes once per distinct string.
+  function fixCached(v){
+    var r = memo.get(v);
+    if(r === undefined){ r = fix(v); if(memo.size > 4000) memo.clear(); memo.set(v, r); }
+    return r;
+  }
   function walk(root){
+    if(!root || !root.isConnected) return;
+    if(root.nodeType === 3){
+      var p = root.parentNode;
+      if(p && !SKIP[p.nodeName] && /\S/.test(root.nodeValue)){ var v0 = root.nodeValue, r0 = fixCached(v0); if(r0 !== v0) root.nodeValue = r0; }
+      return;
+    }
     var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode:function(n){
         var p=n.parentNode; if(!p||SKIP[p.nodeName]) return NodeFilter.FILTER_REJECT;
         return /\S/.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;
       }});
     var n, list=[]; while((n=w.nextNode())) list.push(n);
-    list.forEach(function(t){ var v=t.nodeValue, r=fix(v); if(r!==v) t.nodeValue=r; });
+    list.forEach(function(t){ var v=t.nodeValue, r=fixCached(v); if(r!==v) t.nodeValue=r; });
   }
   function run(){
-    if(busy) return; busy=true;
-    try{ build(); walk(document.body); }catch(e){ console.warn("uppercase layer:", e); }
-    busy=false;
+    if(busy) return; busy = true;
+    var roots = pending; pending = new Set();
+    try{
+      var k0 = cache.key; build();
+      // The name list changed (or first run): the whole page may need re-checking. Otherwise only what just changed.
+      if(cache.key !== k0){ memo.clear(); walk(document.body); }
+      else if(roots.has(document.body)) walk(document.body);
+      else roots.forEach(walk);
+    }catch(e){ console.warn("uppercase layer:", e); }
+    busy = false;
+    try{ mo.takeRecords(); }catch(e){}   // drop the records caused by our own text edits
   }
   function schedule(){ clearTimeout(timer); timer=setTimeout(run, 30); }
-  var mo = new MutationObserver(function(){ if(!busy) schedule(); });
+  var mo = new MutationObserver(function(recs){
+    if(busy) return;
+    for(var i=0;i<recs.length;i++){
+      var r = recs[i];
+      if(r.type === "characterData") pending.add(r.target);
+      else for(var j=0;j<r.addedNodes.length;j++) pending.add(r.addedNodes[j]);
+      if(pending.size > 300){ pending.clear(); pending.add(document.body); break; }
+    }
+    if(pending.size) schedule();
+  });
   mo.observe(document.body,{childList:true,subtree:true,characterData:true});
   /* Names typed into fields and dropdowns also read in capitals */
   var st=document.createElement("style");
@@ -57870,10 +58684,28 @@ if(isLoggedIn){
    Works with no internet or server. Cloud sync (cloud-sync.js) still runs on top when signed in.
    Uses the app's own globals (collectBackupData, applyPlatformData, loadSchoolData, render). */
 (function(){
+  // Change tracker shared with cloud-sync.js. The autosave timers used to serialize and hash the whole dataset
+  // every few seconds even when nothing had changed; now they skip that while this epoch has not moved.
+  // The epoch moves on every render() and on any user input/click/key, which covers every way data is edited.
+  // A full check still happens at least every RECHECK ms, and always when the app is hidden or closed.
+  var D=window.MASMS_DIRTY;
+  if(!D){
+    D=window.MASMS_DIRTY={ epoch:1, RECHECK:60*1000, bump:function(){ D.epoch++; } };
+    ['input','change','click','keydown','paste','drop'].forEach(function(t){ document.addEventListener(t,D.bump,true); });
+  }
+  (function wrapRender(){
+    var r=window.render;
+    if(typeof r==='function'&&!r.__dirtyWrapped){
+      var w=function(){ D.epoch++; return r.apply(this,arguments); };
+      w.__dirtyWrapped=true; window.render=w;
+    }
+  })();
+
   var DB='masmsLocal', STORE='kv', KEY='snapshot', PREV='snapshotPrev', SYNCED='masmsLocalSyncedHash';
   var PREV_EVERY=30*60*1000, TICK=5000;
   var ready=false, readFailed=false, busy=false, state='load', errMsg='';
   var lastHash='', lastObj=null, prevAt=0, hadUnsynced=false, resolveReady;
+  var seenEpoch=-1, seenAt=0;   // change-tracker state at the last full serialization
   var readyP=new Promise(function(r){ resolveReady=r; });
 
   // same hash + replacer as cloud-sync.js so both sides can compare snapshots
@@ -57962,9 +58794,12 @@ if(isLoggedIn){
     return { snap:snap, json:json, h:hash(json) };
   }
 
-  function save(force){
+  // idle=true is the timer path: skip the expensive serialize+hash while nothing has changed.
+  function save(force,idle){
     if(!ready||readFailed||busy) return Promise.resolve();
-    var s; try{ s=snapshot(); }catch(e){ return Promise.resolve(); }
+    if(idle&&!force&&D.epoch===seenEpoch&&Date.now()-seenAt<D.RECHECK) return Promise.resolve();
+    var ep=D.epoch, s; try{ s=snapshot(); }catch(e){ return Promise.resolve(); }
+    seenEpoch=ep; seenAt=Date.now();
     if(!force&&s.h===lastHash) return Promise.resolve();
     busy=true; state='saving';
     var now=Date.now(), obj={ savedAt:new Date(now).toISOString(), hash:s.h, json:s.json };   // serialized: the live app objects keep changing
@@ -57973,6 +58808,7 @@ if(isLoggedIn){
       lastHash=s.h; lastObj=obj; state='ok'; errMsg='';
     }).catch(function(e){
       state='err'; errMsg=(e&&e.message)||'could not write to phone storage';
+      seenEpoch=-1;   // a failed write must be retried on the next tick even if nothing else changes
     }).then(function(){ busy=false; paint(); });
   }
 
@@ -58025,6 +58861,7 @@ if(isLoggedIn){
   window.MASMS_LOCAL={
     ready:readyP,
     saveNow:function(){ return save(true); },
+    tick:function(){ retryRead(); save(false,true); paint(); },   // what the autosave timer runs
     status:savedLabel,
     restorePrevious:restorePrevious,
     // cloud-sync tells us which snapshot hash the server holds, so we can tell if this device has un-uploaded changes
@@ -58034,7 +58871,7 @@ if(isLoggedIn){
   };
 
   document.addEventListener('DOMContentLoaded',init);
-  setInterval(function(){ retryRead(); save(false); paint(); },TICK);
+  setInterval(function(){ window.MASMS_LOCAL.tick(); },TICK);
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(false); });
   window.addEventListener('pagehide',function(){ save(false); });
 })();
@@ -58044,19 +58881,21 @@ if(isLoggedIn){
    they are on for the lifetime of the tab/app window (sessionStorage), and restores both once the
    on-device data has loaded. No password is stored. Logging out clears it; closing the app clears it. */
 (function(){
-  var KEY='masmsSession', hideEl=null, armed=false;
+  var KEY='masmsSession', hideEl=null, armed=false, lastWritten='';
   function ss(){ try{ return window.sessionStorage; }catch(e){ return null; } }
   function read(){ var s=ss(); if(!s) return null; try{ var o=JSON.parse(s.getItem(KEY)||'null'); return o&&o.name&&o.role?o:null; }catch(e){ return null; } }
-  function clear(){ var s=ss(); if(s) try{ s.removeItem(KEY); }catch(e){} }
+  function clear(){ lastWritten=''; var s=ss(); if(s) try{ s.removeItem(KEY); }catch(e){} }
   function save(){
     if(!armed) return;
     var s=ss(); if(!s) return;
     try{
       if(!isLoggedIn||pwChangePending) return;
-      s.setItem(KEY,JSON.stringify({
+      var str=JSON.stringify({
         name:currentUserName, role:currentUserRole, school:currentSchool, active:active,
         portal:!!isPortalSession, adm:currentPortalStudentAdm||null, agentId:currentAgentId||null
-      }));
+      });
+      if(str===lastWritten) return;   // runs every second; only touch storage when something changed
+      s.setItem(KEY,str); lastWritten=str;
     }catch(e){}
   }
   function unhide(){ if(hideEl&&hideEl.parentNode) hideEl.parentNode.removeChild(hideEl); hideEl=null; }

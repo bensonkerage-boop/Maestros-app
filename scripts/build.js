@@ -5,6 +5,7 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { minify } = require('terser');
 const root = path.join(__dirname, '..'), pub = path.join(root, 'public');
+let LAZY_LIBS = '';
 const nm = p => path.join(root, 'node_modules', p);
 const cp = (from, to) => { fs.mkdirSync(path.dirname(to), { recursive: true }); fs.copyFileSync(from, to); };
 
@@ -47,13 +48,30 @@ if (require.main !== module) return;
     if (r.code) html = html.replace(m[0], () => '<script>' + r.code.replace(/<\/(script|!--)/gi, '<\\/$1') + '</script>');
   }
 
+  // 2b) Trim what the web build does not need to ship inside the HTML
+  //  - Font Awesome is inlined in the source (1MB of base64 fonts, repeated per font-family alias) for the
+  //    single-file standalone. The web build already links the identical vendor/fa/all.min.css, so drop the copy.
+  {
+    const m = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].find(x => x[1].length > 500000 && /Font Awesome Free/.test(x[1].slice(0, 300)) && /base64/.test(x[1]));
+    if (m && html.includes('<link href="vendor/fa/all.min.css" rel="stylesheet">')) html = html.replace(m[0], '');
+  }
+  //  - vendor/qrcode.min.js has no browser build on npm and is never shipped: the tag only produced a 404 on every load
+  html = html.replace('<script src="vendor/qrcode.min.js" onerror="this.remove()"></script>', '');
+  //  - xlsx (0.9MB) and exceljs (0.9MB) were parser-blocking scripts ahead of the 3MB app script, yet they are only
+  //    used when a user imports/exports Excel. Load them right after the page has loaded instead (same order as before).
+  const XLSX_TAG = '<script src="vendor/xlsx.full.min.js"></script>', EXCELJS_TAG = '<script src="vendor/exceljs.min.js" onerror="this.remove()"></script>';
+  if (html.includes(XLSX_TAG) && html.includes(EXCELJS_TAG)) {
+    html = html.replace(XLSX_TAG, '').replace(EXCELJS_TAG, '');
+    LAZY_LIBS = '<script>(function(){function L(s,o){var e=document.createElement("script");e.src=s;e.async=false;if(o)e.onerror=function(){e.remove()};document.head.appendChild(e)}' +
+      'function go(){L("vendor/xlsx.full.min.js");L("vendor/exceljs.min.js",1)}' +
+      'if(document.readyState==="complete")setTimeout(go,0);else addEventListener("load",function(){setTimeout(go,0)})})()</script>\n';
+  }
+
   // 3) Vendor libs, fonts, cloud sync
   const v = (src, dst) => cp(nm(src), path.join(pub, 'vendor', dst));
   v('xlsx/dist/xlsx.full.min.js', 'xlsx.full.min.js');
   v('exceljs/dist/exceljs.min.js', 'exceljs.min.js');
-  v('jspdf/dist/jspdf.umd.min.js', 'jspdf.umd.min.js');
-  v('jspdf-autotable/dist/jspdf.plugin.autotable.min.js', 'jspdf.plugin.autotable.min.js');
-  v('html2canvas/dist/html2canvas.min.js', 'html2canvas.min.js');
+  // (jspdf, jspdf-autotable and html2canvas are inlined in the page; nothing references separate copies, so none are shipped)
   const fa = nm('@fortawesome/fontawesome-free');
   cp(path.join(fa, 'css/all.min.css'), path.join(pub, 'vendor/fa/css/all.min.css'));
   for (const f of fs.readdirSync(path.join(fa, 'webfonts'))) cp(path.join(fa, 'webfonts', f), path.join(pub, 'vendor/fa/webfonts', f));
@@ -71,7 +89,7 @@ if (require.main !== module) return;
 
   cp(path.join(__dirname, 'cloud-sync.js'), path.join(pub, 'assets/cloud-sync.js'));
   html = injectLocal(html);   // before cloud sync so MASMS_LOCAL exists when it starts
-  { const i = html.lastIndexOf('</body>'); html = html.slice(0, i) + '<script src="/assets/cloud-sync.js"></script>\n' + html.slice(i); }
+  { const i = html.lastIndexOf('</body>'); html = html.slice(0, i) + '<script src="/assets/cloud-sync.js"></script>\n' + LAZY_LIBS + html.slice(i); }
   // flat file name vendor/fa/all.min.css has webfonts at ../webfonts relative to css/ — repoint
   fs.writeFileSync(path.join(pub, 'vendor/fa/all.min.css'), fs.readFileSync(path.join(pub, 'vendor/fa/all.min.css'), 'utf8').replace(/\.\.\/webfonts\//g, 'webfonts/'));
 
@@ -82,8 +100,10 @@ if (require.main !== module) return;
   cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
-  const native = process.env.NATIVE_APP === '1';
-  const head = '<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#152c58">\n<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">\n' +
+  // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.
+  const native = process.env.NATIVE_APP === '1' && !process.env.LIVE_URL;
+  const head = '<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/fa/webfonts/fa-solid-900.woff2">\n' +
+    '<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#152c58">\n<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">\n' +
     '<script>window.MASMS_API_BASE=' + JSON.stringify(apiBase) + ';</script>\n' +
     (native ? '' : '<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})</script>\n');
   { const i = html.indexOf('</head>'); html = html.slice(0, i) + head + html.slice(i); }

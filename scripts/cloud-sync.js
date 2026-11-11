@@ -3,6 +3,7 @@
 (function(){
   var TOKEN_KEY='masmsCloudToken', API=(window.MASMS_API_BASE||'')+'/api';
   var token=null, version=0, lastHash='', ready=false, busy=false, state='off';
+  var seenEpoch=-1, seenAt=0;   // MASMS_DIRTY (local-store.js) state at the last full serialization
   try{ token=localStorage.getItem(TOKEN_KEY); }catch(e){}
 
   function hash(s){ var h=5381,i=s.length; while(i) h=(h*33)^s.charCodeAt(--i); return String(h>>>0)+':'+s.length; }
@@ -65,20 +66,25 @@
     }).catch(function(e){ if(e.status===401){ token=null; try{localStorage.removeItem(TOKEN_KEY);}catch(_){} setState('off'); } else setState('err'); });
   }
 
-  function save(){
+  // idle=true is the timer path: skip the expensive serialize+hash while nothing has changed since the last check.
+  function save(idle){
     if(!ready||!token||busy) return;
-    var snap; try{ snap=collectBackupData(); }catch(e){ return; }
+    var D=window.MASMS_DIRTY;
+    if(idle===true&&D&&D.epoch===seenEpoch&&Date.now()-seenAt<D.RECHECK) return;
+    var ep=D?D.epoch:-1, snap; try{ snap=collectBackupData(); }catch(e){ return; }
     var h=hash(JSON.stringify(snap,function(k,v){return k==='exportedAt'?undefined:v;}));
+    seenEpoch=ep; seenAt=Date.now();
     if(h===lastHash) return;
     busy=true; setState('sync');
     api('PUT','/data',{data:snap,baseVersion:version}).then(function(r){ version=r.version; lastHash=h; markSynced(h); setState('ok'); })
       .catch(function(e){
+        seenEpoch=-1;   // upload failed: retry on the next tick even if nothing else changes
         if(e.status===409){ alert('Cloud data was changed from another device. Reloading the latest version.'); ready=false; start(); }
         else if(e.status===401){ token=null; setState('off'); } else setState('err');
       }).then(function(){ busy=false; });
   }
 
   document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(pill); paint(); start(); });
-  setInterval(function(){ if(!document.hidden) save(); },20000);
+  setInterval(function(){ if(!document.hidden) save(true); },20000);
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); });
 })();

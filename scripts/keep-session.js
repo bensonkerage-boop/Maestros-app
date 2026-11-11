@@ -3,19 +3,21 @@
    they are on for the lifetime of the tab/app window (sessionStorage), and restores both once the
    on-device data has loaded. No password is stored. Logging out clears it; closing the app clears it. */
 (function(){
-  var KEY='masmsSession', hideEl=null, armed=false;
+  var KEY='masmsSession', hideEl=null, armed=false, lastWritten='';
   function ss(){ try{ return window.sessionStorage; }catch(e){ return null; } }
   function read(){ var s=ss(); if(!s) return null; try{ var o=JSON.parse(s.getItem(KEY)||'null'); return o&&o.name&&o.role?o:null; }catch(e){ return null; } }
-  function clear(){ var s=ss(); if(s) try{ s.removeItem(KEY); }catch(e){} }
+  function clear(){ lastWritten=''; var s=ss(); if(s) try{ s.removeItem(KEY); }catch(e){} }
   function save(){
     if(!armed) return;
     var s=ss(); if(!s) return;
     try{
       if(!isLoggedIn||pwChangePending) return;
-      s.setItem(KEY,JSON.stringify({
+      var str=JSON.stringify({
         name:currentUserName, role:currentUserRole, school:currentSchool, active:active,
         portal:!!isPortalSession, adm:currentPortalStudentAdm||null, agentId:currentAgentId||null
-      }));
+      });
+      if(str===lastWritten) return;   // runs every second; only touch storage when something changed
+      s.setItem(KEY,str); lastWritten=str;
     }catch(e){}
   }
   function unhide(){ if(hideEl&&hideEl.parentNode) hideEl.parentNode.removeChild(hideEl); hideEl=null; }

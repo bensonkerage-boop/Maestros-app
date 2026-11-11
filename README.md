@@ -10,7 +10,9 @@ Express + MongoDB API (JWT auth) that hosts the MASMS page and saves its data in
 ## Layout
 - `source/MAESTRO_MASMS_FINAL.html` – the app (edit this, then rebuild)
 - `scripts/build.js` – produces `public/` (images pulled out of the HTML, JS whitespace-minified, vendor libs + fonts copied from npm)
+  - Web build only: the inline Font Awesome copy (1MB of base64) is dropped in favour of the linked `vendor/fa/all.min.css`, and `xlsx` / `exceljs` load right after the page has loaded instead of blocking it. `dist/MASMS_standalone.html` keeps everything inline.
 - `scripts/local-store.js` – browser module: on-device autosave/restore
+  - Autosave and cloud sync no longer serialize the whole dataset on every timer tick: `window.MASMS_DIRTY` (defined in `local-store.js`) counts changes (every `render()` plus any input/click/key event). Timers skip while it has not moved, still do a full check every 60s, and always flush when the app is hidden/closed. A failed save or upload is retried on the next tick. If you add code that changes data with no render and no user event, call `MASMS_DIRTY.bump()`.
 - `scripts/cloud-sync.js` – browser module: the "cloud" button bottom-left signs in, loads saved data on start, autosaves every 20s
 - `src/app.js`, `src/store.js` – API and data layer · `api/index.js` – Vercel entry · `vercel.json`
 

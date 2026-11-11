@@ -49,3 +49,14 @@ For schools in Kenya and beyond. Staff sign in with their own accounts; sales ag
 
 ## E. Updating later
 Push changes to GitHub, run **Build Play Store release** again, and upload the new `.aab` as a new release in Play Console.
+
+## F. Updating the app from Vercel (no new Play Store release)
+By default the APK carries its own copy of MASMS, so a change needs a new `.aab`. To make the installed app load from your Vercel site instead:
+1. GitHub repo > Settings > Secrets and variables > Actions > **Variables** > New: `LIVE_UPDATES` = `1` (keep `API_BASE` = your Vercel address).
+2. Run **Build Play Store release** once and upload that `.aab` to Play Console.
+3. From then on: push changes to GitHub, Vercel redeploys, and the app shows the new version the next time it is opened (it is simply your website inside the app).
+Notes:
+- Do this **before the first public release**. Switching an app that is already in use changes where its on-device data is stored, so that data would no longer show (cloud sync or a downloaded backup restores it).
+- The first start after install needs internet; after that the service worker keeps the app opening offline.
+- You still need a new Play Store release when you change `android/` (permissions, plugins, icon, version) or `capacitor.config.js`.
+- Local build: `LIVE_URL=https://your-site.vercel.app npm run build:android`.
