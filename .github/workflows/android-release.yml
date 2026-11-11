@@ -42,10 +42,15 @@ jobs:
           for i in 1 2 3 4 5; do ./gradlew bundleRelease && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: ${{ vars.APP_VERSION_NAME || '1.1' }}
           KEYSTORE_FILE: ${{ runner.temp }}/masms-upload.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Show the version number to publish
+        run: |
+          echo "### Built versionCode ${{ github.run_number }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "After this release is live, set APP_LATEST_VERSION_CODE=${{ github.run_number }} in Vercel so sideloaded installs are told to update. Play installs are told by Google Play automatically." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: MASMS-play-release

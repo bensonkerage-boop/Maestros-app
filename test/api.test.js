@@ -78,3 +78,15 @@ describe('data', () => {
     const r = await call('GET', '/api/nothing'); expect(r.s).toBe(404); expect(r.j.error).toBeDefined();
   });
 });
+
+describe('app update version feed', () => {
+  test('is public and returns the numbers the Android app compares', async () => {
+    process.env.APP_LATEST_VERSION_CODE = '7'; process.env.APP_MIN_VERSION_CODE = 'abc';
+    const r = await call('GET', '/api/app-version');
+    expect(r.s).toBe(200);
+    expect(r.j.latestVersionCode).toBe(7);
+    expect(r.j.minVersionCode).toBe(0);
+    expect(r.j.downloadUrl).toMatch(/play\.google\.com.*com\.maestro\.masms/);
+    delete process.env.APP_LATEST_VERSION_CODE; delete process.env.APP_MIN_VERSION_CODE;
+  });
+});

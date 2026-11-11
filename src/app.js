@@ -82,6 +82,22 @@ app.put('/api/data', auth, wrap(async (req, res) => {
   res.json({ version: r.version, updatedAt: r.updatedAt });
 }));
 
+// Newest Android version, read by the app's automatic update check (scripts/app-update.js). Set these in Vercel's
+// Environment Variables after publishing a new APK; no redeploy of the app itself is needed beyond the env change.
+//   APP_LATEST_VERSION_CODE  the versionCode of the newest build (a whole number, goes up every release)
+//   APP_LATEST_VERSION_NAME  e.g. 1.2   APP_MIN_VERSION_CODE  builds below this must update (optional)
+//   APP_DOWNLOAD_URL         where APK installs download the update (defaults to the Play Store page)   APP_UPDATE_NOTES  one short line (optional)
+app.get('/api/app-version', (req, res) => {
+  const int = v => { const n = parseInt(v, 10); return Number.isFinite(n) && n > 0 ? n : 0; };
+  const e = process.env;
+  const playUrl = 'https://play.google.com/store/apps/details?id=com.maestro.masms';
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    latestVersionCode: int(e.APP_LATEST_VERSION_CODE), latestVersionName: e.APP_LATEST_VERSION_NAME || '',
+    minVersionCode: int(e.APP_MIN_VERSION_CODE), downloadUrl: e.APP_DOWNLOAD_URL || playUrl, playUrl, notes: e.APP_UPDATE_NOTES || ''
+  });
+});
+
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // Static site (local/Node hosting). On Vercel, files in /public are served by the CDN instead.

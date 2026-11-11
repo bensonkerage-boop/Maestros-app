@@ -77,4 +77,12 @@ npm test
 3. Or locally with Android Studio: `API_BASE=https://your-site npm run build:android`, then open the `android/` folder and Build > Build APK.
 4. Play Store needs a signed release build (Build > Generate Signed Bundle) and a $25 developer account.
 
+### Automatic updates
+The app checks for a newer version by itself (about 4 seconds after opening, whenever it returns from the background, and every 6 hours), with nothing to tap in Settings. Code: `scripts/app-update.js`.
+- **Installed from Google Play:** uses Play's in-app update. Users see an *Update available* banner, the update downloads while they keep working, then *Restart now* installs it. Play decides when a new release is visible (usually within hours of publishing). To force an urgent update, set the release's *in-app update priority* to 4 or 5 in the Play Console (or via the Publishing API); the app then runs Google's full-screen update and the old version cannot be used.
+- **Installed from an APK file:** the app reads `GET /api/app-version`. After publishing a new build, set in Vercel (then redeploy so the env change applies): `APP_LATEST_VERSION_CODE` (the number shown in the GitHub run summary), `APP_LATEST_VERSION_NAME`, `APP_DOWNLOAD_URL` (direct link to the new APK; defaults to the Play Store page), optional `APP_UPDATE_NOTES`, and `APP_MIN_VERSION_CODE` to make older builds unable to dismiss the prompt.
+- **Website / installed web app / live-URL APK (`LIVE_UPDATES=1`):** the service worker is re-checked on the same triggers and a *Reload* banner appears once the new build is loaded. This kind of install updates on every Vercel deploy, no new APK needed.
+- The version code must go up on every release; the workflows use the GitHub run number. Set repository variable `APP_VERSION_NAME` to change the displayed name (default 1.1). Updates only work on a release build that has the same signing key as the installed one.
+- Data is written to the device before any restart, and "Later" hides the banner for 24 hours (not possible for a below-minimum version).
+
 Note: PDF/Excel downloads inside the APK need the Capacitor Filesystem/Share plugin (not included yet); they work in the installed web app (Option A).

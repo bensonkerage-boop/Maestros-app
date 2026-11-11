@@ -40,6 +40,11 @@ jobs:
         run: |
           cd android && chmod +x gradlew
           for i in 1 2 3 4 5; do ./gradlew assembleDebug && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: ${{ vars.APP_VERSION_NAME || '1.1' }}
+      - name: Show the version number to publish
+        run: echo "### Built versionCode ${{ github.run_number }} - set APP_LATEST_VERSION_CODE to this in Vercel when you share this APK" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: MASMS-debug-apk
