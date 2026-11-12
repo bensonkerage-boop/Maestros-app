@@ -106,6 +106,10 @@
     if (!W.jspdf || !W.jspdf.jsPDF) { W.alert("PDF export isn't available right now (the PDF library didn't load)."); return; }
     var d = extract(table);
     if (!d || !d.body.length) { W.alert('There is nothing in this list to download.'); return; }
+    // every list gets a leading S/NO column unless it already has one
+    if (!d.head.length || !/^(s\/?\.?\s?no\.?|sn|sr\.?\s?no\.?|no\.?|#)$/i.test(d.head[0].trim())) {
+      d = { head: ['S/NO'].concat(d.head), body: d.body.map(function(r, i){ return [String(i + 1)].concat(r); }) };
+    }
     var title = titleFor(table).toUpperCase();
     var doc = new W.jspdf.jsPDF({ orientation: d.head.length > 7 ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
     var pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(), margin = 36;

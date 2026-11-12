@@ -24,16 +24,33 @@
     var s=ss(); if(!s) return;
     try{
       if(!isLoggedIn||pwChangePending) return;
-      var str=JSON.stringify({
+      var base={
         name:currentUserName, role:currentUserRole, school:currentSchool, active:active,
         portal:!!isPortalSession, adm:currentPortalStudentAdm||null, agentId:currentAgentId||null
-      });
+      };
+      try{ if(typeof teacherHomeTab==='string') base.tab=teacherHomeTab; }catch(e){}
+      var str=JSON.stringify(base);
       var changed=(str!==lastWritten);
-      if(changed){ s.setItem(KEY,str); lastWritten=str; }
+      if(changed){
+        // The tab-only copy also keeps the account record (salted hash, never the password). Refreshing within a few
+        // seconds of logging in or choosing a password beat the on-device autosave, so the reloaded data had no such
+        // account and the person landed on the login page. restore() puts this record back if it is missing.
+        var full=JSON.parse(str), rec=!isPortalSession&&findUserRecord(currentUserName,currentUserRole,currentAgentId);
+        if(rec) full.u=rec;
+        s.setItem(KEY,JSON.stringify(full)); lastWritten=str;
+        try{ if(window.MASMS_LOCAL&&MASMS_LOCAL.saveNow) MASMS_LOCAL.saveNow(); }catch(e){}   // persist the data now, not at the next 5s tick
+      }
       // keep the on-device copy fresh (its time stamp is what the idle limit is measured from)
       var l=ls(), now=Date.now();
       if(l && !loggedOutElsewhere && currentUserRole!=='System Developer' && (changed || now-lastStamp>30000)){ var o=JSON.parse(str); o.ts=lastAct; l.setItem(LKEY,JSON.stringify(o)); lastStamp=now; }
     }catch(e){}
+  }
+  function findUserRecord(name,role,agentId){
+    try{
+      if(role==='System Developer'||role==='Sales Agent') return null;
+      var u=systemUsers.find(function(x){ return x.name===name&&x.role===role; });
+      return u?JSON.parse(JSON.stringify(u)):null;
+    }catch(e){ return null; }
   }
   function unhide(){ if(hideEl&&hideEl.parentNode) hideEl.parentNode.removeChild(hideEl); hideEl=null; }
 
@@ -62,6 +79,10 @@
         if(userNeedsPasswordChange(u)) return false;
       } else {
         u=systemUsers.find(function(x){ return x.name===o.name&&x.role===o.role&&x.status!=='Disabled'&&x.status!=='Inactive'; });
+        if(!u && o.u && o.u.name===o.name && o.u.role===o.role && o.u.status!=='Disabled' && o.u.status!=='Inactive' && !userNeedsPasswordChange(o.u)){
+          // the reloaded data predates this account (refresh right after login): put the account back
+          systemUsers=systemUsers.concat([o.u]); u=o.u;
+        }
         if(!u||userNeedsPasswordChange(u)) return false;
       }
       isLoggedIn=true; isPortalSession=false; currentPortalStudentAdm=null;
@@ -69,6 +90,7 @@
       currentAgentId=u.role==='Sales Agent'?(u.agentId||o.agentId||null):null;
       loginError=''; pwChangePending=false;
       try{ if(page&&canAccessModule(page)) active=page; else if(u.role==='System Developer') active='sysdev'; }catch(e){}
+      try{ if(o.tab&&typeof teacherHomeTab==='string') teacherHomeTab=o.tab; }catch(e){}
       document.getElementById('portalAppRoot').style.display='none';
       document.getElementById('appWrap').style.display='';
       renderLoginPage(); render();

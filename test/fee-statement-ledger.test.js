@@ -43,7 +43,7 @@ test('discounts/scholarships reduce the balance but are not counted as paid', ()
 });
 test('statement and bulk PDF show the new columns, and every payment is time-stamped', () => {
   expect(src.match(/\["Date & Time", "Description", "Debit", "Credit", "Total Paid to Date", "Balance"\]/g)).toHaveLength(1);
-  expect(src.match(/\['Date & Time','Description','Debit','Credit','Total Paid to Date','Balance'\]/g)).toHaveLength(1);
+  expect(src.match(/\['S\/NO','Date & Time','Description','Debit','Credit','Total Paid to Date','Balance'\]/g)).toHaveLength(1);
   expect(src.match(/\.\.\.paymentTimeStamp\(/g)).toHaveLength(4);   // receive payment, M-Pesa, 2x library fine
 });
 
