@@ -6115,7 +6115,28 @@ function submitLoginCore(e){
   const _pw = (document.getElementById('login_password')?.value || '').trim();
   const _remember = !!document.getElementById('login_remember')?.checked;
   const _prevSchool = currentSchool;
-  submitLoginCore0();
+  // A phone number identifies the person, and so the school: try each school that holds it (current one first).
+  const _pk = (uname.indexOf('@') < 0) ? loginPhoneKey(uname) : '';
+  let _cands = _pk ? schoolsWithPhone(_pk) : [];
+  const _allCands = _cands.length;
+  _cands = _cands.filter(schoolLoginAllowed);
+  if(_cands.length){
+    for(let i = 0; i < _cands.length; i++){
+      if(_cands[i] !== currentSchool){ try{ switchToSchool(_cands[i]); }catch(_e){} }
+      // a failed attempt redraws the login form (clearing the fields), so put back what was typed before the next school
+      { const ue = document.getElementById('login_username'), pe = document.getElementById('login_password'); if(ue) ue.value = uname; if(pe) pe.value = _pw; }
+      submitLoginCore0();
+      if(isLoggedIn || pwChangePending) break;
+    }
+  } else if(_allCands){
+    loginError = "This school's MASMS account is inactive. Please contact MASMS support.";
+    renderLoginPage();
+  } else {
+    submitLoginCore0();
+  }
+  if(isLoggedIn && !wasLoggedIn && currentUserRole !== "System Developer" && currentUserRole !== "Sales Agent" && !schoolLoginAllowed(currentSchool)){
+    logout(); loginError = "This school's MASMS account is inactive. Please contact MASMS support."; renderLoginPage();
+  }
   if(!isLoggedIn && !pwChangePending && currentSchool !== _prevSchool){ try{ switchToSchool(_prevSchool); }catch(_e){} }
   if(isLoggedIn && !wasLoggedIn){
     if(_remember) rememberedLoginSave(uname, _pw); else rememberedLoginClear();
@@ -9893,6 +9914,69 @@ function sdSyncSchoolDetails(sc, only){
   schoolProfiles[sc.name] = next;
 }
 
+// ---- Phone-number sign-in for everyone, across every registered school -------------------------------------
+// Registering a school registers its principal (name + mobile): the school becomes active and the principal gets a
+// Super Admin account straight away. Anyone on the platform (principal, teacher, staff, parent/learner, sales agent)
+// then signs in with their phone number; the school they belong to is found from the number, so nobody has to pick a school.
+function sdSchoolRecord(name){ return (sdSchools || []).find(x => x.name === name) || null; }
+function schoolLoginAllowed(name){ const r = sdSchoolRecord(name); return !r || r.status !== 'Inactive'; }
+function sdWithSchool(name, fn){
+  const prev = currentSchool, moved = name !== prev;
+  if(moved) switchToSchool(name);
+  try{ return fn(); } finally { if(moved) switchToSchool(prev); }
+}
+// Creates (or updates) the principal's teacher record and Super Admin login inside the school's own data.
+function sdEnsurePrincipalAccount(sc){
+  if(!sc || !sc.name || !sc.principalName || !loginPhoneKey(sc.mobile)) return false;
+  return sdWithSchool(sc.name, () => {
+    const key = loginPhoneKey(sc.mobile), full = String(sc.principalName).trim().replace(/\s+/g, ' ');
+    const parts = full.split(' ');
+    const nm = { firstName: parts[0] || '', surname: parts.length > 1 ? parts[parts.length - 1] : '', otherNames: parts.slice(1, -1).join(' ') };
+    let changed = false;
+    let t = teachersList.find(x => x.registeredPrincipal) || teachersList.find(x => loginPhoneKey(x.phone) === key);
+    let oldFull = '';
+    if(!t){
+      t = { surname: nm.surname, firstName: nm.firstName, otherNames: nm.otherNames, phone: sc.mobile, tscNumber: '', gender: '', responsibility: 'Principal', nationalId: '',
+        address: '', postalCode: '', email: '', countyOfBirth: '', subCountyOfBirth: '', photo: '', signature: '', department: [], groups: [], subjects: [], subjectHead: [], registeredPrincipal: true };
+      teachersList.push(t); changed = true;
+    } else if(t.registeredPrincipal && (teacherFullName(t).trim().toLowerCase() !== (teacherFullName({ ...t, ...nm }).trim().toLowerCase()) || loginPhoneKey(t.phone) !== key)){
+      oldFull = teacherFullName(t);
+      Object.assign(t, nm, { phone: sc.mobile }); changed = true;
+    }
+    const fullNow = teacherFullName(t);
+    let u = systemUsers.find(x => x.name.trim().toLowerCase() === (oldFull || fullNow).trim().toLowerCase());
+    if(!u){ systemUsers.push({ name: fullNow, email: t.email || '', phone: sc.mobile, role: 'Super Admin', status: 'Active', mustChange: true }); changed = true; }
+    else {
+      if(oldFull) u.name = fullNow;
+      if(u.phone !== sc.mobile && t.registeredPrincipal){ u.phone = sc.mobile; changed = true; }
+      if(u.status !== 'Active'){ u.status = 'Active'; changed = true; }
+    }
+    if(changed){ try{ syncSuperAdminRoles(); }catch(_e){} try{ if(window.MASMS_DIRTY) window.MASMS_DIRTY.bump(); }catch(_e){} }
+    return changed;
+  });
+}
+// Which schools hold this phone number: the principal on the registry, teachers, staff, logins, or a learner's guardian.
+function schoolsWithPhone(key){
+  if(!key) return [];
+  const out = [];
+  (schools || []).forEach(name => {
+    let hit = false;
+    const rec = sdSchoolRecord(name);
+    if(rec && loginPhoneKey(rec.mobile) === key){ try{ sdEnsurePrincipalAccount(rec); }catch(_e){} hit = true; }
+    if(!hit){
+      const d = name === currentSchool ? { teachersList, staffList, systemUsers, students } : schoolData[name];
+      if(d){
+        const has = a => (a || []).some(x => x && loginPhoneKey(x.phone) === key);
+        hit = has(d.teachersList) || has(d.staffList) || has(d.systemUsers) ||
+          (d.students || []).some(st => st && ((st.guardianPhones || []).some(ph => loginPhoneKey(ph) === key) || loginPhoneKey(st.guardianPhone) === key));
+      }
+    }
+    if(hit) out.push(name);
+  });
+  out.sort((a, b) => (b === currentSchool) - (a === currentSchool));
+  return out;
+}
+
 let sdSchools = [];
 let sdNextId = 11;
 let sdSortKey = "sno", sdSortDir = 1;
@@ -10101,7 +10185,9 @@ function sdSaveSchool(e){
   sdSyncSchoolLocation(sdSchools.find(x => x.name === name));
   { const saved = sdSchools.find(x => x.name === name);
     const only = saved && saved.__changedDetails; if(saved) delete saved.__changedDetails;
-    sdSyncSchoolDetails(saved, sdEditingId ? only : null); }
+    sdSyncSchoolDetails(saved, sdEditingId ? only : null);
+    // A newly registered school is Active from the start, and its principal can sign in with the mobile number given here.
+    if(saved){ if(!sdEditingId) saved.status = 'Active'; try{ sdEnsurePrincipalAccount(saved); }catch(_e){ console.warn('principal account', _e); } } }
   sdCloseModal();
 }
 
@@ -13022,7 +13108,9 @@ function applyPlatformData(data){
   if(Number.isFinite(p.sdReceiptNextNo)) sdReceiptNextNo = Math.max(sdReceiptNextNo, p.sdReceiptNextNo);
 }
 
+// Backup download and restore exist only for the System Developer: a backup holds every school's data.
 function backupData(){
+  if(!isSystemDeveloperRole()) return;
   const data = collectBackupData();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -13040,10 +13128,12 @@ function backupData(){
 }
 
 function triggerRestoreFile(){
+  if(!isSystemDeveloperRole()) return;
   document.getElementById('restoreFileInput')?.click();
 }
 
 function restoreDataFromFile(input){
+  if(!isSystemDeveloperRole()){ try{ input.value = ""; }catch(_e){} return; }
   const file = input.files && input.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -13379,12 +13469,15 @@ function addSubjectForStream(name){
   render();
 }
 
+function isSystemDeveloperRole(){ return currentUserRole === "System Developer"; }
 function toggleSchoolDropdown(){
+  if(!isSystemDeveloperRole()){ schoolDropdownOpen = false; return; }
   schoolDropdownOpen = !schoolDropdownOpen;
   renderSchoolSelect();
 }
 
 function selectSchool(name){
+  if(!isSystemDeveloperRole()) return;   // a school login never leaves its own school
   switchToSchool(name);
   schoolDropdownOpen = false;
   bsmsSignature = currentSchool.toUpperCase();
@@ -13396,6 +13489,11 @@ function renderSchoolSelect(){
   const wrap = document.getElementById('schoolSelectWrap');
   if(!wrap) return;
   if(isSalesAgentRole()){ wrap.innerHTML = ''; return; }
+  // Only the System Developer can move between schools; everyone else sees just their own school's name.
+  if(!isSystemDeveloperRole()){
+    wrap.innerHTML = `<div class="school-select" style="cursor:default;pointer-events:none;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentSchool}</span></div>`;
+    return;
+  }
   wrap.innerHTML = `
     <button class="school-select ${schoolDropdownOpen?'open':''}" onclick="toggleSchoolDropdown()">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentSchool}</span>
@@ -13522,7 +13620,7 @@ function renderNav(){
       // title bar (subbar) itself, replacing the generic icon/title/note.
       subbar.innerHTML = `
         <div class="subbar-tabs">
-          ${SETTINGS_TABS.map(t => `
+          ${SETTINGS_TABS.filter(t => t.key !== 'backup' || isSystemDeveloperRole()).map(t => `
             <button class="subbar-tab ${settingsTab===t.key?'active':''}" onclick="setSettingsTab('${t.key}')">
               <i class="fa-solid ${t.icon}"></i> ${t.label}
             </button>
@@ -30304,7 +30402,7 @@ function renderTimetableRibbon(){
     if(g.select) return renderTimetableRibbonSelect();
     return `
       <div class="tt-ribbon-group">
-        ${g.items.map(b => `
+        ${g.items.filter(b => !(b.action === 'backupData()' && !isSystemDeveloperRole())).map(b => `
           <button class="tt-rib-btn ${b.view && timetableView===b.view ? 'active' : ''}"
                   title="${b.label.replace(/<br>/g, ' ').replace(/&amp;/g, '&')}"
                   onclick="${b.action}">
@@ -54015,6 +54113,7 @@ function updateNewSchoolNamePreview(){
 }
 
 function setActiveSchool(name){
+  if(!isSystemDeveloperRole()) return;
   switchToSchool(name);
   render();
 }
@@ -54959,7 +55058,7 @@ function renderSettings(){
     case "responsibility": body = renderSettingsResponsibilityTab(); break;
     case "usersRoles": body = renderSettingsUsersRolesTab(); break;
     case "departments": body = renderSettingsDepartmentsTab(); break;
-    case "backup": body = renderSettingsBackupTab(); break;
+    case "backup": body = isSystemDeveloperRole() ? renderSettingsBackupTab() : renderSettingsProfileTab(); break;
     default: body = renderSettingsProfileTab();
   }
 

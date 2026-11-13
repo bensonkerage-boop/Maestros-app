@@ -142,6 +142,7 @@
   function paint(){ var el=document.getElementById('masmsLocalStatus'); if(el) el.textContent=savedLabel(); }
 
   function restorePrevious(){
+    try{ if(typeof currentUserRole!=='undefined'&&currentUserRole!=='System Developer') return Promise.resolve(false); }catch(e){}   // only the System Developer restores
     return get(PREV).then(function(o){
       if(!o||!o.json){ alert('There is no earlier copy on this device yet.'); return false; }
       var when=new Date(o.savedAt).toLocaleString();
