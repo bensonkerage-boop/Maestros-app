@@ -6215,6 +6215,8 @@ function completeStaffLogin(u){
   currentAgentId = u.role === "Sales Agent" ? u.agentId : null;
   loginError = "";
   pwChangePending = false;
+  try{ const k = loginPhoneKey(staffPhoneForUser(u) || u.phone); if(k) myPhoneKey = k; else if(!myPhoneKey && window.__loginPhoneKeyTyped) myPhoneKey = window.__loginPhoneKeyTyped; }catch(_e){}
+  if(u.role === "System Developer" || u.role === "Sales Agent") myPhoneKey = "";
   document.getElementById('portalAppRoot').style.display = "none";
   document.getElementById('appWrap').style.display = "";
   renderLoginPage();
@@ -6342,6 +6344,7 @@ function submitLoginCore(e){
   const _prevSchool = currentSchool;
   // A phone number identifies the person, and so the school: try each school that holds it (current one first).
   const _pk = (uname.indexOf('@') < 0) ? loginPhoneKey(uname) : '';
+  window.__loginPhoneKeyTyped = _pk;
   let _cands = _pk ? schoolsWithPhone(_pk) : [];
   const _allCands = _cands.length;
   _cands = _cands.filter(schoolLoginAllowed);
@@ -6607,6 +6610,7 @@ function submitLoginCore0(e){
     currentPortalStudentAdm = matchedStudent.admissionNumber;
     currentUserName = matchedStudent.guardian || "Parent/Guardian";
     currentUserRole = "Parent/Student";
+    myPhoneKey = loginPhoneKey(phoneDigits); myPortalOpen = false;
     loginError = "";
     document.getElementById('appWrap').style.display = "none";
     document.getElementById('portalAppRoot').style.display = "";
@@ -6624,6 +6628,7 @@ function logout(){
   currentAgentId = null;
   isPortalSession = false;
   currentPortalStudentAdm = null;
+  myPhoneKey = ""; myPortalOpen = false; schoolDropdownOpen = false;
   loginError = "";
   document.getElementById('appWrap').style.display = "none";
   document.getElementById('portalAppRoot').style.display = "none";
@@ -8318,6 +8323,7 @@ function renderPortalApp(){
         <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; Log out</button>
       </header>
       <main style="max-width:1100px;margin:0 auto;padding:28px 24px 60px;">
+        ${renderPortalSwitcher()}
         <div class="panel" style="display:flex;align-items:center;gap:16px;padding:20px 24px;margin-bottom:20px;">
           <div class="dash2-stat-icon" style="background:var(--blue-tint);color:var(--blue);width:52px;height:52px;font-size:20px;"><i class="fa-solid fa-user-graduate"></i></div>
           <div>
@@ -9937,7 +9943,7 @@ const SCHOOL_EMPTY_KEYS = [
   "classesList", "gradeSupervisors", "classSubjectTeachers", "examTerms",
   "subjectPapersEnabled", "publishSubjectAssignments", "subjectPaperRatios",
   "marksMaxMarks", "marksData", "marksRemarks", "marksTeacherComments", "marksAuditLog", "marksTasks", "marksTaskData",
-  "teachersList", "staffList", "studentPhotos", "transportRoutes", "bomMembers",
+  "teachersList", "staffList", "studentPhotos", "deletedStudentsLog", "transportRoutes", "bomMembers",
   "smsPurchaseHistory", "inboxMessages", "sentMessages", "streams",
   "timetableData", "timetableSubjects", "ttLessonsList", "ttClasses", "timetableTeacherTimeOff", "savedTimetables",
 ];
@@ -9997,7 +10003,7 @@ function snapshotSchoolData(name){
     classesList, gradeSupervisors, classSubjectTeachers, examTerms,
     subjectPapersEnabled, publishSubjectAssignments, subjectPaperRatios,
     marksMaxMarks, marksData, marksRemarks, marksTeacherComments, marksAuditLog, marksTasks, marksTaskData,
-    teachersList, staffList, studentPhotos, transportRoutes, bomMembers,
+    teachersList, staffList, studentPhotos, deletedStudentsLog, transportRoutes, bomMembers,
     smsPurchaseHistory, inboxMessages, sentMessages, streams,
     portalFeatures, termDates, departments, responsibilities, gradingSystems, systemUsers,
     timetableData, timetablePeriods,
@@ -10029,11 +10035,78 @@ function purgeRemovedSubjects(root){
     }
   })(root);
 }
+// ---- Names in CAPITALS: existing records are converted too ----
+// Learner / guardian / teacher / staff / BOM names are upper-cased in place. Every other place that stored the old
+// spelling (invoices, timetables, lesson allocations, discipline cases, clubs, ...) is rewritten to match so links
+// that work by name keep working.
+const UPPER_NAME_FIELDS = { students:["firstName","middleName","lastName","guardian"], teachersList:["surname","firstName","otherNames"], staffList:["name"], bomMembers:["name"] };
+function _nameVariants(kind, r){
+  const j = a => a.filter(Boolean).join(' ');
+  if(kind === 'students') return [j([r.firstName, r.middleName, r.lastName]), j([r.firstName, r.lastName]), j([r.lastName, r.firstName, r.middleName]), r.guardian];
+  if(kind === 'teachersList') return [j([r.firstName, r.otherNames, r.surname]), j([r.firstName, r.surname]), j([r.surname, r.firstName, r.otherNames]), j([r.firstName, r.otherNames]), r.surname];
+  return [r.name];
+}
+function _namesNeedUpper(root){
+  for(const kind in UPPER_NAME_FIELDS){
+    const list = root[kind]; if(!Array.isArray(list)) continue;
+    for(const r of list){
+      if(!r || typeof r !== 'object') continue;
+      for(const f of UPPER_NAME_FIELDS[kind]){ const v = r[f]; if(typeof v === 'string' && v !== v.toUpperCase()) return true; }
+    }
+  }
+  return false;
+}
+function uppercaseNamesInRoot(root){
+  if(!root || typeof root !== 'object' || !_namesNeedUpper(root)) return false;
+  const ren = new Map();
+  for(const kind in UPPER_NAME_FIELDS){
+    const list = root[kind]; if(!Array.isArray(list)) continue;
+    list.forEach(r => {
+      if(!r || typeof r !== 'object') return;
+      _nameVariants(kind, r).forEach(n => { if(typeof n === 'string' && n && n !== n.toUpperCase()) ren.set(n, n.toUpperCase()); });
+      UPPER_NAME_FIELDS[kind].forEach(f => { if(typeof r[f] === 'string') r[f] = r[f].toUpperCase(); });
+    });
+  }
+  if(!ren.size) return true;
+  const seen = new Set();
+  const fix = v => (typeof v === 'string' && v.length < 200 && ren.has(v)) ? ren.get(v) : v;
+  (function walk(o){
+    if(!o || typeof o !== 'object' || seen.has(o)) return;
+    seen.add(o);
+    if(Array.isArray(o)){
+      for(let i = 0; i < o.length; i++){ const v = o[i]; if(typeof v === 'string') o[i] = fix(v); else walk(v); }
+    } else {
+      Object.keys(o).forEach(k => {
+        let v = o[k];
+        const nk = fix(k);
+        if(typeof v === 'string') v = fix(v);
+        if(nk !== k){ delete o[k]; o[nk] = v; } else if(typeof v === 'string'){ o[k] = v; }
+        if(v && typeof v === 'object') walk(v);
+      });
+    }
+  })(root);
+  root.__renamedNames = ren; // read (and removed) by the caller for any in-memory strings
+  return true;
+}
+// Runs on the live data before drawing (covers new entries, imports and restores).
+function uppercaseLiveNames(){
+  try{
+    // sales agents (platform-level list)
+    if(Array.isArray(saAgents)) saAgents.forEach(a => { if(a && typeof a === 'object') ['name','firstName','middleName','lastName'].forEach(f => { if(typeof a[f] === 'string' && a[f] !== a[f].toUpperCase()) a[f] = a[f].toUpperCase(); }); });
+    if(!_namesNeedUpper({ students, teachersList, staffList, bomMembers })) return;
+    snapshotSchoolData(currentSchool);
+    const root = schoolData[currentSchool];
+    uppercaseNamesInRoot(root);
+    const ren = root.__renamedNames; delete root.__renamedNames;
+    if(ren && typeof timetableSelectedTeacher === 'string' && ren.has(timetableSelectedTeacher)) timetableSelectedTeacher = ren.get(timetableSelectedTeacher);
+  }catch(e){ try{ console.error('uppercaseLiveNames', e); }catch(_e){} }
+}
 function loadSchoolData(name){
   if(!schoolData[name] || typeof schoolData[name] !== 'object') schoolData[name] = emptySchoolDataset();
   // Backfill fields missing from saved/older data so a restore can't leave a store undefined.
   try{ const _def = emptySchoolDataset(); Object.keys(_def).forEach(k => { if(schoolData[name][k] === undefined || schoolData[name][k] === null) schoolData[name][k] = _def[k]; }); }catch(_e){}
   try{ purgeRemovedSubjects(schoolData[name]); }catch(_e){}
+  try{ uppercaseNamesInRoot(schoolData[name]); delete schoolData[name].__renamedNames; }catch(_e){}
   const d = schoolData[name];
   // One-time: add the newer "Subject Head" responsibility to lists saved before it existed.
   try{ if(d.subjectPaperRatios && !d._sciRatios30){ d._sciRatios30 = true; applyScienceRatios(d.subjectPaperRatios); } }catch(_e){}
@@ -10061,7 +10134,7 @@ function loadSchoolData(name){
   classesList = d.classesList; gradeSupervisors = d.gradeSupervisors; classSubjectTeachers = d.classSubjectTeachers; examTerms = d.examTerms;
   subjectPapersEnabled = d.subjectPapersEnabled; publishSubjectAssignments = d.publishSubjectAssignments; subjectPaperRatios = d.subjectPaperRatios;
   marksMaxMarks = d.marksMaxMarks; marksData = d.marksData; marksRemarks = d.marksRemarks; marksTeacherComments = d.marksTeacherComments; marksAuditLog = d.marksAuditLog; marksTasks = d.marksTasks || {}; marksTaskData = d.marksTaskData || {};
-  teachersList = d.teachersList; staffList = d.staffList; studentPhotos = d.studentPhotos; transportRoutes = d.transportRoutes; bomMembers = d.bomMembers;
+  teachersList = d.teachersList; staffList = d.staffList; studentPhotos = d.studentPhotos; deletedStudentsLog = d.deletedStudentsLog || []; transportRoutes = d.transportRoutes; bomMembers = d.bomMembers;
   smsPurchaseHistory = d.smsPurchaseHistory; inboxMessages = d.inboxMessages; sentMessages = d.sentMessages; streams = d.streams;
   portalFeatures = d.portalFeatures; termDates = d.termDates; departments = d.departments; responsibilities = d.responsibilities; gradingSystems = d.gradingSystems; systemUsers = d.systemUsers;
   timetableData = d.timetableData; timetablePeriods = d.timetablePeriods;
@@ -13829,6 +13902,89 @@ function toggleSchoolDropdown(){
   renderSchoolSelect();
 }
 
+// ---- One person, several schools ----------------------------------------------------------------
+// A teacher/staff member or a parent can belong to more than one school. After logging in (the phone number
+// identifies the person) they can switch between those schools: a teacher sees the school, a parent sees the school
+// with their children there (name, admission no, class).
+let myPhoneKey = "";          // last 9 digits of the signed-in person's phone, "" when unknown
+let myPortalOpen = false;     // parent portal: school/child switcher panel open
+function myMemberships(){
+  const key = myPhoneKey; if(!key) return [];
+  const out = [];
+  (schools || []).forEach(name => {
+    if(!schoolLoginAllowed(name)) return;
+    const d = name === currentSchool ? { teachersList, staffList, systemUsers, students } : schoolData[name];
+    if(!d) return;
+    const has = a => (a || []).some(x => x && x.status !== 'Inactive' && loginPhoneKey(x.phone) === key);
+    const staff = has(d.teachersList) || has(d.staffList) || (d.systemUsers || []).some(u => u && u.role !== 'System Developer' && u.role !== 'Sales Agent' && u.status !== 'Inactive' && loginPhoneKey(u.phone) === key);
+    const kids = (d.students || []).filter(st => st && !studentHasLeft(st) &&
+      ((st.guardianPhones || []).some(ph => loginPhoneKey(ph) === key) || loginPhoneKey(st.guardianPhone) === key))
+      .map(st => ({ adm: st.admissionNumber, name: fullName(st), grade: st.grade || '', stream: st.stream || '' }));
+    out.push({ school: name, staff, kids });
+  });
+  return out;
+}
+function mySchoolsAsStaff(){ return myMemberships().filter(m => m.staff).map(m => m.school); }
+function canSwitchStaffSchool(){
+  return isLoggedIn && !isPortalSession && currentUserRole !== 'System Developer' && currentUserRole !== 'Sales Agent' && mySchoolsAsStaff().length > 1;
+}
+function switchMyStaffSchool(name){
+  schoolDropdownOpen = false;
+  if(!isLoggedIn || isPortalSession || name === currentSchool){ render(); return; }
+  const key = myPhoneKey, prev = currentSchool;
+  switchToSchool(name);
+  let u = (systemUsers || []).find(x => x.role !== 'System Developer' && x.role !== 'Sales Agent' && x.status !== 'Inactive' && loginPhoneKey(staffPhoneForUser(x)) === key);
+  if(!u){
+    const t = (teachersList || []).find(x => loginPhoneKey(x.phone) === key);
+    if(t){ const nm = teacherFullName(t); u = { name: nm, email: t.email || '', phone: t.phone, role: teacherHasSuperAdminResponsibility(nm) ? 'Super Admin' : 'Teacher', status: 'Active' }; }
+  }
+  if(!u){
+    const st = (staffList || []).find(x => loginPhoneKey(x.phone) === key);
+    if(st) u = { name: st.name, email: st.email || '', phone: st.phone, role: 'Staff', status: 'Active' };
+  }
+  if(!u){ switchToSchool(prev); alert('You do not have an account in ' + name + '.'); render(); return; }
+  bsmsSignature = currentSchool.toUpperCase();
+  active = 'dashboard';
+  completeStaffLogin(u);
+}
+function toggleMyPortalSwitcher(){ myPortalOpen = !myPortalOpen; renderPortalApp(); }
+function switchPortalChild(name, adm){
+  myPortalOpen = false;
+  if(name !== currentSchool) switchToSchool(name);
+  const st = students.find(x => String(x.admissionNumber) === String(adm));
+  if(!st){ renderPortalApp(); return; }
+  currentPortalStudentAdm = st.admissionNumber;
+  currentUserName = st.guardian || "Parent/Guardian";
+  bsmsSignature = currentSchool.toUpperCase();
+  renderPortalApp();
+}
+// Parent portal: every school (and child) linked to this phone number
+function renderPortalSwitcher(){
+  const mem = myMemberships().filter(m => m.kids.length);
+  const total = mem.reduce((n, m) => n + m.kids.length, 0);
+  if(total < 2) return '';
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const jsq = v => String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const body = mem.map(m => `
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:8px;"><i class="fa-solid fa-school" style="color:var(--blue);"></i>&nbsp; ${esc(m.school)}${m.school === currentSchool ? ' <span style="font-weight:600;font-size:11.5px;color:var(--muted);">(current)</span>' : ''}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;">
+        ${m.kids.map(k => { const cur = m.school === currentSchool && String(k.adm) === String(currentPortalStudentAdm); return `
+          <button type="button" onclick="switchPortalChild('${jsq(m.school)}','${jsq(k.adm)}')" style="text-align:left;cursor:pointer;padding:10px 12px;border:1px solid ${cur ? 'var(--blue)' : 'var(--border)'};background:${cur ? 'var(--blue-tint)' : 'transparent'};color:var(--text);">
+            <div style="font-weight:700;font-size:13.5px;">${esc(k.name)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Adm No. ${esc(k.adm)} · ${esc(k.grade)}${k.stream ? ' ' + esc(k.stream) : ''}</div>
+          </button>`; }).join('')}
+      </div>
+    </div>`).join('');
+  return `
+    <div class="panel" style="padding:14px 20px;margin-bottom:20px;">
+      <button type="button" onclick="toggleMyPortalSwitcher()" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:0;font:inherit;font-weight:700;color:var(--text);cursor:pointer;padding:0;">
+        <span><i class="fa-solid fa-repeat" style="color:var(--blue);"></i>&nbsp; Switch school / child <span style="font-weight:500;color:var(--muted);font-size:12.5px;">&nbsp;${mem.length} school${mem.length === 1 ? '' : 's'} · ${total} children</span></span>
+        <i class="fa-solid fa-chevron-down" style="transition:transform .2s;${myPortalOpen ? 'transform:rotate(180deg);' : ''}"></i>
+      </button>
+      ${myPortalOpen ? `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">${body}</div>` : ''}
+    </div>`;
+}
 function selectSchool(name){
   if(!isSystemDeveloperRole()) return;   // a school login never leaves its own school
   switchToSchool(name);
@@ -13844,6 +14000,23 @@ function renderSchoolSelect(){
   if(isSalesAgentRole()){ wrap.innerHTML = ''; return; }
   // Only the System Developer can move between schools; everyone else sees just their own school's name.
   if(!isSystemDeveloperRole()){
+    if(canSwitchStaffSchool()){
+      const mine = mySchoolsAsStaff();
+      wrap.innerHTML = `
+        <button class="school-select ${schoolDropdownOpen?'open':''}" onclick="schoolDropdownOpen=!schoolDropdownOpen;render();" title="You belong to ${mine.length} schools: switch between them">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentSchool}</span>
+          <i class="fa-solid fa-chevron-down chev-icon"></i>
+        </button>
+        ${schoolDropdownOpen ? `
+          <div class="school-dropdown">
+            ${mine.map(sn => `
+              <div class="school-option ${sn===currentSchool?'selected':''}" onclick="switchMyStaffSchool(this.dataset.s)" data-s="${sn.replace(/"/g,'&quot;')}">
+                <i class="fa-solid fa-school"></i>${sn}
+              </div>`).join('')}
+          </div>` : ''}`;
+      return;
+    }
+    schoolDropdownOpen = false;
     wrap.innerHTML = `<div class="school-select" style="cursor:default;pointer-events:none;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentSchool}</span></div>`;
     return;
   }
@@ -13864,7 +14037,7 @@ function renderSchoolSelect(){
   `;
 }
 
-function go(key){ if(!canAccessModule(key)) return; active = key; render(); }
+function go(key){ if(!canAccessModule(key)) return; if(key==='teachers' && typeof teachersHubTab!=='undefined') teachersHubTab = ""; active = key; render(); }
 
 // ---- Top-bar quick links: dark/light mode + cloud sign-in (mobile: in the three-dots menu) ----
 function quickIsDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -23387,7 +23560,7 @@ function onRegReligionChange(value){
 
 // Fields that take digits only (P.O. Box, postal code, phone and TSC numbers). House numbers,
 // birth certificate numbers and everything else still accept letters, digits and symbols.
-const NUMERIC_ONLY_FIELD_IDS = ["permBoxNo","permPostalCode","postalCode","boxNo","phone","tscNumber","guardianPhone","admissionNumber","nationalId"];
+const NUMERIC_ONLY_FIELD_IDS = ["permBoxNo","permPostalCode","postalCode","boxNo","phone","tscNumber","guardianPhone","nationalId"];
 // People's names take letters only (plus space, apostrophe, hyphen and full stop): no digits.
 // Names and places are typed and stored in CAPITAL LETTERS (students, parents/guardians, teachers).
 const UPPERCASE_FIELD_IDS = [
@@ -23418,7 +23591,15 @@ function upperCaseFormFields(){
   });
 }
 const NAME_ONLY_FIELD_IDS = ["firstName","middleName","lastName","surname","otherNames","guardianName"];
-function nameOnly(el){ el.value = el.value.replace(/[^\p{L}\s'\u2019.\-]/gu, ""); }
+// Names (learners, parents/guardians, teachers, staff, BOM, sales agents) are always captured in CAPITALS.
+function nameOnly(el){
+  const v = el.value.replace(/[^\p{L}\s'\u2019.\-]/gu, "").toUpperCase();
+  if(v === el.value) return;
+  let a = null, b = null;
+  try{ a = el.selectionStart; b = el.selectionEnd; }catch(_e){}
+  el.value = v;
+  try{ if(a !== null) el.setSelectionRange(Math.min(a, v.length), Math.min(b, v.length)); }catch(_e){}
+}
 function digitsOnlyInput(el){ el.value = el.value.replace(/\D/g, ""); }
 function phoneListInput(el){ el.value = el.value.replace(/[^0-9,\s]/g, ""); }
 const NUM_INPUT_ATTRS = `inputmode="numeric" pattern="[0-9]*"`;
@@ -23599,7 +23780,7 @@ function renderAddStudentSectionRaw(){
             ${stepField("Middle Name","middleName",true,"")}
             ${stepField("Last Name","lastName",true,"")}
             <label class="field"><span>Admission Number&nbsp;<span class="req">*</span></span>
-              <input id="admissionNumber" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 4290" value="${regData['admissionNumber'] || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+              <input id="admissionNumber" type="text" maxlength="30" autocomplete="off" placeholder="e.g. 4290 or ADM/0045" value="${String(regData['admissionNumber'] || '').replace(/"/g,'&quot;')}" oninput="this.value=this.value.replace(/[\\s'&quot;\\\\<>]/g,'');">
             </label>
             ${stepSelect("Gender","gender",["Male","Female","Other"],true)}
             ${stepCalendarField("Date of Birth","dateOfBirth",true)}
@@ -23869,6 +24050,9 @@ function renderAddStudentSectionRaw(){
 }
 
 function renderSearchPanel(){
+  if(searchShowDeleted) return renderDeletedStudentsPanel();
+  if(searchProfileStudent && students.indexOf(searchProfileStudent) >= 0) return renderStudentProfilePage();
+  searchProfileStudent = null;
   // Once a search returns results, show a dedicated results view (matching
   // the school's printed roster style) instead of the search form.
   if(searchResults !== null && searchResults.length > 0){
@@ -23881,7 +24065,7 @@ function renderSearchPanel(){
         <td>
           <div style="display:flex;gap:10px;">
             ${studentHasLeft(s) ? `<button type="button" class="btn-primary" style="width:auto;padding:8px 16px;font-size:12.5px;" onclick="startReadmission(students.indexOf(searchResults[${idx}]))"><i class="fa-solid fa-user-check"></i> Re-admit</button>` : ''}
-            <button type="button" class="btn-primary" style="width:auto;padding:8px 16px;font-size:12.5px;" onclick="openStudentAdmissionForm(students.indexOf(searchResults[${idx}]))" title="Open this student's admission form">Profile</button>
+            <button type="button" class="btn-primary" style="width:auto;padding:8px 16px;font-size:12.5px;" onclick="openStudentProfilePage(students.indexOf(searchResults[${idx}]))" title="View this student's profile">Profile</button>
             <button type="button" class="btn-primary" style="width:auto;padding:8px 16px;font-size:12.5px;" onclick="openStudentAnalytics(students.indexOf(searchResults[${idx}]))">Analytics</button>
           </div>
         </td>
@@ -23889,7 +24073,7 @@ function renderSearchPanel(){
     `).join('');
     return `
       <div class="panel" style="margin-bottom:24px;">
-        <div class="panel-header"><h3>Search Results</h3></div>
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Search Results</h3><button type="button" class="btn-ghost" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="openDeletedStudents()"><i class="fa-solid fa-user-slash"></i> Deleted students${deletedStudentsLog && deletedStudentsLog.length ? ' (' + deletedStudentsLog.length + ')' : ''}</button></div>
         <div style="overflow-x:auto;">
           <table>
             <thead><tr><th>#</th><th>Adm No</th><th>Name</th><th>Class</th><th>Actions</th></tr></thead>
@@ -23915,7 +24099,7 @@ function renderSearchPanel(){
 
   return `
     <div class="panel" style="margin-bottom:24px;">
-      <div class="panel-header"><h3>Search Student</h3></div>
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Search Student</h3><button type="button" class="btn-ghost" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="openDeletedStudents()"><i class="fa-solid fa-user-slash"></i> Deleted students${deletedStudentsLog && deletedStudentsLog.length ? ' (' + deletedStudentsLog.length + ')' : ''}</button></div>
       <div style="padding:20px 24px 0;">
         <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">Search By</div>
         <div class="subject-tab-row">${tabs}</div>
@@ -24312,6 +24496,304 @@ function openStudentAdmissionForm(i){
   render();
 }
 
+// ---- Search Student > Profile: full profile page (opens in place of the search results) ----
+let searchProfileStudent = null;
+let profileOpenSections = { personal:true };
+const STUDENT_PAGE_TABS = [
+  { key:"profile", label:"Profile", icon:"fa-id-card" },
+  { key:"analytics", label:"Analytics", icon:"fa-chart-line" },
+  { key:"discipline", label:"Discipline", icon:"fa-gavel" },
+  { key:"cocurricular", label:"Co-curricular", icon:"fa-trophy" },
+];
+let studentPageTab = "profile";
+function setStudentPageTab(k){
+  studentPageTab = k;
+  if(k === 'analytics' && searchProfileStudent){
+    viewingAnalyticsStudentIndex = students.indexOf(searchProfileStudent);
+    studentAnalyticsCompareMode = 'previous'; studentAnalyticsExam = null; studentAnalyticsDownloadMenuOpen = false;
+  } else { viewingAnalyticsStudentIndex = null; }
+  render();
+}
+function openStudentProfilePage(i){
+  if(!students[i]) return;
+  searchProfileStudent = students[i];
+  profileOpenSections = { personal:true };
+  studentPageTab = "profile";
+  render();
+}
+function closeStudentProfilePage(){ searchProfileStudent = null; studentPageTab = "profile"; viewingAnalyticsStudentIndex = null; render(); }
+function toggleProfileSection(k){ profileOpenSections[k] = !profileOpenSections[k]; render(); }
+// Edit buttons open the registration form on the matching step
+function editProfileSection(stepKey){
+  const i = students.indexOf(searchProfileStudent);
+  if(i < 0) return;
+  searchProfileStudent = null;
+  openStudentAdmissionForm(i);
+  if(stepKey && ADD_STUDENT_SECTIONS.some(x => x.key === stepKey)) addStudentSection = stepKey;
+  render();
+}
+function changeProfilePhoto(inputEl){
+  const f = inputEl.files && inputEl.files[0];
+  if(!f || !searchProfileStudent) return;
+  const s = searchProfileStudent;
+  readImageShrunk(f, 300, false, function(out){
+    studentPhotos[photoKey(s, students.indexOf(s))] = out;
+    render();
+  });
+}
+function removeProfilePhoto(){
+  const s = searchProfileStudent; if(!s) return;
+  if(!confirm('Remove the photo of ' + fullName(s) + '?')) return;
+  delete studentPhotos[photoKey(s, students.indexOf(s))];
+  render();
+}
+// ---- Deleted students: retrieve a removed learner (restore the record, or restore and re-admit) ----
+let searchShowDeleted = false;
+function openDeletedStudents(){ searchShowDeleted = true; render(); }
+function closeDeletedStudents(){ searchShowDeleted = false; render(); }
+function restoreDeletedStudent(idx, readmit){
+  const e = deletedStudentsLog[idx];
+  if(!e || !e.record){ alert('There is no saved copy of this learner to restore.'); return; }
+  const adm = String(e.record.admissionNumber || '').trim().toLowerCase();
+  if(adm && students.some(x => String(x.admissionNumber || '').trim().toLowerCase() === adm)){
+    alert('Another learner already uses admission number ' + e.record.admissionNumber + '. Change that learner\'s admission number first, then restore this one.');
+    return;
+  }
+  const rec = JSON.parse(JSON.stringify(e.record));
+  students.push(rec);
+  if(e.photo) studentPhotos[photoKey(rec, students.length - 1)] = e.photo;
+  deletedStudentsLog.splice(idx, 1);
+  searchShowDeleted = false;
+  searchResults = [rec];
+  render();
+  if(readmit) startReadmission(students.indexOf(rec));
+  else alert(fullName(rec) + ' has been restored to the student records.');
+}
+function purgeDeletedStudent(idx){
+  const e = deletedStudentsLog[idx]; if(!e) return;
+  if(!confirm('Permanently discard the saved copy of ' + e.name + '? After this the learner can no longer be restored.')) return;
+  delete e.record; delete e.photo;
+  render();
+}
+function renderDeletedStudentsPanel(){
+  const list = deletedStudentsLog || [];
+  const e = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const rows = list.map((d, i) => `
+    <tr>
+      <td>${i + 1}</td><td style="font-weight:700;">${e(d.admissionNumber) || '—'}</td><td>${e(d.name)}</td>
+      <td style="color:var(--muted);">${e([d.grade, d.stream].filter(Boolean).join(', ')) || '—'}</td>
+      <td>${e((d.ts || '').slice(0, 10))}</td><td>${e(d.reason)}${d.note ? ' — ' + e(d.note) : ''}</td>
+      <td>${d.record ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-primary" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="restoreDeletedStudent(${i}, true)"><i class="fa-solid fa-user-check"></i> Re-admit</button>
+        <button type="button" class="btn-ghost" style="width:auto;padding:7px 14px;font-size:12.5px;" onclick="restoreDeletedStudent(${i}, false)"><i class="fa-solid fa-rotate-left"></i> Restore only</button>
+        <button type="button" class="link-btn" title="Discard the saved copy" onclick="purgeDeletedStudent(${i})"><i class="fa-solid fa-trash"></i></button></div>`
+        : '<span style="color:var(--muted);font-size:12px;">No saved copy</span>'}</td>
+    </tr>`).join('');
+  return `
+    <div class="panel" style="margin-bottom:24px;">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h3><i class="fa-solid fa-user-slash" style="color:var(--blue);"></i>&nbsp;Deleted Students</h3>
+        <button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:12.5px;" onclick="closeDeletedStudents()"><i class="fa-solid fa-arrow-left"></i> Back to search</button>
+      </div>
+      <div style="padding:10px 20px;font-size:12.5px;color:var(--muted);">Deleted learners are kept here with their full record and photo. <b>Re-admit</b> puts the learner back and asks for the class and stream; <b>Restore only</b> brings the record back exactly as it was.</div>
+      ${list.length ? `<div style="overflow-x:auto;"><table style="width:100%;"><thead><tr><th>#</th><th>Adm No</th><th>Name</th><th>Class</th><th>Deleted on</th><th>Reason</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : `<div style="padding:30px 20px;text-align:center;color:var(--muted);">No deleted students.</div>`}
+    </div>`;
+}
+// Deleting a learner asks for a reason (drop-down) first; the removal is kept in deletedStudentsLog.
+let deletedStudentsLog = []; // newest first: { ts, user, admissionNumber, name, grade, stream, reason, note }
+const STUDENT_DELETE_REASONS = ["Admitted by mistake","Duplicate record","Wrong details entered","Transferred to another school","Left school / dropped out","Deceased","Other"];
+let deleteStudentModalOpen = false;
+function deleteProfileStudent(){
+  if(!searchProfileStudent) return;
+  deleteStudentModalOpen = true;
+  renderDeleteStudentModal();
+}
+function closeDeleteStudentModal(){
+  deleteStudentModalOpen = false;
+  const root = document.getElementById('studentProfileModalRoot');
+  if(root) root.innerHTML = '';
+}
+function onDeleteReasonChange(sel){
+  const n = document.getElementById('delStuNote');
+  if(n) n.style.display = sel.value === 'Other' ? 'block' : 'none';
+  sel.style.borderColor = '';
+}
+function renderDeleteStudentModal(){
+  const root = document.getElementById('studentProfileModalRoot');
+  if(!root) return;
+  if(!deleteStudentModalOpen || !searchProfileStudent){ root.innerHTML = ''; return; }
+  root.innerHTML = `
+    <div class="preview-overlay" onclick="if(event.target===this) closeDeleteStudentModal()">
+      <div class="preview-modal" style="max-width:400px;text-align:center;padding:26px 22px 22px;">
+        <div style="width:70px;height:70px;border-radius:50%;border:3px solid #fbd5a5;color:#f8a95b;font-size:40px;line-height:64px;margin:0 auto 14px;">!</div>
+        <div style="font-family:var(--font-heading);font-size:22px;font-weight:600;color:var(--text);margin-bottom:6px;">Delete Student!</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">${fullName(searchProfileStudent).replace(/</g,'&lt;')}${searchProfileStudent.admissionNumber ? ' (Adm ' + searchProfileStudent.admissionNumber + ')' : ''} will be removed from the school records.</div>
+        <select id="delStuReason" onchange="onDeleteReasonChange(this)" style="text-transform:none;width:100%;padding:10px 12px;font-size:14px;border:2px solid #b9d3f0;border-radius:4px;">
+          <option value="">Select deletion reason...</option>
+          ${STUDENT_DELETE_REASONS.map(r => `<option value="${r}">${r}</option>`).join('')}
+        </select>
+        <input id="delStuNote" type="text" placeholder="Please specify the reason" style="display:none;width:100%;margin-top:10px;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:4px;box-sizing:border-box;">
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;">
+          <button type="button" class="btn-ghost" style="width:auto;padding:9px 18px;" onclick="closeDeleteStudentModal()">Cancel</button>
+          <button type="button" class="btn-primary" style="width:auto;padding:9px 18px;" onclick="confirmDeleteProfileStudent()">Proceed</button>
+        </div>
+      </div>
+    </div>`;
+  const sel = document.getElementById('delStuReason'); if(sel) sel.focus();
+}
+function confirmDeleteProfileStudent(){
+  const s = searchProfileStudent; if(!s) return;
+  const sel = document.getElementById('delStuReason');
+  const reason = sel ? sel.value : '';
+  const noteEl = document.getElementById('delStuNote');
+  const note = noteEl ? noteEl.value.trim() : '';
+  if(!reason){ if(sel) sel.style.borderColor = '#dc2626'; return; }
+  if(reason === 'Other' && !note){ if(noteEl){ noteEl.style.borderColor = '#dc2626'; noteEl.focus(); } return; }
+  const i = students.indexOf(s); if(i < 0){ closeDeleteStudentModal(); return; }
+  deletedStudentsLog.unshift({ ts: new Date().toISOString(), user: (typeof currentUserName !== 'undefined' ? currentUserName : ''), admissionNumber: s.admissionNumber || '', name: fullName(s), grade: s.grade || '', stream: s.stream || '', reason, note,
+    record: JSON.parse(JSON.stringify(s)), photo: studentPhotos[photoKey(s, i)] || '' }); // full copy so the learner can be restored / re-admitted
+  delete studentPhotos[photoKey(s, i)];
+  students.splice(i, 1);
+  if(searchResults) searchResults = searchResults.filter(r => r !== s);
+  searchProfileStudent = null; studentPageTab = 'profile'; viewingAnalyticsStudentIndex = null;
+  closeDeleteStudentModal();
+  render();
+}
+function renderStudentProfilePage(){
+  const s = searchProfileStudent;
+  const i = students.indexOf(s);
+  const photo = studentPhotos[photoKey(s, i)];
+  const v = x => (x === undefined || x === null || String(x).trim() === '') ? '' : String(x).replace(/</g, '&lt;');
+  const is844 = s.curriculum === '8-4-4' || /^form/i.test(s.grade || '');
+  const cur = s.curriculum || (is844 ? '8-4-4' : (/^grade/i.test(s.grade || '') ? 'CBE' : ''));
+  const cell = (label, value) => `<div class="sp-cell"><div class="sp-lbl">${label}</div><div class="sp-val">${v(value)}</div></div>`;
+  const section = (key, title, cells, step) => {
+    const open = !!profileOpenSections[key];
+    return `
+      <div class="sp-card">
+        <button type="button" class="sp-head" onclick="toggleProfileSection('${key}')" aria-expanded="${open}">
+          <span>${title}</span><i class="fa-solid fa-chevron-down ${open ? 'open' : ''}"></i>
+        </button>
+        ${open ? `<div class="sp-body"><div class="sp-grid">${cells.join('')}</div>
+          <button type="button" class="sp-edit" onclick="editProfileSection('${step}')">Edit <i class="fa-solid fa-pen"></i></button></div>` : ''}
+      </div>`;
+  };
+  const gPhones = (s.guardianPhones || []).filter(Boolean);
+  const sPhones = (s.studentPhoneContacts && s.studentPhoneContacts.length) ? s.studentPhoneContacts.map(c => c.number).filter(Boolean) : (s.studentPhones || []).filter(Boolean);
+  const residence = [s.villageEstate, s.town].filter(Boolean).join(', ');
+  const age = ageFromDmy(s.dateOfBirth);
+  const personal = [
+    cell('Name', fullName(s)), cell('Admission Number', s.admissionNumber), cell('Gender', s.gender),
+    cell(is844 ? 'KCPE Index Number' : 'Assessment Number', s.previousIndexNumber), cell('UPI', s.upi),
+    schoolHasBoarding() ? cell('Boarding Status', s.boardingStatus) : '',
+    cell('Residence', residence), cell('Primary Contact', gPhones[0]), cell('Secondary Contact', gPhones[1] || sPhones[0]),
+  ];
+  const education = [
+    cell('Date of Admission', s.dateOfAdmission), cell('Admission Type', s.admissionType), cell('Term', s.term),
+    cell('Curriculum', cur), cell('Form/Grade', s.grade), cell('Stream', s.stream),
+    is844 ? '' : cell('Pathway', s.pathway), is844 ? '' : cell('Track', s.track),
+    cell('Previous School', s.previousSchool), cell('County', s.county), cell('Sub County', s.subcounty),
+    cell(is844 ? 'KCPE Marks' : 'Points Obtained', s.pointsObtained), cell('Assessment Year', s.assessmentYear),
+    (s.boardingStatus === 'Boarder' && schoolHasBoarding()) ? cell('Dormitory/House', s.house) : '',
+    (s.optionalSubjects && s.optionalSubjects.length) ? cell('Electives', s.optionalSubjects.join(', ')) : '',
+  ];
+  const guardian = [
+    cell('Family Type', s.familyType), cell('Relationship', s.relationship), cell((s.relationship || 'Guardian') + "'s Name", s.guardian),
+    cell('ID Number', s.guardianIdNumber), cell('Telephone No.', gPhones.join(', ')), cell('Email Address', s.guardianEmail),
+    cell('Family SHA Contribution', s.guardianShaRate), cell('Highest Level of Education', s.guardianEducation),
+    cell('County', s.guardianCounty), cell('Occupation', s.occupation), cell('Employed', s.guardianEmployed), cell('Physical Challenge', s.guardianPhysicalChallenge),
+  ];
+  const other = [
+    cell('Date of Birth', s.dateOfBirth), cell('Age', age !== null && age !== undefined ? age : ''), cell('Nationality', s.nationality),
+    cell('Birth Certificate Number', s.birthCertNumber), cell('Religion', normReligion(s.religion)), cell('Denomination', s.denomination),
+    cell('Person with Disability', s.disabilityStatus), s.disabilityStatus === 'Yes' ? cell('Type of Disability', s.disabilityType) : '',
+    cell('Terminal Condition in Family', s.familyTerminalCondition),
+    cell('Nearest Primary School', s.nearestPrimarySchool), cell('Estate/Village', s.villageEstate), cell('House No #', s.houseNumber),
+    cell('Nearest Street/Road', s.nearestStreetRoad), cell('Town/City', s.town), cell('County of Residence', s.birthCounty),
+    cell('Constituency', s.constituency), cell('Ward', s.ward), cell('Student Phone(s)', sPhones.join(', ')),
+  ];
+  const additional = [
+    cell('Blood Group', s.bloodGroup), cell('Allergies', s.allergies), cell('Chronic Illness', s.chronicIllness),
+    cell('Previous Injuries', s.previousInjuries), cell('Surgeries', s.surgeries), cell('Other Medical Information', s.otherMedicalInfo),
+    cell('Medical Recommendation', s.medicalNotes), cell('Fee Balance', studentFeeBalanceDisplay(s)),
+    cell('Academic Performance', studentAcademicPerformanceDisplay(s)),
+    s.exitDate ? cell('Exit Date', s.exitDate) : '', studentHasLeft(s) ? cell('Status', s.admissionStatus) : '',
+  ];
+  const classLine = [s.grade, s.stream].filter(Boolean).join(', ');
+  const adm = (s.admissionNumber || '').replace(/'/g, "\\'");
+  const admKey = String(s.admissionNumber || '').trim().toLowerCase();
+  let tabBody = '';
+  if(studentPageTab === 'analytics'){
+    tabBody = `<div id="spInlineAnalytics"></div>`;
+    setTimeout(renderStudentAnalyticsModal, 0);
+  } else if(studentPageTab === 'discipline'){
+    const cases = admKey ? (disciplineCases || []).filter(c => String(c.adm || '').trim().toLowerCase() === admKey) : [];
+    tabBody = cases.length ? `<div style="overflow-x:auto;"><table style="width:100%;"><thead><tr><th>#</th><th>Case no.</th><th>Date</th><th>Offence</th><th>Category</th><th>Action taken</th><th>Status</th></tr></thead><tbody>${
+      cases.map((c, n) => `<tr><td>${n+1}</td><td style="font-weight:700;">${dcEsc(c.caseNo)}</td><td>${dcEsc((c.incidentAt||'').slice(0,10))}</td><td>${dcEsc(c.offence)}</td><td><b style="color:${dcCatColor(c.category)};">${dcEsc(c.category)}</b></td><td>${dcEsc(c.action) || '<span style="color:var(--muted);">—</span>'}</td><td><b style="color:${c.status === 'Closed' ? '#16a34a' : '#b45309'};">${dcEsc(c.status)}</b></td></tr>`).join('')
+    }</tbody></table></div><div style="font-size:12px;color:var(--muted);margin-top:10px;">Cases are recorded and followed up in Academics &rsaquo; Disciplinary &rsaquo; Case Register.</div>`
+      : `<div class="empty" style="padding:26px 0;text-align:center;color:var(--muted);">No disciplinary cases on record for ${dcEsc(fullName(s))}.</div>`;
+  } else if(studentPageTab === 'cocurricular'){
+    const rows = [];
+    Object.keys(clubMembers || {}).forEach(club => (clubMembers[club] || []).forEach(m => { if(admKey && String(m.admissionNumber || '').trim().toLowerCase() === admKey) rows.push({ club, m }); }));
+    tabBody = rows.length ? `<div style="overflow-x:auto;"><table style="width:100%;"><thead><tr><th>#</th><th>Club / Activity</th><th>Position</th><th>Status</th><th>Date joined</th><th>Date left</th></tr></thead><tbody>${
+      rows.map((r, n) => `<tr><td>${n+1}</td><td style="font-weight:700;">${dcEsc(r.club)}</td><td>${dcEsc(r.m.position) || 'Member'}</td><td><b style="color:${r.m.status === 'Left' ? '#b45309' : '#16a34a'};">${dcEsc(r.m.status || 'Active')}</b></td><td>${dcEsc(r.m.dateJoined) || '—'}</td><td>${dcEsc(r.m.dateLeft) || '—'}</td></tr>`).join('')
+    }</tbody></table></div>`
+      : `<div class="empty" style="padding:26px 0;text-align:center;color:var(--muted);">${dcEsc(fullName(s))} is not in any club or co-curricular activity.</div>`;
+  } else {
+    tabBody = [
+      section('personal', 'Personal Information', personal, 'basic'),
+      section('education', 'Education Information', education, 'education'),
+      section('guardian', 'Guardian Details', guardian, 'guardian'),
+      section('other', 'Other Student Details', other, 'basic'),
+      section('additional', 'Additional Information', additional, 'medical'),
+    ].join('');
+  }
+  return `
+    <style>
+      .sp-banner{display:flex;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:rgba(59,130,246,.12);margin-bottom:12px;}
+      .sp-photo{position:relative;width:80px;height:80px;flex:0 0 80px;}
+      .sp-photo .pic{width:80px;height:80px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#f43f5e,#fb7185);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;overflow:hidden;}
+      .sp-photo .pic img{width:100%;height:100%;object-fit:cover;}
+      .sp-badge{position:absolute;bottom:-2px;width:26px;height:26px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+      .sp-badge.del{left:-4px;background:#f97316;} .sp-badge.edit{right:-4px;background:#0ea5e9;}
+      .sp-name{font-size:17px;font-weight:600;color:var(--text);} .sp-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+      .sp-wrap{border:1px solid var(--border);border-radius:10px;padding:14px;}
+      .sp-card{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;background:transparent;}
+      .sp-head{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:0;padding:20px 16px;font:inherit;font-size:15px;font-weight:500;color:#2e9e3e;cursor:pointer;text-align:left;}
+      .sp-head i{color:var(--text);transition:transform .2s;} .sp-head i.open{transform:rotate(180deg);}
+      .sp-body{position:relative;padding:0 16px 18px;}
+      .sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;padding-right:90px;}
+      .sp-lbl{font-size:12px;color:#334155;} .sp-val{font-size:12.5px;font-weight:700;color:var(--text);margin-top:3px;min-height:16px;word-break:break-word;}
+      .sp-edit{position:absolute;right:30px;top:42px;border:1px solid #a5b4d4;background:none;border-radius:20px;padding:5px 14px;font-size:11.5px;color:#9f1239;cursor:pointer;}
+      .sp-actions{display:flex;justify-content:center;gap:10px;margin-top:6px;flex-wrap:wrap;}
+      .sp-del{background:#ff5a2c;color:#fff;border:0;border-radius:4px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;}
+      .sp-alt{background:none;border:1px solid var(--border);color:var(--text);border-radius:4px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;}
+      @media(max-width:760px){.sp-grid{grid-template-columns:1fr 1fr;padding-right:0;}.sp-edit{position:static;margin-top:14px;}}
+    </style>
+    <div class="teacher-tab-cards" style="margin-bottom:12px;">${renderTabCards(STUDENT_PAGE_TABS, studentPageTab, 'setStudentPageTab')}</div>
+    <div class="sp-banner">
+      <div class="sp-photo">
+        <div class="pic">${photo ? `<img src="${photo}" alt="">` : '<i class="fa-solid fa-user"></i>'}</div>
+        <button type="button" class="sp-badge del" title="Remove photo" onclick="removeProfilePhoto()"><i class="fa-solid fa-trash"></i></button>
+        <label class="sp-badge edit" title="Change photo"><i class="fa-solid fa-pen"></i><input type="file" accept="image/*" style="display:none" onchange="changeProfilePhoto(this)"></label>
+      </div>
+      <div>
+        <div class="sp-name">${v(fullName(s))}</div>
+        <div class="sp-sub">Admission Number: ${v(s.admissionNumber) || '—'}</div>
+        <div class="sp-sub">${v(classLine) || 'Not assigned'}</div>
+      </div>
+    </div>
+    <div class="sp-wrap panel">
+      ${tabBody}
+      <div class="sp-actions">
+        <button type="button" class="sp-alt" onclick="closeStudentProfilePage()"><i class="fa-solid fa-arrow-left"></i> Back to results</button>
+        <button type="button" class="sp-alt" onclick="openParentFeeStatement('${adm}')"><i class="fa-solid fa-file-invoice"></i> Fee Statement</button>
+        <button type="button" class="sp-del" onclick="deleteProfileStudent()"><i class="fa-solid fa-trash"></i> Delete Student</button>
+      </div>
+    </div>`;
+}
+
 // ---- Student profile modal ----
 // Shows the fixed set of at-a-glance fields for one student: photo, admission
 // number, full name, form, stream, parents' contact, fee balance, academic
@@ -24509,7 +24991,22 @@ function effectiveStudentAnalyticsExam(grade){
   return exams.length ? exams[exams.length - 1] : null;
 }
 
+// On the learner page the Analytics card shows this same analysis inline (no popup).
 function renderStudentAnalyticsModal(){
+  _renderStudentAnalyticsModalCore();
+  const host = document.getElementById('spInlineAnalytics');
+  const root = document.getElementById('studentAnalyticsModalRoot');
+  if(!host || !root || studentPageTab !== 'analytics') return;
+  const m = root.querySelector('.preview-modal');
+  if(!m){ host.innerHTML = ''; return; }
+  m.style.maxWidth = 'none'; m.style.boxShadow = 'none'; m.style.margin = '0'; m.style.width = '100%';
+  const hd = m.querySelector('.preview-modal-header'); if(hd) hd.remove();
+  const ft = m.querySelector('.preview-modal-footer'); if(ft) ft.remove();
+  host.innerHTML = '';
+  host.appendChild(m);
+  root.innerHTML = '';
+}
+function _renderStudentAnalyticsModalCore(){
   const root = document.getElementById('studentAnalyticsModalRoot');
   if(!root) return;
   const i = viewingAnalyticsStudentIndex;
@@ -27057,23 +27554,33 @@ const TEACHERS_HUB_TABS = [
   { key:"staff", label:"Non-Teaching Staff", icon:"fa-id-badge" },
   { key:"bom", label:"BOM", icon:"fa-users-gear" },
 ];
-let teachersHubTab = "teachers";
+// "" = landing view: only the 3 hub cards are shown. Picking one hides the other two
+// and reveals that section's own cards (e.g. Teachers > Add New Teacher, Teachers' Groups,
+// Manage Teachers, Subject Sharing). "Back" returns to the 3 cards.
+let teachersHubTab = "";
 function setTeachersHubTab(key){ teachersHubTab = key; render(); }
 
 function renderTeachersPage(){
-  const toolbar = `<div class="teacher-tab-cards">${renderTabCards(TEACHERS_HUB_TABS, teachersHubTab, 'setTeachersHubTab')}</div>`;
-  let body = "";
-  switch(teachersHubTab){
-    case "staff": body = renderStaffPanel(); break;
-    case "bom": body = renderBomPage(); break;
-    default: body = renderTeachersPanel();
+  const section = TEACHERS_HUB_TABS.find(t => t.key === teachersHubTab);
+  let content = "";
+  if(!section){
+    content = `<div class="teacher-tab-cards">${renderTabCards(TEACHERS_HUB_TABS, "", 'setTeachersHubTab')}</div>`;
+  } else {
+    let body = "";
+    switch(section.key){
+      case "staff": body = renderStaffPanel(); break;
+      case "bom": body = renderBomPage(); break;
+      default: body = renderTeachersPanel();
+    }
+    content = body;
   }
+  const backAction = section ? `setTeachersHubTab('')` : `go('students')`;
+  const backLabel = section ? 'Back to cards' : 'Back';
   return `
-    ${toolbar}
-    ${body}
+    ${content}
     <div class="reg-nav-row">
-      <button class="back-cell" onclick="go('students')">
-        <i class="fa-solid fa-arrow-left"></i> Back
+      <button class="back-cell" onclick="${backAction}">
+        <i class="fa-solid fa-arrow-left"></i> ${backLabel}
       </button>
     </div>
   `;
@@ -34675,6 +35182,7 @@ function newTimetableTeacherRegistration(){
   teacherFormData = { surname:"", firstName:"", otherNames:"", phone:"", tscNumber:"", gender:"", responsibility:"", nationalId:"", address:"", postalCode:"", email:"", countyOfBirth:"", subCountyOfBirth:"", photo:"", signature:"", department:[], groups:[], subjects:[], subjectHead:[] };
   teacherEditIndex = null;
   teacherTab = "add";
+  teachersHubTab = "teachers";
   active = "teachers";
   render();
 }
@@ -34683,6 +35191,7 @@ function editTimetableTeacher(){
   const i = teachersList.findIndex(t => teacherFullName(t) === timetableSelectedTeacher);
   if(i < 0) return;
   editTeacher(i);
+  teachersHubTab = "teachers";
   active = "teachers";
   render();
 }
@@ -38784,20 +39293,8 @@ function renderRegistrationTitleBar(){
 }
 
 function renderRegistration(){
-  const titleBar = renderRegistrationTitleBar();
-
-  const linkRow = `
-    <div class="reg-card-row">
-      ${REG_LINKS.map(l => `
-        <button class="reg-card ${regTab===l.key?'active':''}" onclick="${['classes','subjects','students','teachers'].includes(l.key) ? `go('${l.key}')` : `setRegTab('${l.key}')`}">
-          <div class="reg-card-icon"><i class="fa-solid ${l.icon}"></i></div>
-          <div class="reg-card-label">${l.label}</div>
-          <div class="reg-card-sub">${l.sub}</div>
-        </button>
-      `).join('')}
-    </div>
-  `;
-
+  // The "Registration" title card and its 5 cards (Classes, Subjects, Students, Teachers, Staff) are removed;
+  // those sections are reached from the sidebar.
   let body = "";
   switch(regTab){
     case "search": body = renderSearchPanel(); break;
@@ -38814,8 +39311,6 @@ function renderRegistration(){
   }
 
   return `
-    ${titleBar}
-    ${linkRow}
     ${body}
   `;
 }
@@ -55966,6 +56461,7 @@ function _scrollRestore(s){
 }
 function render(){ invoicesDirty = true; const _snap = _focusSnapshot(), _sc = _scrollSnapshot(); __renderCore(); _focusRestore(_snap); _scrollRestore(_sc); }
 function __renderCore(){
+  uppercaseLiveNames();
   if(!canAccessModule(active)) active = firstAllowedModule();
   const active_focus = document.activeElement;
   const activeId = active_focus && active_focus.id ? active_focus.id : null;
