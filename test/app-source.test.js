@@ -84,8 +84,8 @@ test('CBC views never list Form 4 in Lesson Sharing', () => {
 });
 
 describe('plain class list layout', () => {
-  test('class & stream lists use S\\NO … DOB columns and a plain PDF/print layout', () => {
-    expect(src).toMatch(/const columns = \['S\\\\NO', \.\.\.defs/);
+  test('class & stream lists use S/NO … DOB columns and a plain PDF/print layout', () => {
+    expect(src).toMatch(/const columns = \['S\/NO', \.\.\.defs/);
     expect(src).toMatch(/key:'dob', label:'DOB'/);
     expect(src).toMatch(/if\(data\.roster\) return triggerPlainClassListPdf/);
     expect(src).toMatch(/if\(d\.roster\)\{ printPlainClassList/);

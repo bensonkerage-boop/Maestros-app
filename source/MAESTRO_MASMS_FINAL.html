@@ -1090,6 +1090,86 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .dash2-ann-text{font-size:13.5px;color:var(--text);line-height:1.5;}
   .dash2-ann-date{font-size:11.5px;color:var(--muted);white-space:nowrap;margin-left:auto;padding-left:10px;}
 
+  /* Dashboard: Exam Analysis card */
+
+  .dash2-an-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
+  .dash2-an-chip{text-align:left;background:var(--blue-tint);border:1px solid var(--border);border-radius:0;padding:8px 10px;cursor:pointer;font-family:inherit;color:var(--text);}
+  .dash2-an-chip.on{border-color:var(--blue);box-shadow:inset 0 -3px 0 var(--blue);background:#fff;}
+  .dash2-an-chip-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;}
+  .dash2-an-chip-val{font-size:17px;font-weight:700;color:#3fa94b;margin-top:3px;}
+  .dash2-an-chip-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+  .dash2-analysis{padding:14px 16px;}
+  .dash2-analysis .panel-header{margin:-14px -16px 12px;padding:10px 16px;}
+  .dash2-analysis .dash2-an-tiles{gap:8px;margin-bottom:10px;}
+  .dash2-analysis .dash2-an-tile{padding:8px;gap:8px;}
+  .dash2-analysis .dash2-an-tile-icon{width:28px;height:28px;font-size:12px;}
+  .dash2-analysis .dash2-an-tile-val{font-size:16px;}
+  .dash2-analysis .dash2-an-tile-label{font-size:10.5px;}
+  .dash2-analysis .dash2-an-row{gap:10px;margin-bottom:10px;}
+  .dash2-analysis .dash2-an-card{padding:10px 12px;}
+  .dash2-analysis .dash2-an-card h4{margin-bottom:8px;font-size:12.5px;}
+  .dash2-analysis .dash2-an-cols{height:150px;}
+  .dash2-analysis .dash2-donut-center .num{font-size:16px;}
+  .dash2-analysis .dash2-legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;min-width:0;}
+  .dash2-analysis .dash2-legend-row{font-size:12px;gap:6px;}
+  .dash2-analysis .dash2-legend-val{font-size:10.5px;}
+  .dash2-analysis .dash2-donut-flex{gap:12px;}
+  .dash2-analysis .dash2-an-table td,.dash2-analysis .dash2-an-table th{padding:5px 6px;}
+  .dash2-rep-group{margin-bottom:14px;}
+  .dash2-rep-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .dash2-rep-title i{color:var(--blue);margin-right:6px;}
+  .dash2-rep-opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .dash2-rep-opt{padding:9px 14px;border:1px solid var(--border);background:var(--blue-tint);color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;border-radius:0;font-family:inherit;}
+  .dash2-rep-opt:hover{border-color:var(--blue);background:#fff;}
+  .dash2-an-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px;}
+  .dash2-an-sum-card{background:#fff;border:1px solid var(--border);border-radius:0;padding:14px;box-shadow:0 12px 30px rgba(30,63,120,0.08);}
+  .dash2-an-sum-title{font-size:15px;font-weight:700;color:var(--text);}
+  .dash2-an-sum-sub{font-size:12.5px;color:var(--muted);margin:2px 0 10px;text-transform:uppercase;}
+  .dash2-an-sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .dash2-an-sum-stat{background:var(--blue-tint);padding:9px 10px;min-width:0;}
+  .dash2-an-sum-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12.5px;color:var(--text);min-height:20px;}
+  .dash2-an-sum-val{font-size:20px;font-weight:700;color:#3fa94b;margin-top:6px;}
+  .dash2-an-delta{font-size:10.5px;font-weight:600;background:rgba(100,116,139,0.18);color:var(--text);padding:2px 6px;white-space:nowrap;}
+  .dash2-an-delta.up i{color:#10b981;} .dash2-an-delta.down i{color:#f43f5e;}
+  .dash2-an-sum-btn{margin-top:10px;width:100%;padding:9px;border:none;border-radius:0;background:#bfdbfe;color:#1e3a8a;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .dash2-an-sum-btn:hover{background:#93c5fd;}
+  .dash2-analysis{margin-bottom:20px;}
+  .dash2-analysis .panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .dash2-an-sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .dash2-an-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .dash2-an-select{padding:8px 10px;border:1px solid var(--border);border-radius:0;background:#fff;color:var(--text);font-size:12.5px;font-weight:600;font-family:inherit;max-width:260px;}
+  .dash2-an-tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+  .dash2-an-tile{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid;border-radius:0;min-width:0;}
+  .dash2-an-tile-icon{width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;}
+  .dash2-an-tile-label{font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dash2-an-tile-val{font-size:20px;font-weight:700;color:var(--text);font-family:var(--font-mono);margin-top:2px;white-space:nowrap;}
+  .dash2-an-row{display:grid;gap:14px;margin-bottom:14px;}
+  .dash2-an-row:last-child{margin-bottom:0;}
+  .dash2-an-row.r3{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .dash2-an-row.r2{grid-template-columns:2fr 1fr;}
+  .dash2-an-card{border:1px solid var(--border);border-radius:0;padding:14px 16px;min-width:0;}
+  .dash2-an-card h4{margin:0 0 12px;font-size:13.5px;font-weight:700;color:var(--text);}
+  .dash2-an-cols{display:flex;align-items:flex-end;gap:8px;height:190px;}
+  .dash2-an-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;}
+  .dash2-an-col-val{font-size:10.5px;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .dash2-an-col-bar{flex:1;width:100%;max-width:34px;display:flex;align-items:flex-end;border-bottom:1px solid var(--border);}
+  .dash2-an-col-bar > div{width:100%;}
+  .dash2-an-col-lbl{font-size:10px;color:var(--muted);margin-top:5px;text-align:center;width:100%;height:26px;overflow:hidden;line-height:1.25;word-break:break-word;}
+  .dash2-an-scroll{overflow-x:auto;}
+  .dash2-an-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .dash2-an-table th{background:var(--blue);color:#fff;text-align:left;padding:7px 6px;font-weight:600;white-space:nowrap;}
+  .dash2-an-table td{padding:7px 6px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+  .dash2-an-hbars{display:flex;flex-direction:column;gap:9px;}
+  .dash2-an-hrow{display:flex;align-items:center;gap:8px;font-size:12px;}
+  .dash2-an-hlbl{width:84px;flex-shrink:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dash2-an-htrack{flex:1;height:14px;background:var(--border);}
+  .dash2-an-htrack > div{height:100%;background:#10b981;}
+  .dash2-an-hval{width:56px;text-align:right;font-weight:700;color:var(--text);flex-shrink:0;}
+  .dash2-an-insights ul{margin:0;padding-left:18px;font-size:13px;line-height:1.55;color:var(--text);}
+  .dash2-an-insights li{margin-bottom:6px;}
+  @media(max-width:1100px){ .dash2-an-row.r3,.dash2-an-row.r2{grid-template-columns:1fr;} .dash2-an-tiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  @media(max-width:520px){ .dash2-an-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;} .dash2-an-tile{padding:9px;gap:8px;} .dash2-an-tile-icon{width:30px;height:30px;font-size:12px;} .dash2-an-tile-val{font-size:17px;} }
+
   /* Academic Calendar (Academics > Calendar) */
   .cal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
   .cal-title{font-size:16px;font-weight:700;color:var(--text);min-width:170px;}
@@ -9718,7 +9798,7 @@ const SCHOOL_EMPTY_KEYS = [
   "classesList", "gradeSupervisors", "classSubjectTeachers", "examTerms",
   "subjectPapersEnabled", "publishSubjectAssignments", "subjectPaperRatios",
   "marksMaxMarks", "marksData", "marksRemarks", "marksTeacherComments", "marksAuditLog", "marksTasks", "marksTaskData",
-  "teachersList", "staffList", "studentPhotos", "deletedStudentsLog", "transportRoutes", "bomMembers",
+  "teachersList", "staffList", "studentPhotos", "deletedStudentsLog", "kcseResults", "transportRoutes", "bomMembers",
   "smsPurchaseHistory", "inboxMessages", "sentMessages", "streams",
   "timetableData", "timetableSubjects", "ttLessonsList", "ttClasses", "timetableTeacherTimeOff", "savedTimetables",
 ];
@@ -9738,7 +9818,7 @@ const SCHOOL_OBJECT_SHAPED_KEYS = new Set([
   "attendanceRecords","attendanceNotes","attendanceDayMeta","boardingRollCalls","lessonSharingGradeData","lessonAllocations","syllabusCoverageData","syllabusCoverageJustSaved",
   "syllabusCoverageChecked","gradeSupervisors","classSubjectTeachers","subjectPapersEnabled","financeMeta",
   "publishSubjectAssignments","subjectPaperRatios","marksMaxMarks","marksData","marksRemarks",
-  "marksTeacherComments","marksTasks","marksTaskData","studentPhotos","timetableData","timetableTeacherTimeOff",
+  "marksTeacherComments","marksTasks","marksTaskData","studentPhotos","kcseResults","timetableData","timetableTeacherTimeOff",
 ]);
 
 function emptySchoolDataset(){
@@ -9778,7 +9858,7 @@ function snapshotSchoolData(name){
     classesList, gradeSupervisors, classSubjectTeachers, examTerms,
     subjectPapersEnabled, publishSubjectAssignments, subjectPaperRatios,
     marksMaxMarks, marksData, marksRemarks, marksTeacherComments, marksAuditLog, marksTasks, marksTaskData,
-    teachersList, staffList, studentPhotos, deletedStudentsLog, transportRoutes, bomMembers,
+    teachersList, staffList, studentPhotos, deletedStudentsLog, kcseResults, transportRoutes, bomMembers,
     smsPurchaseHistory, inboxMessages, sentMessages, streams,
     portalFeatures, termDates, departments, responsibilities, gradingSystems, systemUsers,
     timetableData, timetablePeriods,
@@ -9909,7 +9989,7 @@ function loadSchoolData(name){
   classesList = d.classesList; gradeSupervisors = d.gradeSupervisors; classSubjectTeachers = d.classSubjectTeachers; examTerms = d.examTerms;
   subjectPapersEnabled = d.subjectPapersEnabled; publishSubjectAssignments = d.publishSubjectAssignments; subjectPaperRatios = d.subjectPaperRatios;
   marksMaxMarks = d.marksMaxMarks; marksData = d.marksData; marksRemarks = d.marksRemarks; marksTeacherComments = d.marksTeacherComments; marksAuditLog = d.marksAuditLog; marksTasks = d.marksTasks || {}; marksTaskData = d.marksTaskData || {};
-  teachersList = d.teachersList; staffList = d.staffList; studentPhotos = d.studentPhotos; deletedStudentsLog = d.deletedStudentsLog || []; transportRoutes = d.transportRoutes; bomMembers = d.bomMembers;
+  teachersList = d.teachersList; staffList = d.staffList; studentPhotos = d.studentPhotos; deletedStudentsLog = d.deletedStudentsLog || []; kcseResults = d.kcseResults || {}; transportRoutes = d.transportRoutes; bomMembers = d.bomMembers;
   smsPurchaseHistory = d.smsPurchaseHistory; inboxMessages = d.inboxMessages; sentMessages = d.sentMessages; streams = d.streams;
   portalFeatures = d.portalFeatures; termDates = d.termDates; departments = d.departments; responsibilities = d.responsibilities; gradingSystems = d.gradingSystems; systemUsers = d.systemUsers;
   timetableData = d.timetableData; timetablePeriods = d.timetablePeriods;
@@ -11651,7 +11731,7 @@ function renderLoginMonitor(){
 // notice banner. Stored in this browser, keyed by school name.
 const SD_DASH_SECTIONS = [
   ["stats","Stat cards","fa-chart-simple"],["enroll","Enrollment trend","fa-chart-area"],["byclass","Students by class","fa-chart-pie"],
-  ["events","Upcoming events","fa-calendar-days"],["ann","Announcements","fa-bullhorn"],["fee","Fee overview","fa-coins"],["features","Feature strip","fa-star"]
+  ["events","Upcoming events","fa-calendar-days"],["ann","Announcements","fa-bullhorn"],["fee","Fee overview","fa-coins"],["analysis","Exam analysis","fa-square-poll-vertical"],["features","Feature strip","fa-star"]
 ];
 let sdDashCfg = {};
 try{ sdDashCfg = JSON.parse(localStorage.getItem("maestroSchoolDashCfg") || "{}") || {}; }catch(_e){}
@@ -13624,7 +13704,7 @@ function startAddLearnerForStream(name){
   regData = {
     admissionNumber: "", lastName: "", firstName: "", middleName: "", dateOfBirth: "", formGrade: "", stream: name, gender: "", boardingStatus: "",
     nationality: "", birthCertNumber: "", religion: "", denomination: "", photo: "",
-    previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "", assessmentYear: "",
+    previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "", kcseIndexNumber: "", assessmentYear: "",
     admissionType: "", term: "", pathway: "", track: "", admissionStatus: "", mathematicsChoice: "", optionalSubjects: [], county: "", subcounty: "", division: "",
     studentPhones: [""],
     familyType: "", guardianIdNumber: "", guardianName: "", guardianPhone: "", guardianEmail: "", guardianKraPin: "", guardianShaRate: "", guardianEducation: "", guardianCounty: "", occupation: "", guardianEmployed: "", guardianPhysicalChallenge: "", guardianIncomeBasic: "", guardianIncomeOther: "",
@@ -14009,6 +14089,21 @@ function myClassTeacherClasses(){
 }
 
 
+// Released exams are posted here for teachers (read-only; a released exam is locked).
+function releasedExamsList(){
+  const out = [];
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => { if(r.released) out.push({ term:t.term, exam:g.exam, cls:r.class, on:r.releasedOn || r.updatedOn || '', by:r.releasedBy || r.updatedBy || '' }); })));
+  const key = x => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(x.on); return m ? m[3] + m[2] + m[1] : ''; };
+  return out.sort((a,b) => key(b).localeCompare(key(a)));
+}
+function renderReleasedExamsPanel(){
+  const list = releasedExamsList();
+  const rows = list.map(x => `<tr><td style="font-weight:600;">${tEsc(x.exam)}</td><td>${tEsc(x.cls)}</td><td>${tEsc(x.term)}</td><td>${tEsc(x.on || '—')}</td>
+    <td><span style="font-size:12px;font-weight:600;color:#166534;background:#dcfce7;border:1px solid #86efac;padding:3px 8px;"><i class="fa-solid fa-lock"></i> Released &amp; locked</span></td></tr>`);
+  return deptPanel('Released Exams', 'fa-bullhorn', 'Exams the school has released. Released exams are locked; only an administrator or Examination Officer can unlock one to correct it.',
+    deptTable(['Exam','Class','Term','Released on','Status'], rows, 'No exam has been released yet.'));
+}
+
 function renderTeacherHomeDashboard(){
   const TEACHER_HOME_TABS = [
     { key:"dashboard", label:"Dashboard", icon:"fa-table-cells-large" },
@@ -14127,9 +14222,7 @@ function renderTeacherHomeDashboard(){
   } else if(teacherHomeTab === "subjectSharing"){
     body = renderMyLessonAllocations();
   } else if(teacherHomeTab === "graduatedClasses"){
-    body = `
-      <div class="panel"><div class="empty" style="padding:40px 24px;">No graduated classes yet. Classes appear here once a Form/Grade completes its final year.</div></div>
-    `;
+    body = renderGraduatedClassesView();
   } else {
     const kpiCard = (icon, val, lbl, onClickJs) => `
       <button type="button" class="kpi-card" onclick="${onClickJs}">
@@ -14703,7 +14796,7 @@ function renderTeacherExamAnalysisTab(){
       const examSubjects = (group.subjects && group.subjects.length) ? group.subjects : teacherSubjects;
       const mySubjectsInExam = teacherSubjects.filter(s => examSubjects.includes(s));
       if(!mySubjectsInExam.length) return;
-      const uploadedRows = (group.rows || []).filter(r => r.status === "Uploaded");
+      const uploadedRows = (group.rows || []).filter(r => r.status === "Uploaded" && !r.graduatedYear);
       if(!uploadedRows.length) return;
 
       const subjectRowsHtml = mySubjectsInExam.map(subject => {
@@ -14871,6 +14964,816 @@ function renderDashFeatureStrip(){
 }
 
 
+// ---- Dashboard: Exam Analysis card (sits under the main dashboard grid) ----
+// Built from the same published-exam data as Academics > Reports & Exports >
+// Analysis, so the numbers always agree with those reports.
+const DASH_ANALYSIS_PASS_MARK = 40; // a learner passes when their mean mark is at least this
+const DASH_AN_COLORS = ["#2f5fa8","#10b981","#f59e0b","#f43f5e","#7c5cf0","#06b6d4","#f97316","#64748b"];
+let dashAnalysisSel = ""; // "grade||exam"
+let dashAnalysisOpen = false; // false: per-grade summary cards, true: the full analysis for dashAnalysisSel
+function setDashAnalysisSel(v){ dashAnalysisSel = v; render(); }
+function openDashAnalysis(grade, exam){ dashAnalysisSel = grade + "||" + exam; dashAnalysisOpen = true; render(); }
+function closeDashAnalysis(){ dashAnalysisOpen = false; render(); }
+// "Full Report": download the Merit List and Report Forms for the exam being analysed
+let dashReportModal = null; // { grade, exam }
+function openDashFullReport(grade, exam){ dashReportModal = { grade, exam }; render(); }
+function closeDashFullReport(){ dashReportModal = null; render(); }
+function dashDownloadMeritList(format){
+  if(!dashReportModal) return;
+  const saved = meritListSelection;
+  meritListSelection = { grade: dashReportModal.grade, exam: dashReportModal.exam };
+  try{ downloadMeritList(format); } finally { meritListSelection = saved; }
+}
+function dashDownloadReportForms(format){
+  if(!dashReportModal) return;
+  const sv = [reportFormsGrade, reportFormsExam, reportFormsStream];
+  reportFormsGrade = dashReportModal.grade; reportFormsExam = dashReportModal.exam; reportFormsStream = null;
+  try{ generateReportForms(format); } finally { [reportFormsGrade, reportFormsExam, reportFormsStream] = sv; }
+}
+// ---- KCSE upload list (same layout as the school's KCSE candidates sheet) ----
+// Header on row 4, learners from row 5, one column per KCSE subject code, COUNT last.
+// Blank = grades are typed in afterwards; pre-filled = this exam's subject grades are filled in.
+const KCSE_UPLOAD_SUBJECTS = [
+  ["ENG",/^english/i],["KIS",/^kiswahili/i],["MAT",/^(core |essential )?math/i],["BIO",/^biology/i],["PHY",/^physics/i],["CHE",/^chemistry/i],
+  ["HIS",/^history/i],["GEO",/^geography/i],["CRE",/^christian/i],["HRE",/^hindu/i],["IRE",/^islam/i],["HSC",/^home ?science/i],
+  ["ART",/^art/i],["AGR",/^agricultur/i],["WDW",/^wood/i],["MTW",/^metal/i],["BCC",/^building/i],["PWM",/^power/i],
+  ["ELC",/^electric/i],["DRD",/^drawing/i],["CST",/^computer/i],["FRE",/^french/i],["GER",/^german/i],["ARA",/^arabic/i],
+  ["MUS",/^music/i],["BST",/^business/i]
+];
+function kcseCodeForSubject(name){
+  const f = KCSE_UPLOAD_SUBJECTS.find(x => x[1].test(String(name || "").trim()));
+  return f ? f[0] : null;
+}
+function downloadKcseUploadList(grade, exam, prefilled){
+  const list = studentsForGrade(grade, "").slice().sort((a,b) => String(a.stream||"").localeCompare(String(b.stream||"")) || String(a.admissionNumber).localeCompare(String(b.admissionNumber), undefined, { numeric:true }));
+  if(!list.length){ alert("No students found for this class."); return; }
+  const codes = KCSE_UPLOAD_SUBJECTS.map(x => x[0]).concat(["W","X","Y"]);
+  const byAdm = {};
+  if(prefilled){
+    computeMeritListData(grade, exam).rows.forEach(r => {
+      const g = {};
+      r.subjectCells.forEach(c => { const code = kcseCodeForSubject(c.subject); if(code && c.mark !== null && c.grade && c.grade !== '-') g[code] = c.grade; });
+      byAdm[r.student.admissionNumber] = { rank: r.rank, grades: g };
+    });
+  }
+  const head = ["Rnk","ADM NO","NAME",String(grade).toUpperCase(),"STREAM","GENDER","KCPE",...codes,"COUNT"];
+  const firstCol = 7, lastCol = 7 + codes.length - 1; // zero-based column indexes of the subject block
+  const colLetter = n => { let t = "", x = n + 1; while(x > 0){ const m = (x - 1) % 26; t = String.fromCharCode(65 + m) + t; x = Math.floor((x - 1) / 26); } return t; };
+  const rows = [head.map((h,i) => (i === 3 || i === 4) ? "" : "P"), [], [], head];
+  list.forEach((st, i) => {
+    const d = byAdm[st.admissionNumber];
+    const r = [d ? d.rank : "", st.admissionNumber, fullName(st), String(grade).toUpperCase(), String(st.stream || "").toUpperCase(),
+      /^f/i.test(st.gender || "") ? "F" : /^m/i.test(st.gender || "") ? "M" : "", st.pointsObtained !== undefined && st.pointsObtained !== "" ? Number(st.pointsObtained) || st.pointsObtained : ""];
+    codes.forEach(c => r.push(d && d.grades[c] ? d.grades[c] : ""));
+    r.push(null);
+    rows.push(r);
+  });
+  const year = (getSchoolProfile(currentSchool).academicYear || studentPerformanceYear || "");
+  const filename = `${String(grade).replace(/\s+/g,'_')}_KCSE_upload_list${prefilled ? '_with_grades' : ''}.xlsx`;
+  if(typeof XLSX === 'undefined'){ alert("The spreadsheet library is not loaded yet. Check your connection and try again."); return; }
+  const ws = XLSX.utils.aoa_to_sheet(rows.map(r => r.map(v => v === null ? "" : v)));
+  for(let ri = 4; ri < rows.length; ri++){
+    const addr = colLetter(head.length - 1) + (ri + 1);
+    ws[addr] = { t:'n', f:`COUNTA(${colLetter(firstCol)}${ri + 1}:${colLetter(lastCol)}${ri + 1})` };
+  }
+  ws['!cols'] = head.map((h,i) => ({ wch: i === 2 ? 30 : i === 1 ? 14 : i === 0 ? 5 : i === 4 ? 9 : i < 7 ? 9 : 6 }));
+  ws['!freeze'] = { xSplit: 3, ySplit: 4 };
+  ws['!views'] = [{ state:'frozen', xSplit:3, ySplit:4 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `KCSE ${year}`.trim().slice(0,31));
+  XLSX.writeFile(wb, filename);
+}
+function dashDownloadKcseList(prefilled){
+  if(!dashReportModal) return;
+  downloadKcseUploadList(dashReportModal.grade, dashReportModal.exam, prefilled);
+}
+// ---- KCSE results: download the form -> fill in grades -> upload -> comprehensive analysis ----
+// Form layout (row 1 = titles): INDEX NO, ADM NO, NAME, GENDER, KCPE MARKS, STREAM, MEAN GRADE, TOTAL POINT, then one column per KCSE subject.
+// MEAN GRADE / TOTAL POINT may be left blank: they are worked out from the subject grades (3 compulsory + best 2 sciences + best humanity + best other = 7 subjects).
+let kcseResults = {};   // { "<year>": { year, grade, uploadedOn, uploadedBy, rows:[{index,adm,name,gender,kcpe,stream,meanGrade,totalPoints,grades:{ENG:'B+',...}}] } }
+let kcseModal = null;   // { grade, exam, year, msg }
+const KCSE_PTS = { "A":12,"A-":11,"B+":10,"B":9,"B-":8,"C+":7,"C":6,"C-":5,"D+":4,"D":3,"D-":2,"E":1 };
+const KCSE_GRADE_ORDER = ["A","A-","B+","B","B-","C+","C","C-","D+","D","D-","E"];
+// Special results with no points: W, X and Y are counted after E in every distribution (0 when there are none).
+const KCSE_SPECIAL = ["W","X","Y"];
+const KCSE_DIST_ORDER = KCSE_GRADE_ORDER.concat(KCSE_SPECIAL);
+function kcseNormResult(v){ const t = String(v == null ? "" : v).trim().toUpperCase(); return KCSE_SPECIAL.includes(t) ? t : kcseNormGrade(v); }
+const KCSE_RESULT_SUBJECTS = [
+  ["ENG","English"],["KIS","Kiswahili"],["MAT","Mathematics"],["BIO","Biology"],["PHY","Physics"],["CHEM","Chemistry"],
+  ["HIS","History & Govt"],["GEO","Geography"],["CRE","C.R.E."],["IRE","I.R.E."],["HRE","H.R.E."],["HSC","Home Science"],
+  ["ART","Art & Design"],["AGR","Agriculture"],["WDW","Woodwork"],["MTW","Metalwork"],["BCC","Building Const."],["PWM","Power Mechanics"],
+  ["ELC","Electricity"],["DRD","Drawing & Design"],["CST","Computer Studies"],["FRE","French"],["GER","German"],["ARA","Arabic"],
+  ["MUS","Music"],["BST","Business Studies"]
+];
+const KCSE_SCIENCES = ["BIO","PHY","CHEM"], KCSE_HUMANITIES = ["HIS","GEO","CRE","IRE","HRE"];
+const KCSE_HEADER_ALIASES = { che:"CHEM", chemistry:"CHEM", math:"MAT", maths:"MAT", mathematics:"MAT", english:"ENG", kiswahili:"KIS", kisw:"KIS", biology:"BIO", physics:"PHY", history:"HIS", hist:"HIS", geography:"GEO", cre:"CRE", ire:"IRE", hre:"HRE", comp:"CST", business:"BST" };
+function kcseNormGrade(v){
+  let t = String(v == null ? "" : v).toUpperCase().replace(/[−–—]/g,"-").replace(/\s+/g,"").replace(/PLUS/g,"+").replace(/MINUS/g,"-").replace(/PLAIN/g,"");
+  return KCSE_PTS[t] ? t : "";
+}
+function kcseMeanGradeFromPoints(mp){
+  if(mp >= 11.5) return "A"; if(mp >= 10.5) return "A-"; if(mp >= 9.5) return "B+"; if(mp >= 8.5) return "B"; if(mp >= 7.5) return "B-";
+  if(mp >= 6.5) return "C+"; if(mp >= 5.5) return "C"; if(mp >= 4.5) return "C-"; if(mp >= 3.5) return "D+"; if(mp >= 2.5) return "D"; if(mp >= 1.5) return "D-"; return "E";
+}
+// 7-subject KCSE aggregate: ENG + KIS + MAT, best 2 sciences, best 1 humanity, best 1 of any remaining subject.
+function kcseCompute(grades){
+  const pts = c => KCSE_PTS[grades[c]] || 0;
+  const have = Object.keys(grades).filter(c => KCSE_PTS[grades[c]]);
+  const used = ["ENG","KIS","MAT"].filter(c => have.includes(c));
+  const best = (list, n) => list.filter(c => have.includes(c)).sort((a,b) => pts(b) - pts(a)).slice(0, n);
+  used.push(...best(KCSE_SCIENCES, 2), ...best(KCSE_HUMANITIES, 1));
+  const rest = have.filter(c => !used.includes(c)).sort((a,b) => pts(b) - pts(a));
+  if(rest.length) used.push(rest[0]);
+  const total = used.reduce((a,c) => a + pts(c), 0);
+  const mean = total / 7;
+  return { total, mean, grade: kcseMeanGradeFromPoints(mean), used };
+}
+function kcseCandidates(grade){
+  return studentsForGrade(grade, "").slice().sort((a,b) => String(a.stream||"").localeCompare(String(b.stream||"")) || String(a.admissionNumber).localeCompare(String(b.admissionNumber), undefined, { numeric:true }));
+}
+function downloadKcseResultsForm(grade, exam, prefilled){
+  const list = kcseCandidates(grade);
+  if(!list.length){ alert("No students found for " + grade + "."); return; }
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? downloadKcseResultsForm(grade, exam, prefilled) : alert(XLSX_FAIL_MSG)); return; }
+  const byAdm = {};
+  if(prefilled && exam){
+    try{
+      computeMeritListData(grade, exam).rows.forEach(r => {
+        const g = {};
+        r.subjectCells.forEach(c => { let code = kcseCodeForSubject(c.subject); if(code === "CHE") code = "CHEM"; if(code && c.mark !== null && c.grade && c.grade !== '-') g[code] = c.grade; });
+        byAdm[r.student.admissionNumber] = g;
+      });
+    }catch(e){}
+  }
+  const head = ["INDEX NO","ADM NO","NAME","GENDER","KCPE MARKS","STREAM", ...KCSE_RESULT_SUBJECTS.map(x => x[0]), "TP","MP","MGRD", ...KCSE_SPECIAL];
+  const rows = [head];
+  list.forEach(st => {
+    const g = byAdm[st.admissionNumber] || {};
+    rows.push([st.kcseIndexNumber || "", st.admissionNumber, fullName(st),
+      /^f/i.test(st.gender || "") ? "F" : /^m/i.test(st.gender || "") ? "M" : "",
+      st.pointsObtained !== undefined && st.pointsObtained !== "" ? (Number(st.pointsObtained) || st.pointsObtained) : "",
+      String(st.stream || "").toUpperCase(), ...KCSE_RESULT_SUBJECTS.map(x => g[x[0]] || ""), "", "", "", ...KCSE_SPECIAL.map(() => "")]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = head.map((h,i) => ({ wch: i === 2 ? 30 : i === 0 ? 14 : i === 1 ? 10 : i < 6 ? 11 : 6 }));
+  ws['!freeze'] = { xSplit: 3, ySplit: 1 }; ws['!views'] = [{ state:'frozen', xSplit:3, ySplit:1 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "KCSE Results");
+  XLSX.writeFile(wb, `${String(grade).replace(/\s+/g,'_')}_KCSE_results_form${prefilled ? '_with_grades' : ''}.xlsx`);
+}
+function kcseHeaderCode(h){
+  const k = String(h || "").toLowerCase().replace(/[^a-z0-9]/g,"");
+  if(!k) return null;
+  const sub = KCSE_RESULT_SUBJECTS.find(x => x[0].toLowerCase() === k || x[1].toLowerCase().replace(/[^a-z0-9]/g,"") === k);
+  if(sub) return sub[0];
+  return KCSE_HEADER_ALIASES[k] || null;
+}
+function uploadKcseResults(input){
+  const file = input.files && input.files[0]; if(!file || !kcseModal) return;
+  if(kcseIsLocked(kcseModal, kcseResults[kcseModal.year])){ alert('These results are saved and locked.'); input.value = ''; return; }
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? uploadKcseResults(input) : (alert(XLSX_FAIL_MSG), input.value = '')); return; }
+  const year = String(kcseModal.year || "").trim() || String(new Date().getFullYear());
+  const reader = new FileReader();
+  const tick = async (pct, label) => { if(!kcseModal) return; kcseModal.progress = { pct, label }; render(); await new Promise(r => setTimeout(r, 450)); };
+  reader.onload = async e => {
+    try{
+      kcseModal.msg = ""; kcseModal.showAnalysis = false;
+      await tick(10, 'Reading ' + file.name + '…');
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:"", raw:true });
+      await tick(35, 'Checking the columns…');
+      const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g,'');
+      const hi = rows.slice(0, 20).findIndex(r => r.some(c => norm(c) === 'admno'));
+      if(hi === -1){ alert('Could not find the "ADM NO" column in the first rows. Use the KCSE results form (Download form).'); return; }
+      const col = {}, subCol = {}, flagCol = {};
+      rows[hi].forEach((c,i) => {
+        const k = norm(c); if(!k) return;
+        if(k === 'w' || k === 'x' || k === 'y'){ if(flagCol[k.toUpperCase()] === undefined) flagCol[k.toUpperCase()] = i; return; }
+        const map = { indexno:'index', indexnumber:'index', admno:'adm', name:'name', gender:'gender', kcpemarks:'kcpe', kcpe:'kcpe', stream:'stream', meangrade:'meanGrade', mgrd:'meanGrade', totalpoint:'total', totalpoints:'total', tp:'total' };
+        if(map[k] && col[map[k]] === undefined) col[map[k]] = i;
+        else { const code = kcseHeaderCode(c); if(code && subCol[code] === undefined) subCol[code] = i; }
+      });
+      if(!Object.keys(subCol).length){ alert('No subject columns (ENG, KIS, MAT, …) were found.'); return; }
+      const g = (r, k) => col[k] === undefined || r[col[k]] === undefined ? "" : String(r[col[k]]).trim();
+      await tick(60, 'Matching learners by ADM NO…');
+      const byAdm = new Map(students.map(s => [String(s.admissionNumber).trim().toLowerCase(), s]));
+      const out = []; let noGrades = 0, noAdm = 0, badGrades = 0, indexUpdated = 0, unknown = 0;
+      rows.slice(hi + 1).forEach(r => {
+        if(!r.some(c => String(c).trim() !== "")) return;
+        const adm = g(r,'adm'); if(!adm){ noAdm++; return; }
+        const st = byAdm.get(adm.toLowerCase());
+        if(!st) unknown++;
+        const grades = {};
+        Object.keys(subCol).forEach(code => {
+          const raw = r[subCol[code]]; if(raw === "" || raw === undefined) return;
+          const gr = kcseNormResult(raw); if(gr) grades[code] = gr; else badGrades++;
+        });
+        const flag = KCSE_SPECIAL.find(k => flagCol[k] !== undefined && String(r[flagCol[k]] == null ? "" : r[flagCol[k]]).trim() !== "");
+        if(!Object.keys(grades).length && !flag){ noGrades++; return; }
+        const calc = kcseCompute(grades);
+        const upTotal = Number(g(r,'total')); const upMean = kcseNormResult(g(r,'meanGrade'));
+        const special = flag || (KCSE_SPECIAL.includes(upMean) ? upMean : "");
+        const index = g(r,'index') || (st && st.kcseIndexNumber) || "";
+        if(st && g(r,'index') && st.kcseIndexNumber !== g(r,'index')){ st.kcseIndexNumber = g(r,'index'); indexUpdated++; }
+        out.push({
+          index, adm, name: g(r,'name') || (st ? fullName(st) : ""), gender: (/^f/i.test(g(r,'gender') || (st && st.gender) || "") ? "F" : /^m/i.test(g(r,'gender') || (st && st.gender) || "") ? "M" : ""),
+          kcpe: g(r,'kcpe') || (st && st.pointsObtained) || "", stream: (g(r,'stream') || (st && st.stream) || "").toUpperCase(),
+          grades, totalPoints: special ? 0 : (upTotal > 0 ? upTotal : calc.total), meanGrade: special || upMean || (upTotal > 0 ? kcseMeanGradeFromPoints(upTotal / 7) : calc.grade),
+        });
+      });
+      await tick(85, 'Working out points and mean grades…');
+      if(!out.length){ alert('No candidates with grades were found in that file.'); input.value = ''; return; }
+      await tick(100, 'Saving ' + out.length + ' candidates…');
+      kcseResults[year] = { year, grade: kcseModal.grade, uploadedOn: todayDMY(), uploadedBy: (typeof currentUserName !== 'undefined' ? currentUserName : ''), rows: out };
+      kcseModal.msg = `${out.length} candidate${out.length === 1 ? '' : 's'} saved for KCSE ${year}. Click Analyse Results to view the analysis.` + (noAdm ? ` ${noAdm} row(s) without ADM NO skipped.` : '') + (noGrades ? ` ${noGrades} row(s) without grades skipped.` : '') + (badGrades ? ` ${badGrades} unreadable grade cell(s) ignored.` : '') + (unknown ? ` ${unknown} ADM NO not in the student list (kept as typed).` : '') + (indexUpdated ? ` KCSE Index No updated for ${indexUpdated} learner(s).` : '');
+    }catch(err){ alert('Could not read that file: ' + err.message); }
+    finally{ input.value = ''; if(kcseModal) kcseModal.progress = null; render(); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function kcseDist(list){ const d = {}; KCSE_DIST_ORDER.forEach(x => d[x] = 0); list.forEach(x => { if(d[x] !== undefined) d[x]++; }); return d; }
+function kcseAnalysis(rec){
+  const rows = rec.rows.map(r => ({ ...r, total: Number(r.totalPoints) || 0 })).sort((a,b) => b.total - a.total);
+  let rank = 0, prev = null; rows.forEach((r,i) => { if(r.total !== prev){ rank = i + 1; prev = r.total; } r.rank = rank; });
+  // MP = mean points (TP / 7), OP = overall position, ST = position within the stream (ties share a position)
+  { const seen = {}; rows.forEach(r => { r.mp = Math.round(r.total / 7 * 100) / 100; const k = r.stream || "—"; const o = seen[k] = seen[k] || { n:0, prev:null, pos:0 }; o.n++; if(r.total !== o.prev){ o.pos = o.n; o.prev = r.total; } r.streamRank = o.pos; }); }
+  const n = rows.length;
+  const group = key => {
+    const m = {}; rows.forEach(r => { const k = r[key] || "—"; (m[k] = m[k] || []).push(r); });
+    return Object.keys(m).sort().map(k => {
+      const l = m[k], lg = l.filter(r => KCSE_PTS[r.meanGrade]); const mp = lg.length ? lg.reduce((a,r) => a + r.total, 0) / lg.length / 7 : 0;
+      return { key:k, n:l.length, meanPts:mp, meanGrade:lg.length ? kcseMeanGradeFromPoints(mp) : "-", dist:kcseDist(l.map(r => r.meanGrade)), cPlus:l.filter(r => KCSE_PTS[r.meanGrade] >= 7).length };
+    });
+  };
+  const subjects = KCSE_RESULT_SUBJECTS.map(([code,label]) => {
+    const sat = rows.filter(r => r.grades[code]);
+    if(!sat.length) return null;
+    const gp = sat.filter(r => KCSE_PTS[r.grades[code]]);
+    const mp = gp.length ? gp.reduce((a,r) => a + KCSE_PTS[r.grades[code]], 0) / gp.length : 0;
+    return { code, label, entry:sat.length, meanPts:mp, meanGrade:gp.length ? kcseMeanGradeFromPoints(mp) : "-", dist:kcseDist(sat.map(r => r.grades[code])), cPlus:sat.filter(r => KCSE_PTS[r.grades[code]] >= 7).length };
+  }).filter(Boolean);
+  const streams = group('stream');
+  const streamNames = streams.map(s => s.key);
+  subjects.forEach(s => { s.byStream = {}; streamNames.forEach(sn => { const l = rows.filter(r => (r.stream || "—") === sn && KCSE_PTS[r.grades[s.code]]); s.byStream[sn] = l.length ? l.reduce((a,r) => a + KCSE_PTS[r.grades[s.code]], 0) / l.length : null; }); });
+  const gradedRows = rows.filter(r => KCSE_PTS[r.meanGrade]);
+  const meanPts = gradedRows.length ? gradedRows.reduce((a,r) => a + r.total, 0) / gradedRows.length / 7 : 0;
+  return {
+    n, rows, subjects, streams, streamNames, gender: group('gender'),
+    meanPts, meanGrade: kcseMeanGradeFromPoints(meanPts), dist: kcseDist(rows.map(r => r.meanGrade)),
+    cPlus: rows.filter(r => KCSE_PTS[r.meanGrade] >= 7).length,
+    subjectRank: [...subjects].sort((a,b) => b.meanPts - a.meanPts),
+  };
+}
+function openKcseResults(){
+  if(!dashReportModal) return;
+  const { grade, exam } = dashReportModal;
+  const yrs = Object.keys(kcseResults).sort();
+  kcseModal = { grade, exam, year: yrs.length ? yrs[yrs.length - 1] : String(getCurrentTermInfo().year), msg: "" };
+  dashReportModal = null; render();
+}
+function openKcseForExam(exam, cls){
+  if(kcseResults[kcseYearOfExam(exam)]) kcseMarkAnalysed(kcseYearOfExam(exam));
+  kcseModal = { grade: cls, exam, year: kcseYearOfExam(exam), fixedYear: true, msg: "", showAnalysis: !!kcseResults[kcseYearOfExam(exam)] };
+  render();
+}
+function kcseIsLocked(m, rec){ return !!(m && rec && (m.showAnalysis || rec.locked)); }
+function setKcseView(v){ if(kcseModal){ kcseModal.view = v === 'merit' ? 'merit' : 'analysis'; render(); } }
+// Once a KCSE exam is analysed, the whole class (e.g. Form 4) graduates: every exam sat by that class is tagged with
+// the KCSE year, listed under Graduated Classes (by year) and kept off the main dashboard.
+function kcseMarkAnalysed(year){
+  const rec = kcseResults[year]; if(!rec) return;
+  if(!rec.locked){ rec.locked = true; rec.lockedOn = todayDMY(); rec.lockedBy = (typeof currentUserName !== 'undefined' ? currentUserName : ''); }
+  rec.graduated = true;
+  const cls = rec.grade || 'Form 4';
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => { if(r.class === cls && !r.graduatedYear) r.graduatedYear = String(year); })));
+}
+function kcseShowAnalysis(){
+  if(!kcseModal) return;
+  kcseMarkAnalysed(kcseModal.year);
+  kcseModal.showAnalysis = true; render();
+}
+function closeKcseResults(){ kcseModal = null; render(); }
+function setKcseYear(v){ if(kcseModal){ kcseModal.year = String(v).trim(); kcseModal.msg = ""; render(); } }
+function deleteKcseResults(){
+  if(!kcseModal || !kcseResults[kcseModal.year]) return;
+  if(kcseExamPublished(kcseModal.year)){ alert('KCSE ' + kcseModal.year + ' is published. Unpublish it (or unlock it if released) before deleting its results.'); return; }
+  if(!confirm('KCSE ' + kcseModal.year + ' results are saved and locked. Delete them? You will need to download the list and upload the grades again.')) return;
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => { if(r.graduatedYear === String(kcseModal.year)) delete r.graduatedYear; })));
+  delete kcseResults[kcseModal.year]; kcseModal.msg = ""; render();
+}
+function kcseModalDownloadForm(prefilled){ if(kcseModal && !kcseIsLocked(kcseModal, kcseResults[kcseModal.year])) downloadKcseResultsForm(kcseModal.grade, kcseModal.exam, prefilled); }
+function downloadKcseAnalysis(){
+  if(!kcseModal || !kcseResults[kcseModal.year]) return;
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? downloadKcseAnalysis() : alert(XLSX_FAIL_MSG)); return; }
+  const rec = kcseResults[kcseModal.year], a = kcseAnalysis(rec);
+  const pct = (x, n) => n ? Math.round(x / n * 1000) / 10 : 0;
+  const r2 = x => Math.round(x * 100) / 100;
+  const wb = XLSX.utils.book_new();
+  const add = (name, aoa) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name);
+  add("Summary", [[`KCSE ${rec.year} COMPREHENSIVE ANALYSIS`],[],["Candidates", a.n],["Mean points", r2(a.meanPts)],["Mean grade", a.meanGrade],["C+ and above", a.cPlus],["% C+ and above", pct(a.cPlus, a.n)],[],["MEAN GRADE", ...KCSE_DIST_ORDER],["CANDIDATES", ...KCSE_DIST_ORDER.map(g => a.dist[g])]]);
+  add("Subjects", [["RANK","CODE","SUBJECT","ENTRY","MEAN POINTS","MEAN GRADE", ...KCSE_DIST_ORDER, "C+ & ABOVE","% C+ & ABOVE"], ...a.subjectRank.map((s,i) => [i+1, s.code, s.label, s.entry, r2(s.meanPts), s.meanGrade, ...KCSE_DIST_ORDER.map(g => s.dist[g]), s.cPlus, pct(s.cPlus, s.entry)])]);
+  const grp = l => [["GROUP","CANDIDATES","MEAN POINTS","MEAN GRADE", ...KCSE_DIST_ORDER, "C+ & ABOVE","% C+ & ABOVE"], ...l.map(s => [s.key, s.n, r2(s.meanPts), s.meanGrade, ...KCSE_DIST_ORDER.map(g => s.dist[g]), s.cPlus, pct(s.cPlus, s.n)])];
+  add("Streams", grp(a.streams)); add("Gender", grp(a.gender));
+  add("Subject x Stream", [["SUBJECT", ...a.streamNames], ...a.subjects.map(s => [s.label, ...a.streamNames.map(sn => s.byStream[sn] === null ? "" : r2(s.byStream[sn]))])]);
+  const codes = a.subjects.map(s => s.code);
+  add("Merit List", [["RANK","INDEX NO","ADM NO","NAME","GENDER","KCPE MARKS","STREAM", ...codes, "TP","MP","MGRD","ST","OP"], ...a.rows.map(r => [r.rank, r.index, r.adm, r.name, r.gender, r.kcpe, r.stream, ...codes.map(c => r.grades[c] || ""), r.total, r.mp, r.meanGrade, r.streamRank, r.rank])]);
+  XLSX.writeFile(wb, `KCSE_${rec.year}_comprehensive_analysis.xlsx`);
+}
+function downloadKcseAnalysisPdf(){
+  if(!kcseModal || !kcseResults[kcseModal.year]) return;
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("PDF export isn't available right now (the PDF library didn't load)."); return; }
+  const rec = kcseResults[kcseModal.year], a = kcseAnalysis(rec);
+  const pct = (x, n) => n ? (Math.round(x / n * 1000) / 10) + '%' : '-';
+  const f2 = x => (Math.round(x * 100) / 100).toFixed(2);
+  const doc = new window.jspdf.jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  const pw = doc.internal.pageSize.getWidth(), margin = 30;
+  const school = (typeof currentSchool === 'string' && currentSchool) ? currentSchool : 'MASMS';
+  let y = 40;
+  try{
+    const prof = getSchoolProfile(school), rgb = hexToRgb(prof.nameColor);
+    doc.setFont(pdfFontForSchoolName(prof.nameFont), 'bold'); doc.setFontSize(Math.round(prof.nameSize * 0.75)); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+  }catch(e){ doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(21, 44, 88); }
+  doc.text(school, pw / 2, y, { align:'center' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+  doc.text('KCSE ' + rec.year + ' COMPREHENSIVE ANALYSIS', pw / 2, y + 18, { align:'center' });
+  y += 34;
+  const tbl = (title, head, body, opts) => {
+    const startY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 16;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(21, 44, 88);
+    const needNew = !!(opts && opts.newPage) || startY > doc.internal.pageSize.getHeight() - 80;
+    if(needNew) doc.addPage();
+    const ty = needNew ? 40 : startY;
+    doc.text(title, margin, ty);
+    doc.autoTable(Object.assign({
+      startY: ty + 5, margin: { left: margin, right: margin, bottom: 30 },
+      head: [head], body, theme:'grid',
+      styles: { font:'helvetica', fontSize:8, cellPadding:2.5, lineWidth:0.5, lineColor:[0,0,0], textColor:[0,0,0], halign:'center', valign:'middle' },
+      headStyles: { fillColor:[255,255,255], textColor:[0,0,0], fontStyle:'bold', halign:'center', lineWidth:0.5, lineColor:[0,0,0] }
+    }, Object.assign({}, opts || {}, { newPage: undefined })));
+  };
+  const G = KCSE_DIST_ORDER;
+  const cnt = (d, g) => d[g] || (KCSE_SPECIAL.includes(g) ? 0 : '');
+  tbl('Summary', ['Candidates','Mean points','Mean grade','C+ and above','% C+ and above'], [[a.n, f2(a.meanPts), a.meanGrade, a.cPlus, pct(a.cPlus, a.n)]]);
+  tbl('Mean grade distribution', ['', ...G], [['Candidates', ...G.map(g => a.dist[g] || 0)], ['%', ...G.map(g => pct(a.dist[g] || 0, a.n))]]);
+  tbl('Subject analysis (ranked by mean)', ['#','Subject','Entry','Mean Pts','Mean Grade', ...G, 'C+ & above','%'],
+    a.subjectRank.map((s,i) => [i+1, s.label, s.entry, f2(s.meanPts), s.meanGrade, ...G.map(g => cnt(s.dist, g)), s.cPlus, pct(s.cPlus, s.entry)]),
+    { columnStyles: { 1:{ halign:'left' } } });
+  const grp = (title, first, l) => tbl(title, [first,'Cands','Mean Pts','Mean Grade', ...G, 'C+ & above','%'],
+    l.map(s => [s.key, s.n, f2(s.meanPts), s.meanGrade, ...G.map(g => cnt(s.dist, g)), s.cPlus, pct(s.cPlus, s.n)]),
+    { columnStyles: { 0:{ halign:'left' } } });
+  grp('Stream analysis', 'Stream', a.streams);
+  grp('Gender analysis', 'Gender', a.gender);
+  tbl('Subject mean points by stream', ['Subject', ...a.streamNames],
+    a.subjects.map(s => [s.label, ...a.streamNames.map(sn => s.byStream[sn] === null ? '' : f2(s.byStream[sn]))]),
+    { columnStyles: { 0:{ halign:'left' } } });
+  const codes = a.subjects.map(s => s.code);
+  tbl('Merit list', ['RANK','INDEX NO','ADM NO','NAME','GENDER','KCPE MARKS','STREAM', ...codes, 'TP','MP','MGRD','ST','OP'],
+    a.rows.map(r => [r.rank, r.index, r.adm, String(r.name || '').toUpperCase(), r.gender, r.kcpe, r.stream, ...codes.map(c => r.grades[c] || ''), r.total, f2(r.mp), r.meanGrade, r.streamRank, r.rank]),
+    { newPage: true, styles: { font:'helvetica', fontSize:6.5, cellPadding:2, lineWidth:0.4, lineColor:[0,0,0], textColor:[0,0,0], halign:'center', valign:'middle' }, columnStyles: { 3:{ halign:'left' } } });
+  pdfPageNumbers(doc);
+  doc.save(String(school + '_KCSE_' + rec.year + '_comprehensive_analysis').replace(/[^\w]+/g, '_') + '.pdf');
+}
+function renderKcseModal(){
+  if(!kcseModal) return '';
+  const m = kcseModal, E = dashAnEsc, rec = kcseResults[m.year], a = rec ? kcseAnalysis(rec) : null, locked = kcseIsLocked(m, rec);
+  const f2 = x => (Math.round(x * 100) / 100).toFixed(2);
+  const pct = (x, n) => n ? (Math.round(x / n * 1000) / 10) + '%' : '—';
+  const yrs = Object.keys(kcseResults).sort();
+  const dRow = (d, n) => KCSE_DIST_ORDER.map(g => `<td>${d[g] || (KCSE_SPECIAL.includes(g) ? 0 : '')}</td>`).join('');
+  const dHead = KCSE_DIST_ORDER.map(g => `<th>${g}</th>`).join('');
+  const card = (label, val) => `<div style="flex:1;min-width:120px;border:1px solid var(--border);padding:10px 12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">${label}</div><div style="font-size:20px;font-weight:700;color:var(--blue-dark);">${val}</div></div>`;
+  const grpTable = (title, l, first) => `<h4 class="kx-h">${title}</h4><div class="kx-scroll"><table class="kx-t"><thead><tr><th>${first}</th><th>Cands</th><th>Mean Pts</th><th>Mean Grade</th>${dHead}<th>C+ &amp; above</th><th>%</th></tr></thead><tbody>${l.map(s => `<tr><td style="text-align:left;">${E(s.key)}</td><td>${s.n}</td><td>${f2(s.meanPts)}</td><td><b>${s.meanGrade}</b></td>${dRow(s.dist)}<td>${s.cPlus}</td><td>${pct(s.cPlus, s.n)}</td></tr>`).join('')}</tbody></table></div>`;
+  let analysis = '';
+  if(a){
+    const codes = a.subjects.map(s => s.code);
+    analysis = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;">
+        ${card('Candidates', a.n)}${card('Mean points', f2(a.meanPts))}${card('Mean grade', a.meanGrade)}${card('C+ and above', a.cPlus + ' (' + pct(a.cPlus, a.n) + ')')}
+      </div>
+      <h4 class="kx-h">Mean grade distribution</h4>
+      <div class="kx-scroll"><table class="kx-t"><thead><tr>${dHead}</tr></thead><tbody><tr>${dRow(a.dist)}</tr><tr>${KCSE_DIST_ORDER.map(g => `<td style="color:var(--muted);">${pct(a.dist[g], a.n)}</td>`).join('')}</tr></tbody></table></div>
+      <h4 class="kx-h">Subject analysis (ranked by mean)</h4>
+      <div class="kx-scroll"><table class="kx-t"><thead><tr><th>#</th><th>Subject</th><th>Entry</th><th>Mean Pts</th><th>Mean Grade</th>${dHead}<th>C+ &amp; above</th><th>%</th></tr></thead><tbody>${a.subjectRank.map((s,i) => `<tr><td>${i+1}</td><td style="text-align:left;">${E(s.label)}</td><td>${s.entry}</td><td>${f2(s.meanPts)}</td><td><b>${s.meanGrade}</b></td>${dRow(s.dist)}<td>${s.cPlus}</td><td>${pct(s.cPlus, s.entry)}</td></tr>`).join('')}</tbody></table></div>
+      ${grpTable('Stream analysis', a.streams, 'Stream')}
+      ${grpTable('Gender analysis', a.gender, 'Gender')}
+      <h4 class="kx-h">Subject mean points by stream</h4>
+      <div class="kx-scroll"><table class="kx-t"><thead><tr><th>Subject</th>${a.streamNames.map(s => `<th>${E(s)}</th>`).join('')}</tr></thead><tbody>${a.subjects.map(s => `<tr><td style="text-align:left;">${E(s.label)}</td>${a.streamNames.map(sn => `<td>${s.byStream[sn] === null ? '' : f2(s.byStream[sn])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <!--KX_MERIT--><h4 class="kx-h">Merit list</h4>
+      <div class="kx-scroll"><table class="kx-t"><thead><tr><th>RANK</th><th>INDEX NO</th><th>ADM NO</th><th>NAME</th><th>GENDER</th><th>KCPE MARKS</th><th>STREAM</th>${codes.map(c => `<th>${c}</th>`).join('')}<th>TP</th><th>MP</th><th>MGRD</th><th>ST</th><th>OP</th></tr></thead><tbody>${a.rows.map(r => `<tr><td>${r.rank}</td><td>${E(r.index)}</td><td>${E(r.adm)}</td><td style="text-align:left;white-space:nowrap;">${E(r.name)}</td><td>${E(r.gender)}</td><td>${E(r.kcpe)}</td><td>${E(r.stream)}</td>${codes.map(c => `<td>${E(r.grades[c] || '')}</td>`).join('')}<td>${r.total}</td><td>${f2(r.mp)}</td><td><b>${E(r.meanGrade)}</b></td><td>${r.streamRank}</td><td>${r.rank}</td></tr>`).join('')}</tbody></table></div>`;
+    const parts = analysis.split('<!--KX_MERIT-->');
+    const tab = (v, label) => `<button type="button" onclick="setKcseView('${v}')" style="padding:9px 20px;border:0;border-bottom:3px solid ${(m.view === 'merit') === (v === 'merit') ? 'var(--blue)' : 'transparent'};background:none;font-size:13.5px;font-weight:${(m.view === 'merit') === (v === 'merit') ? '700' : '500'};color:${(m.view === 'merit') === (v === 'merit') ? 'var(--blue-dark)' : 'var(--muted)'};cursor:pointer;">${label}</button>`;
+    analysis = `<div style="display:flex;gap:4px;margin:14px 0 0;border-bottom:1px solid var(--border);">${tab('analysis', 'Analysis')}${tab('merit', 'Merit List')}</div>` + (m.view === 'merit' ? parts[1] : parts[0]);
+  }
+  return `
+    <div class="preview-overlay" onclick="if(event.target===this) closeKcseResults()">
+      <div class="preview-modal" style="max-width:1180px;width:96vw;">
+        <style>.kx-h{margin:18px 0 6px;font-size:14px;color:var(--blue-dark);}.kx-scroll{overflow-x:auto;}.kx-t{border-collapse:collapse;width:100%;font-size:12px;}.kx-t th,.kx-t td{border:1px solid var(--border);padding:4px 7px;text-align:center;}.kx-t th{background:var(--blue-tint);color:var(--blue-dark);white-space:nowrap;}</style>
+        <div class="preview-modal-body" style="padding:22px 24px 8px;">
+          <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:14px;">KCSE Results &amp; Comprehensive Analysis</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            ${m.fixedYear ? `<div style="font-size:14px;font-weight:700;color:var(--blue-dark);">${E(m.exam)} &middot; ${E(m.grade)}</div>` : ''}
+            ${m.fixedYear ? '' : `<label style="font-size:13px;font-weight:600;">KCSE year <select onchange="setKcseYear(this.value)" style="padding:6px 8px;border:1px solid var(--border);">${kcseYearOptions(m.year)}</select></label>`}
+            ${yrs.length && !m.fixedYear ? `<span style="font-size:12px;color:var(--muted);">Saved: ${yrs.map(y => `<a href="#" onclick="setKcseYear('${E(y)}');return false;" style="margin-right:6px;${y === m.year ? 'font-weight:700;' : ''}">${E(y)}</a>`).join('')}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
+            ${locked ? `<span style="font-size:12.5px;font-weight:600;color:#166534;background:#dcfce7;border:1px solid #86efac;padding:8px 12px;"><i class="fa-solid fa-lock"></i> Results saved and locked</span>` : `<button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;" onclick="kcseModalDownloadForm(false)"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> ${m.fixedYear ? 'Download list' : 'Download form (blank)'}</button>
+            ${m.fixedYear ? '' : `<button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;" onclick="kcseModalDownloadForm(true)"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Download form (with ${E(m.exam || 'exam')} grades)</button>`}
+            <button type="button" class="btn-primary" style="width:auto;padding:8px 16px;" onclick="document.getElementById('kcseResultsFile').click()"><i class="fa-solid fa-upload"></i> Upload filled form</button>
+            <input id="kcseResultsFile" type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="uploadKcseResults(this)">`}
+            ${a && m.showAnalysis ? `<button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;" onclick="downloadKcseAnalysis()"><i class="fa-solid fa-download"></i> Download analysis (Excel)</button><button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;" onclick="downloadKcseAnalysisPdf()"><i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i> Download analysis (PDF)</button>${kcseExamPublished(m.year) ? '' : `<button type="button" class="btn-ghost" style="width:auto;padding:8px 14px;color:var(--rose);" onclick="deleteKcseResults()">Delete ${E(m.year)} results</button>`}` : ''}
+          </div>
+          ${m.progress ? `<div style="margin:6px 0 10px;"><div style="font-size:13px;font-weight:600;color:var(--blue-dark);margin-bottom:6px;"><i class="fa-solid fa-spinner fa-spin"></i> Uploading… ${m.progress.pct}%</div><div style="height:10px;background:var(--blue-tint);border:1px solid var(--border);"><div style="height:100%;width:${m.progress.pct}%;background:var(--blue);transition:width .3s;"></div></div><div style="font-size:12.5px;color:var(--muted);margin-top:6px;">${E(m.progress.label)}</div></div>` : ''}
+          ${!m.progress && m.msg ? `<div style="font-size:13px;color:#166534;background:#dcfce7;border:1px solid #86efac;padding:10px 12px;"><i class="fa-solid fa-circle-check"></i> <b>Uploaded.</b> ${E(m.msg)}</div>` : ''}
+          ${!m.progress && a && !m.showAnalysis ? `<div style="margin:12px 0;"><button type="button" class="btn-primary" style="width:auto;padding:10px 22px;background:var(--green);border-color:var(--green);" onclick="kcseShowAnalysis()"><i class="fa-solid fa-chart-column"></i> Analyse Results</button></div>` : ''}
+          ${m.progress ? '' : a && m.showAnalysis ? `<div style="font-size:12px;color:var(--muted);margin-top:8px;">KCSE ${E(rec.year)} &middot; uploaded ${E(rec.uploadedOn)} by ${E(rec.uploadedBy)}</div>${analysis}` : a ? '' : `<div style="font-size:13px;color:var(--muted);margin:16px 0;">No KCSE results uploaded for ${E(m.year)} yet.</div>`}
+        </div>
+        <div class="preview-modal-footer"><button type="button" class="btn-primary" style="width:auto;padding:8px 22px;" onclick="closeKcseResults()">Close</button></div>
+      </div>
+    </div>`;
+}
+function dashOpenFullAnalysisPage(){
+  if(!dashReportModal) return;
+  const { grade, exam } = dashReportModal;
+  dashReportModal = null;
+  openAnalyzeResults(meritListTermFor(grade, exam), exam, grade);
+}
+function renderDashFullReportModal(){
+  if(!dashReportModal) return '';
+  const { grade, exam } = dashReportModal;
+  const opt = (icon, color, label, fn) => `<button class="dash2-rep-opt" onclick="${fn}"><i class="fa-solid ${icon}" style="color:${color};"></i> ${label}</button>`;
+  return `
+    <div class="preview-overlay" onclick="if(event.target===this) closeDashFullReport()">
+      <div class="preview-modal" style="max-width:460px;">
+        <div class="preview-modal-body" style="padding:22px 24px 8px;">
+          <div style="font-size:17px;font-weight:700;color:var(--text);">Full Report</div>
+          <div style="font-size:12.5px;color:var(--muted);margin:2px 0 16px;">${dashAnEsc(grade)} &middot; ${dashAnEsc(exam)} (${dashAnEsc(meritListTermFor(grade, exam))})</div>
+          <div class="dash2-rep-group"><div class="dash2-rep-title"><i class="fa-solid fa-ranking-star"></i> Merit List</div>
+            <div class="dash2-rep-opts">
+              ${opt("fa-file-excel","#16a34a","Spreadsheet","dashDownloadMeritList('xlsx')")}
+              ${opt("fa-file-pdf","#dc2626","PDF","dashDownloadMeritList('pdf')")}
+              ${opt("fa-file-pdf","#dc2626","Large PDF","dashDownloadMeritList('pdf-large')")}
+            </div></div>
+          <div class="dash2-rep-group"><div class="dash2-rep-title"><i class="fa-solid fa-file-lines"></i> Report Forms <span style="font-weight:400;color:var(--muted);">(all learners in ${dashAnEsc(grade)})</span></div>
+            <div class="dash2-rep-opts">
+              ${opt("fa-file-pdf","#dc2626","PDF","dashDownloadReportForms('pdf')")}
+              ${opt("fa-file-pdf","#dc2626","Large PDF","dashDownloadReportForms('pdf-large')")}
+              ${opt("fa-file-excel","#16a34a","Spreadsheet","dashDownloadReportForms('xlsx')")}
+            </div></div>
+          ${isEight44Grade(grade) ? `${kcseResults[kcseYearOfExam(exam)] ? '' : `<div class="dash2-rep-group"><div class="dash2-rep-title"><i class="fa-solid fa-upload"></i> KCSE Upload List <span style="font-weight:400;color:var(--muted);">(Excel, for uploading)</span></div>
+            <div class="dash2-rep-opts">
+              ${opt("fa-file-excel","#16a34a","Blank - fill in grades","dashDownloadKcseList(false)")}
+              ${opt("fa-file-excel","#16a34a","Pre-filled with this exam's grades","dashDownloadKcseList(true)")}
+            </div></div>`}
+          <div class="dash2-rep-group"><div class="dash2-rep-title"><i class="fa-solid fa-chart-column"></i> KCSE Results Analysis <span style="font-weight:400;color:var(--muted);">(download form, upload grades, analyse)</span></div>
+            <div class="dash2-rep-opts">
+              ${opt("fa-chart-column","#2f5fa8","Open KCSE results &amp; analysis","openKcseResults()")}
+            </div></div>` : ''}
+        </div>
+        <div class="preview-modal-footer" style="justify-content:space-between;">
+          <button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;" onclick="dashOpenFullAnalysisPage()">Open analysis page</button>
+          <button type="button" class="btn-primary" style="width:auto;padding:8px 22px;" onclick="closeDashFullReport()">Close</button>
+        </div>
+      </div>
+    </div>`;
+}
+function dashAnGradeSummary(grade, exam){
+  const rows = computeMeritListData(grade, exam).rows;
+  if(!rows.length) return null;
+  const meanMarks = rows.reduce((s,r) => s + r.mean, 0) / rows.length;
+  const meanPoints = rows.reduce((s,r) => s + r.meanPoints, 0) / rows.length;
+  return { meanMarks, meanPoints, meanGrade: gradeFromMeanPoints(meanPoints, grade), students: rows.length };
+}
+// One card per KCSE exam that has results uploaded, headed by the exam name (e.g. "KCSE 2026").
+// Teachers see only released exams (every term), each as a card. Everyone else sees the published exams.
+// Exams of a graduated class stay off the main dashboard (they are listed under Graduated Classes).
+function dashExamGraduated(grade, exam){
+  const rows = []; examTerms.forEach(t => t.groups.forEach(g => { if(g.exam === exam) g.rows.forEach(r => { if(r.class === grade) rows.push(r); }); }));
+  return rows.length > 0 && rows.every(r => r.graduatedYear);
+}
+function dashTeacherReleasedOnly(){ return currentUserRole === "Teacher"; }
+function dashExamReleased(grade, exam){
+  return examTerms.some(t => t.groups.some(g => g.exam === exam && g.rows.some(r => r.class === grade && r.released)));
+}
+function dashKcseReleased(year){
+  return examTerms.some(t => t.groups.some(g => isKcseExamGroup(g) && kcseYearOfExam(g.exam) === String(year) && g.rows.some(r => r.released)));
+}
+// ---- Graduated Classes: pick a year, see that class's exams ----
+let graduatedYearSel = "";
+function setGraduatedYear(v){ graduatedYearSel = String(v); render(); }
+function graduatedYears(){
+  const ys = new Set();
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => { if(r.graduatedYear) ys.add(String(r.graduatedYear)); })));
+  Object.keys(kcseResults || {}).forEach(y => { if(kcseResults[y] && kcseResults[y].graduated) ys.add(String(y)); });
+  return [...ys].sort().reverse();
+}
+function renderGraduatedClassesView(){
+  const E = dashAnEsc, years = graduatedYears();
+  if(!years.length) return `<div class="panel"><div class="empty" style="padding:40px 24px;">No graduated classes yet. When a Form 4 KCSE exam has been analysed, that class and all its exams move here, listed by year.</div></div>`;
+  if(!years.includes(graduatedYearSel)) graduatedYearSel = years[0];
+  const y = graduatedYearSel, rec = kcseResults[y];
+  const stat = (label, val) => `<div class="dash2-an-sum-stat"><div class="dash2-an-sum-top"><span>${label}</span></div><div class="dash2-an-sum-val">${val}</div></div>`;
+  const cards = [];
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => {
+    if(String(r.graduatedYear) !== y) return;
+    if(isKcseExamGroup(g)){
+      const rc = kcseResults[kcseYearOfExam(g.exam)]; let a = null; try{ a = rc ? kcseAnalysis(rc) : null; }catch(_e){}
+      cards.push(`<div class="dash2-an-sum-card"><div class="dash2-an-sum-title">${E(g.exam)}</div><div class="dash2-an-sum-sub">${E(r.class)} - (${E(t.term)})</div>
+        <div class="dash2-an-sum-grid">${a ? stat("Mean Points", a.meanPts.toFixed(4)) + stat("Mean Grade", E(a.meanGrade)) + stat("C+ & Above", (a.n ? Math.round(a.cPlus / a.n * 1000) / 10 : 0) + "%") + stat("Candidates", a.n) : ''}</div>
+        <button class="dash2-an-sum-btn" onclick="openKcseForExam('${dashAnJs(g.exam)}','${dashAnJs(r.class)}')">View Analysis</button></div>`);
+      return;
+    }
+    let cur = null; try{ cur = dashAnGradeSummary(r.class, g.exam); }catch(_e){}
+    cards.push(`<div class="dash2-an-sum-card"><div class="dash2-an-sum-title">${E(g.exam)}</div><div class="dash2-an-sum-sub">${E(r.class)} - (${E(t.term)})</div>
+      <div class="dash2-an-sum-grid">${cur ? stat("Mean Points", cur.meanPoints.toFixed(4)) + stat("Mean Marks", cur.meanMarks.toFixed(2) + "%") + stat("Mean Grade", E(cur.meanGrade)) + stat("Students", cur.students) : stat("Results", "Not available")}</div>
+      ${cur ? `<button class="dash2-an-sum-btn" onclick="openDashFullReport('${dashAnJs(r.class)}','${dashAnJs(g.exam)}')">Full Report</button>` : ''}</div>`);
+  })));
+  return `
+    <div class="panel" style="padding:16px 20px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:13px;font-weight:600;"><i class="fa-solid fa-graduation-cap"></i> Graduating year
+        <select onchange="setGraduatedYear(this.value)" style="margin-left:8px;padding:6px 10px;border:1px solid var(--border);">${years.map(v => `<option value="${E(v)}" ${v === y ? 'selected' : ''}>${E(v)}</option>`).join('')}</select></label>
+      <span style="font-size:12.5px;color:var(--muted);">${E(rec && rec.grade || 'Form 4')} &middot; KCSE ${E(y)} &middot; ${cards.length} exam${cards.length === 1 ? '' : 's'}</span>
+    </div>
+    <div class="dash2-an-sum">${cards.join('') || ''}</div>
+    ${renderDashFullReportModal()}${renderKcseModal()}`;
+}
+function renderKcseDashCards(){
+  return Object.keys(kcseResults || {}).sort().reverse().map(y => {
+    const rec = kcseResults[y]; if(!rec || !rec.rows || !rec.rows.length) return '';
+    if(rec.graduated) return '';
+    if(dashTeacherReleasedOnly() && !dashKcseReleased(y)) return '';
+    let a = null; try{ a = kcseAnalysis(rec); }catch(_e){}
+    if(!a) return '';
+    const exam = 'KCSE ' + y, pctC = a.n ? Math.round(a.cPlus / a.n * 1000) / 10 : 0;
+    const stat = (label, val) => `<div class="dash2-an-sum-stat"><div class="dash2-an-sum-top"><span>${label}</span></div><div class="dash2-an-sum-val">${val}</div></div>`;
+    return `
+      <div class="dash2-an-sum-card">
+        <div class="dash2-an-sum-title">${dashAnEsc(exam)}</div>
+        <div class="dash2-an-sum-sub">${dashAnEsc(rec.grade || 'Form 4')} - (uploaded ${dashAnEsc(rec.uploadedOn || '')})</div>
+        <div class="dash2-an-sum-grid">
+          ${stat("Mean Points", a.meanPts.toFixed(4))}
+          ${stat("Mean Grade", dashAnEsc(a.meanGrade))}
+          ${stat("C+ & Above", pctC + "%")}
+          ${stat("Candidates", a.n)}
+        </div>
+        <button class="dash2-an-sum-btn" onclick="openKcseForExam('${dashAnJs(exam)}','${dashAnJs(rec.grade || '')}')">View Analysis</button>
+      </div>`;
+  }).join('');
+}
+function renderDashAnalysisSummaryCards(opts, extraCards, allTerms){
+  const byGrade = {};
+  opts.forEach(o => { (byGrade[o.grade] || (byGrade[o.grade] = [])).push(o.exam); });
+  const delta = (d, dec) => {
+    if(d === null) return '';
+    const up = d >= 0;
+    return `<span class="dash2-an-delta ${up ? 'up' : 'down'}">${up ? '' : '-'}${Math.abs(d).toFixed(dec)} <i class="fa-solid ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i></span>`;
+  };
+  const cards = Object.keys(byGrade).sort().map(grade => {
+    const exams = byGrade[grade];
+    // One card per exam sat in the grade's latest term (e.g. Opener, Mid Term, End Term), each compared with the exam before it
+    const latestTerm = meritListTermFor(grade, exams[exams.length - 1]);
+    return exams.map((exam, idx) => {
+    if(!allTerms && meritListTermFor(grade, exam) !== latestTerm) return '';
+    let cur = null, prev = null;
+    try{
+      cur = dashAnGradeSummary(grade, exam);
+      if(idx > 0) prev = dashAnGradeSummary(grade, exams[idx - 1]);
+    }catch(_e){}
+    if(!cur) return '';
+    const term = allTerms ? meritListTermFor(grade, exam) : latestTerm;
+    const stat = (label, val, d) => `<div class="dash2-an-sum-stat"><div class="dash2-an-sum-top"><span>${label}</span>${d || ''}</div><div class="dash2-an-sum-val">${val}</div></div>`;
+    return `
+      <div class="dash2-an-sum-card">
+        <div class="dash2-an-sum-title">${dashAnEsc(grade)}</div>
+        <div class="dash2-an-sum-sub">${dashAnEsc(exam)} - (${dashAnEsc(term)})</div>
+        <div class="dash2-an-sum-grid">
+          ${stat("Mean Points", cur.meanPoints.toFixed(4), prev ? delta(cur.meanPoints - prev.meanPoints, 3) : '')}
+          ${stat("Mean Marks", cur.meanMarks.toFixed(2) + "%", prev ? delta(cur.meanMarks - prev.meanMarks, 3) : '')}
+          ${stat("Mean Grade", dashAnEsc(cur.meanGrade))}
+          ${stat("Students", cur.students)}
+        </div>
+        <button class="dash2-an-sum-btn" onclick="openDashAnalysis('${dashAnJs(grade)}','${dashAnJs(exam)}')">View Analysis</button>
+      </div>`;
+    }).join('');
+  }).join('');
+  return (cards || extraCards) ? `<div class="dash2-an-sum">${cards}${extraCards || ''}</div>` : `<div class="panel dash2-panel"><div class="empty" style="padding:20px 0;">No marks have been entered for the published exams yet.</div></div>`;
+}
+function dashAnEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function dashAnJs(s){ return String(s == null ? "" : s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;"); }
+// Published exams for a grade, oldest first (the app adds new exams and terms at the front of its lists).
+function dashAnExamsChrono(grade){ return ((meritListAvailableExams()[grade] || []).slice()).reverse(); }
+function dashAnalysisOptions(){
+  const map = meritListAvailableExams(), out = [];
+  Object.keys(map).sort().forEach(g => dashAnExamsChrono(g).forEach(e => { if(!dashExamGraduated(g, e)) out.push({ grade:g, exam:e, key:g + "||" + e }); }));
+  return out;
+}
+function dashAnPassPct(rows){
+  return rows.length ? (rows.filter(r => r.mean >= DASH_ANALYSIS_PASS_MARK).length / rows.length) * 100 : 0;
+}
+function dashAnalysisCompute(grade, exam){
+  const data = computeMeritListData(grade, exam), rows = data.rows, n = rows.length;
+  if(!n) return null;
+  const passed = rows.filter(r => r.mean >= DASH_ANALYSIS_PASS_MARK).length;
+  const avg = rows.reduce((s,r) => s + r.mean, 0) / n;
+  const highest = Math.max(...rows.map(r => r.mean));
+
+  // Grade distribution by each learner's mean grade, best grade first
+  const gs = gradingSystemForGrade(grade);
+  const order = [];
+  (gs ? gs.bands.slice().sort((a,b) => b.points - a.points || b.high - a.high) : []).forEach(b => { if(!order.includes(b.grade)) order.push(b.grade); });
+  const counts = {};
+  rows.forEach(r => { counts[r.meanGrade] = (counts[r.meanGrade] || 0) + 1; });
+  Object.keys(counts).forEach(g => { if(!order.includes(g)) order.push(g); });
+  const gradeDist = order.filter(g => counts[g]).map(g => ({ grade:g, count:counts[g] }));
+
+  // Subject performance
+  const subjects = data.subjects.map(subject => {
+    const marks = rows.map(r => r.subjectCells.find(c => c.subject === subject)).filter(c => c && c.mark !== null).map(c => c.mark);
+    return { subject, entries: marks.length, avg: marks.length ? marks.reduce((a,b) => a + b, 0) / marks.length : 0,
+             passPct: marks.length ? marks.filter(m => m >= DASH_ANALYSIS_PASS_MARK).length / marks.length * 100 : 0 };
+  }).filter(s => s.entries > 0);
+
+  // Pass % by stream
+  const byStream = {};
+  rows.forEach(r => { const k = r.student.stream || ""; (byStream[k] || (byStream[k] = [])).push(r); });
+  const classes = Object.keys(byStream).sort().map(k => ({ label: (grade + " " + k).trim(), pct: dashAnPassPct(byStream[k]), n: byStream[k].length }));
+
+  // Pass rate across this grade's published exams (oldest -> newest)
+  const examList = dashAnExamsChrono(grade).slice(-8);
+  const trend = examList.map(e => {
+    let pct = null;
+    try{ const d = e === exam ? data : computeMeritListData(grade, e); if(d.rows.length) pct = dashAnPassPct(d.rows); }catch(_e){}
+    return { exam: e, pct };
+  }).filter(t => t.pct !== null);
+
+  const top = rows.slice().sort((a,b) => b.mean - a.mean).slice(0, 5);
+  return { grade, exam, n, passed, failed: n - passed, passPct: passed / n * 100, avg, highest, gradeDist, subjects, classes, trend, top };
+}
+function dashAnInsights(a){
+  const out = [];
+  const tone = a.passPct >= 75 ? "which is good" : a.passPct >= 50 ? "which is fair" : "which needs attention";
+  out.push(`Overall pass percentage is <b>${a.passPct.toFixed(2)}%</b> ${tone}.`);
+  if(a.subjects.length){
+    const best = a.subjects.slice().sort((x,y) => y.avg - x.avg)[0];
+    out.push(`<b>${dashAnEsc(best.subject)}</b> has the highest average marks (${best.avg.toFixed(1)}%).`);
+    if(a.subjects.length > 1){
+      const worst = a.subjects.slice().sort((x,y) => x.avg - y.avg)[0];
+      out.push(`<b>${dashAnEsc(worst.subject)}</b> has the lowest average marks (${worst.avg.toFixed(1)}%).`);
+    }
+  }
+  if(a.classes.length > 1){
+    const bc = a.classes.slice().sort((x,y) => y.pct - x.pct)[0];
+    out.push(`<b>${dashAnEsc(bc.label)}</b> has the best pass percentage (${bc.pct.toFixed(1)}%).`);
+  }
+  if(a.trend.length > 1){
+    const d = a.trend[a.trend.length - 1].pct - a.trend[a.trend.length - 2].pct;
+    out.push(Math.abs(d) < 0.05 ? `Pass rate is unchanged since the previous exam.` : `Pass rate ${d > 0 ? "improved" : "dropped"} by <b>${Math.abs(d).toFixed(1)}</b> points since the previous exam.`);
+  }
+  out.push(a.failed ? `<b>${a.failed}</b> learner${a.failed === 1 ? "" : "s"} need${a.failed === 1 ? "s" : ""} improvement.` : `Every learner reached the pass mark.`);
+  out.push(`Continue to monitor performance and provide additional support.`);
+  return out;
+}
+function renderDashExamAnalysis(){
+  const teacherView = dashTeacherReleasedOnly();
+  const opts = dashAnalysisOptions().filter(o => !teacherView || dashExamReleased(o.grade, o.exam));
+  const head = (body, sel) => `
+    <div class="panel dash2-panel dash2-analysis">
+      <div class="panel-header">
+        <div>
+          <h3><i class="fa-solid fa-square-poll-vertical" style="color:var(--blue);margin-right:8px;"></i>Exam Analysis</h3>
+          ${sel ? `<div class="dash2-an-sub">${dashAnEsc(sel.exam)} &middot; ${dashAnEsc(sel.grade)}</div>` : ''}
+        </div>
+        ${sel ? `<div class="dash2-an-tools">
+          <button class="view-all-link" onclick="closeDashAnalysis()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button class="view-all-link" onclick="openDashFullReport('${dashAnJs(sel.grade)}','${dashAnJs(sel.exam)}')">Full Report</button>
+        </div>` : ''}
+      </div>
+      ${body}
+    </div>${renderDashFullReportModal()}${renderKcseModal()}`;
+  const kcseCards = renderKcseDashCards();
+  if(!opts.length && kcseCards) return `<div class="dash2-an-sum">${kcseCards}</div>${renderKcseModal()}`;
+  if(!opts.length) return head(`<div class="empty" style="padding:28px 0;">${teacherView ? 'No exam has been released yet.' : 'No published exam results yet. Publish an exam to see its analysis here.'}</div>`, null);
+  if(!dashAnalysisOpen) return renderDashAnalysisSummaryCards(opts, kcseCards, teacherView) + renderKcseModal();
+  const sel = opts.find(o => o.key === dashAnalysisSel) || opts[0];
+  let a = null;
+  try{ a = dashAnalysisCompute(sel.grade, sel.exam); }catch(_e){ a = null; }
+  if(!a) return head(`<div class="empty" style="padding:28px 0;">No marks have been entered for ${dashAnEsc(sel.exam)} (${dashAnEsc(sel.grade)}) yet.</div>`, sel);
+
+  const tile = (icon, color, label, val) => `
+    <div class="dash2-an-tile" style="background:${color}1f;border-color:${color}55;">
+      <div class="dash2-an-tile-icon" style="background:${color};"><i class="fa-solid ${icon}"></i></div>
+      <div><div class="dash2-an-tile-label" style="color:${color};">${label}</div><div class="dash2-an-tile-val">${val}</div></div>
+    </div>`;
+  const tiles = [
+    tile("fa-users","#2f5fa8","Total Students",a.n),
+    tile("fa-circle-check","#10b981","Passed Students",a.passed),
+    tile("fa-chart-line","#f59e0b","Pass Percentage",a.passPct.toFixed(2)+"%"),
+    tile("fa-star","#7c5cf0","Average Marks",a.avg.toFixed(2)+"%"),
+    tile("fa-trophy","#f43f5e","Highest Marks",a.highest.toFixed(2)+"%"),
+    tile("fa-circle-xmark","#0891b2","Failed Students",a.failed),
+  ].join('');
+
+  const pfDonut = svgDonutChart([{ value:a.passed, color:"#10b981" },{ value:a.failed, color:"#f43f5e" }], { size:116, strokeWidth:20 });
+  const pfCard = `
+    <div class="dash2-an-card"><h4>Pass / Fail Distribution</h4>
+      <div class="dash2-donut-flex">
+        <div class="dash2-donut-wrap">${pfDonut}<div class="dash2-donut-center"><div class="num">${a.n}</div><div class="lbl">Total</div></div></div>
+        <div class="dash2-legend">
+          <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:#10b981;"></span><span class="dash2-legend-name">Passed</span><span class="dash2-legend-val">${a.passed} (${(a.passed/a.n*100).toFixed(2)}%)</span></div>
+          <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:#f43f5e;"></span><span class="dash2-legend-name">Failed</span><span class="dash2-legend-val">${a.failed} (${(a.failed/a.n*100).toFixed(2)}%)</span></div>
+        </div>
+      </div></div>`;
+
+  const subjCols = a.subjects.slice(0, 8).map((s,i) => `
+    <div class="dash2-an-col" title="${dashAnEsc(s.subject)}: ${s.avg.toFixed(1)}%">
+      <div class="dash2-an-col-val">${Math.round(s.avg)}%</div>
+      <div class="dash2-an-col-bar"><div style="height:${Math.max(2, Math.min(100, s.avg))}%;background:${DASH_AN_COLORS[0]};"></div></div>
+      <div class="dash2-an-col-lbl">${dashAnEsc(s.subject)}</div>
+    </div>`).join('');
+  const subjCard = `<div class="dash2-an-card"><h4>Average Marks by Subject</h4><div class="dash2-an-cols">${subjCols}</div></div>`;
+
+  const gradeSegs = a.gradeDist.map((g,i) => ({ value:g.count, color:DASH_AN_COLORS[i % DASH_AN_COLORS.length] }));
+  const gradeCard = `
+    <div class="dash2-an-card"><h4>Grade Distribution</h4>
+      <div class="dash2-donut-flex">
+        <div class="dash2-donut-wrap">${svgDonutChart(gradeSegs, { size:116, strokeWidth:20 })}<div class="dash2-donut-center"><div class="num">${a.n}</div><div class="lbl">Total</div></div></div>
+        <div class="dash2-legend">${a.gradeDist.map((g,i) => `
+          <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:${gradeSegs[i].color};"></span><span class="dash2-legend-name">${dashAnEsc(g.grade)}</span><span class="dash2-legend-val">${g.count} (${(g.count/a.n*100).toFixed(1)}%)</span></div>`).join('')}
+        </div>
+      </div></div>`;
+
+  const topCard = `
+    <div class="dash2-an-card"><h4>Top 5 Students</h4>
+      <div class="dash2-an-scroll"><table class="dash2-an-table">
+        <thead><tr><th>Rank</th><th>Student Name</th><th>Class</th><th>Mean %</th><th>Grade</th></tr></thead>
+        <tbody>${a.top.map((r,i) => `<tr><td>${i+1}</td><td>${dashAnEsc(fullName(r.student))}</td><td>${dashAnEsc((a.grade.replace(/^(Grade|Form)\s+/i,'') + " " + (r.student.stream || "")).trim())}</td><td>${r.mean.toFixed(2)}%</td><td><b>${dashAnEsc(r.meanGrade)}</b></td></tr>`).join('')}</tbody>
+      </table></div></div>`;
+
+  const classCard = `
+    <div class="dash2-an-card"><h4>Pass Percentage by Class</h4>
+      <div class="dash2-an-hbars">${a.classes.map(c => `
+        <div class="dash2-an-hrow"><span class="dash2-an-hlbl">${dashAnEsc(c.label)}</span>
+          <div class="dash2-an-htrack"><div style="width:${c.pct.toFixed(1)}%;"></div></div>
+          <span class="dash2-an-hval">${c.pct.toFixed(2)}%</span></div>`).join('')}
+      </div></div>`;
+
+  const trendCard = `
+    <div class="dash2-an-card"><h4>Pass Rate Trend</h4>
+      ${a.trend.length > 1
+        ? svgAnalysisLineChart([{ name:"Pass rate", color:"#2f5fa8", points: a.trend.map(t => ({ y:+t.pct.toFixed(1), label: t.exam + ": " + t.pct.toFixed(1) + "%" })) }], a.trend.map(t => t.exam.length > 9 ? t.exam.slice(0,8) + "…" : t.exam), { width:420, height:150, decimals:0 })
+        : `<div class="empty" style="padding:30px 0;">Publish more exams for this class to see a trend.</div>`}
+    </div>`;
+
+  const exRow = (examTerms.flatMap(t => t.groups.filter(g => g.exam === a.exam).flatMap(g => g.rows.filter(r => r.class === a.grade)))[0]) || {};
+  const recentCard = `
+    <div class="dash2-an-card"><h4>Recent Results</h4>
+      <div class="dash2-an-scroll"><table class="dash2-an-table">
+        <thead><tr><th>Date</th><th>Exam</th><th>Class</th><th>Subject</th><th>Students</th><th>Avg Marks</th><th>Pass %</th><th>Action</th></tr></thead>
+        <tbody>${a.subjects.slice().sort((x,y) => y.entries - x.entries).slice(0, 6).map(s => `
+          <tr><td>${dashAnEsc(exRow.updatedOn || "-")}</td><td>${dashAnEsc(a.exam)}</td><td>${dashAnEsc(a.grade)}</td><td>${dashAnEsc(s.subject)}</td><td>${s.entries}</td><td>${s.avg.toFixed(2)}%</td><td>${s.passPct.toFixed(2)}%</td>
+          <td><button class="view-all-link" onclick="openAnalyzeResults('${dashAnJs(meritListTermFor(a.grade, a.exam))}','${dashAnJs(a.exam)}','${dashAnJs(a.grade)}')"><i class="fa-regular fa-eye"></i> View</button></td></tr>`).join('')}
+        </tbody>
+      </table></div></div>`;
+
+  const insightCard = `
+    <div class="dash2-an-card dash2-an-insights"><h4><i class="fa-regular fa-lightbulb" style="color:var(--blue);"></i> Key Insights</h4>
+      <ul>${dashAnInsights(a).map(t => `<li>${t}</li>`).join('')}</ul></div>`;
+
+  // Compact strip with every exam of the same term, so they can be compared and switched between
+  const selTerm = meritListTermFor(a.grade, a.exam);
+  const chrono = dashAnExamsChrono(a.grade);
+  const stripExams = chrono.filter(e => meritListTermFor(a.grade, e) === selTerm);
+  let strip = '';
+  if(stripExams.length > 1){
+    let prevRows = null;
+    const first = chrono.indexOf(stripExams[0]);
+    if(first > 0){ try{ prevRows = computeMeritListData(a.grade, chrono[first - 1]).rows; }catch(_e){} }
+    strip = `<div class="dash2-an-strip">${stripExams.map(e => {
+      let rows = [];
+      try{ rows = computeMeritListData(a.grade, e).rows; }catch(_e){}
+      const mm = rows.length ? rows.reduce((x,r) => x + r.mean, 0) / rows.length : 0;
+      const mp = rows.length ? rows.reduce((x,r) => x + r.meanPoints, 0) / rows.length : 0;
+      let d = '';
+      if(prevRows && prevRows.length && rows.length){
+        const pm = prevRows.reduce((x,r) => x + r.mean, 0) / prevRows.length, dd = mm - pm;
+        d = `<span class="dash2-an-delta ${dd >= 0 ? 'up' : 'down'}">${dd >= 0 ? '' : '-'}${Math.abs(dd).toFixed(1)} <i class="fa-solid ${dd >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i></span>`;
+      }
+      if(rows.length) prevRows = rows;
+      return `<button class="dash2-an-chip${e === a.exam ? ' on' : ''}" onclick="openDashAnalysis('${dashAnJs(a.grade)}','${dashAnJs(e)}')">
+        <div class="dash2-an-chip-top"><b>${dashAnEsc(e)}</b>${d}</div>
+        <div class="dash2-an-chip-val">${mm.toFixed(2)}%</div>
+        <div class="dash2-an-chip-sub">${mp.toFixed(2)} pts &middot; ${rows.length ? dashAnPassPct(rows).toFixed(0) : 0}% pass</div>
+      </button>`;
+    }).join('')}</div>`;
+  }
+
+  return head(`
+    ${strip}
+    <div class="dash2-an-tiles">${tiles}</div>
+    <div class="dash2-an-row r3">${pfCard}${subjCard}${gradeCard}</div>
+    <div class="dash2-an-row r3">${topCard}${classCard}${trendCard}</div>
+    <div class="dash2-an-row r2">${recentCard}${insightCard}</div>`, sel);
+}
+
 function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   if(showFeatures === undefined) showFeatures = true;
   if(showFee === undefined) showFee = true;
@@ -15025,6 +15928,8 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
       ` : ''}
     </div>
 
+    ${dCfg.analysis ? renderDashExamAnalysis() : ''}
+
     ${showFeatures ? renderDashFeatureStrip() : ''}
 
   `;
@@ -15035,9 +15940,112 @@ let regMode = "manual"; // "manual" | "upload"
 let uploadSubTab = "upload"; // "upload" | "search" — sub-tabs shown inside the "Upload from a spreadsheet" mode
 function setUploadSubTab(key){ uploadSubTab = key; render(); }
 let pickedUploadFileName = "";
+let pickedUploadFile = null;
+// The Excel library loads in the background (or from vendor/). If it is not there yet, fetch it now (local copy, then CDN) and carry on.
+function ensureXLSX(cb){
+  if(typeof XLSX !== 'undefined') return cb(true);
+  const srcs = ['vendor/xlsx.full.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
+  (function next(i){
+    if(i >= srcs.length) return cb(false);
+    const e = document.createElement('script'); e.src = srcs[i];
+    e.onload = () => typeof XLSX !== 'undefined' ? cb(true) : next(i + 1);
+    e.onerror = () => { e.remove(); next(i + 1); };
+    document.head.appendChild(e);
+  })(0);
+}
+const XLSX_FAIL_MSG = 'The Excel library could not be loaded. Check your internet connection, or open the app from its full folder (the vendor folder must sit next to the app file), then try again.';
 function pickStudentSheetFile(inputEl){
-  pickedUploadFileName = (inputEl.files && inputEl.files[0]) ? inputEl.files[0].name : "";
+  pickedUploadFile = (inputEl.files && inputEl.files[0]) ? inputEl.files[0] : null;
+  pickedUploadFileName = pickedUploadFile ? pickedUploadFile.name : "";
   render();
+}
+function dropStudentSheetFile(ev){
+  ev.preventDefault();
+  const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+  if(!f) return;
+  pickedUploadFile = f; pickedUploadFileName = f.name; render();
+}
+// Reads the picked spreadsheet (columns named as in the template) and adds each valid row as a learner.
+function importStudentSheet(){
+  const file = pickedUploadFile;
+  if(!file){ alert('Choose a .xlsx or .csv file first.'); return; }
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? importStudentSheet() : alert(XLSX_FAIL_MSG)); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:"", raw:true });
+      const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g,'');
+      const hi = rows.findIndex(r => r.some(c => norm(c) === 'admno'));
+      if(hi === -1){ alert('Could not find the "ADMNO" column. Use the template (Download spreadsheet template).'); return; }
+      const col = {}; rows[hi].forEach((c,i) => { const k = norm(c); if(k && col[k] === undefined) col[k] = i; });
+      const txt = (r, ...names) => { for(const n of names){ const i = col[norm(n)]; if(i !== undefined && r[i] !== "" && r[i] !== undefined) return String(r[i]).trim(); } return ""; };
+      const dmy = (r, name) => {
+        const i = col[norm(name)]; if(i === undefined) return "";
+        const v = r[i]; if(v === "" || v === undefined) return "";
+        if(typeof v === 'number'){ const d = new Date(Math.round((v - 25569) * 86400000)); return String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0') + '/' + d.getUTCFullYear(); }
+        const t = String(v).trim(); if(/^DD\/MM\/YYYY$/i.test(t)) return "";
+        const m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+        return m ? m[1].padStart(2,'0') + '/' + m[2].padStart(2,'0') + '/' + m[3] : t;
+      };
+      const idxByAdm = new Map(students.map((x, i) => [String(x.admissionNumber).trim().toLowerCase(), i]));
+      let added = 0, updated = 0; const skipped = [];
+      rows.slice(hi + 1).forEach((r, ri) => {
+        const line = hi + ri + 2;
+        if(!r.some(c => String(c).trim() !== "")) return;
+        const adm = txt(r,'ADMNO'), fn = txt(r,'First Name'), ln = txt(r,'Last Name'), grade = txt(r,'Grade'), stream = txt(r,'Stream');
+        if(!adm){ skipped.push('row ' + line + ': ADMNO is required'); return; }
+        const existingIdx = idxByAdm.get(adm.toLowerCase());
+        if(existingIdx === undefined && !grade){ skipped.push('row ' + line + ': ADMNO ' + adm + ' is new, so its Grade is required'); return; }
+        const g = /^f/i.test(txt(r,'Gender')) ? 'Female' : /^m/i.test(txt(r,'Gender')) ? 'Male' : txt(r,'Gender');
+        const rel = txt(r,'Relationship');
+        const gName = txt(r,"Guardian's Name") || (/mother/i.test(rel) ? txt(r,"Mother's Name") : /father/i.test(rel) ? txt(r,"Father's Name") : '') || txt(r,"Father's Name") || txt(r,"Mother's Name");
+        const split = v => String(v || '').split(/[,;\/]/).map(x => x.replace(/\D/g,'')).filter(Boolean);
+        const sp = split(txt(r,'Student Phone Number(s)'));
+        const is844 = /^form/i.test(grade);
+        const rec = {
+          admissionNumber: adm, firstName: fn, middleName: txt(r,'Middle Name'), lastName: ln, gender: g,
+          dateOfBirth: dmy(r,'DoB'), nationality: txt(r,'Nationality'), birthCertNumber: txt(r,'BC No'), religion: txt(r,'Religion'),
+          dateOfAdmission: dmy(r,'DoA'), admissionType: txt(r,'Admission Type'), term: txt(r,'Term'),
+          curriculum: is844 ? '8-4-4' : 'CBE', grade, stream,
+          pathway: is844 ? '' : txt(r,'Pathway'), track: is844 ? '' : txt(r,'Track'),
+          mathematicsChoice: is844 ? '' : txt(r,'Mathematics Subject'),
+          optionalSubjects: is844 ? [] : txt(r,'Electives').split(/[,;]/).map(x => x.trim()).filter(Boolean),
+          previousSchool: txt(r,'Previous School'), county: txt(r,'County'), subcounty: txt(r,'Sub County'),
+          previousIndexNumber: txt(r,'Assessment Number','KCPE Index No','KCPE Index Number','KCPE Index','Index No','Index Number'),
+          pointsObtained: txt(r,'Points Obtained','KCPE Marks'),
+          kcseIndexNumber: txt(r,'KCSE Index No','KCSE Index Number','KCSE Index','KCSE Index No.','KCSE INDEX NO'),
+          upi: txt(r,'UPI'), indexNumber: txt(r,'ASS NO','Ass No','Assessment No'),
+          boardingStatus: schoolHasBoarding() ? (txt(r,'Boarding Status') || 'Day scholar') : 'Day scholar',
+          house: schoolHasBoarding() ? txt(r,'House') : '',
+          studentPhones: sp, studentPhoneContacts: sp.map(n => ({ type:'', relationship:'', number:n })),
+          father: txt(r,"Father's Name"), mother: txt(r,"Mother's Name"),
+          guardian: gName, relationship: rel,
+          guardianPhones: [txt(r,'Guardian Phone'), txt(r,'Guardian Alternative Phone')].filter(Boolean),
+          guardianEmail: txt(r,'Guardian Email'), occupation: txt(r,'Occupation'), permHomeAddress: txt(r,'Home Address'),
+          bloodGroup: txt(r,'Blood Group'), allergies: txt(r,'Allergies'), medicalNotes: txt(r,'Medical Notes'),
+        };
+        if(existingIdx !== undefined){
+          // ADMNO is the key: an existing learner is updated with every non-empty cell in the row; blanks leave the saved value alone.
+          const cur = students[existingIdx];
+          Object.keys(rec).forEach(k => {
+            const v = rec[k];
+            if(v === "" || v === undefined || (Array.isArray(v) && !v.length)) return;
+            if(k === 'curriculum' && !grade) return;
+            if(k === 'boardingStatus' && !txt(r,'Boarding Status')) return;
+            cur[k] = v;
+          });
+          updated++;
+        } else {
+          students.push(rec); idxByAdm.set(adm.toLowerCase(), students.length - 1); added++;
+        }
+      });
+      pickedUploadFile = null; pickedUploadFileName = "";
+      render();
+      alert('Added ' + added + ' new learner' + (added === 1 ? '' : 's') + ', updated ' + updated + ' existing (matched by ADMNO).' + (skipped.length ? '\n\nSkipped ' + skipped.length + ':\n' + skipped.slice(0,15).join('\n') + (skipped.length > 15 ? '\n…' : '') : ''));
+    }catch(err){ alert('Could not read that file: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
 }
 let addStudentSection = "basic"; // "basic" | "education" | "guardian" | "medical"
 const ADD_STUDENT_SECTIONS = [
@@ -15431,7 +16439,7 @@ const COUNTY_DATA = {
 const ADD_STUDENT_FIELD_GROUPS = {
   basic: ["admissionNumber","firstName","middleName","lastName","gender","dateOfBirth","nationality","birthCertNumber","religion","denomination","disabilityStatus","disabilityType","familyTerminalCondition","permBoxNo","permPostalCode","permTown","permHomeAddress","permHouseNumber","permVillageEstate"],
   residence: ["nearestPrimarySchool","villageEstate","houseNumber","nearestStreetRoad","town","birthCounty","constituency","ward"],
-  education: ["juniorSchool","curriculum","dateOfAdmission","admissionType","term","formGrade","stream","pathway","track","previousSchool","county","subcounty","previousIndexNumber","assessmentYear","pointsObtained","boardingStatus","house"],
+  education: ["juniorSchool","curriculum","dateOfAdmission","admissionType","term","formGrade","stream","pathway","track","previousSchool","county","subcounty","previousIndexNumber","assessmentYear","pointsObtained","kcseIndexNumber","boardingStatus","house"],
   optionalSubjects: ["mathematicsChoice"],
   guardian: ["familyType"],
   medical: ["bloodGroup","allergies","chronicIllness","previousInjuries","surgeries","otherMedicalInfo","medicalNotes"],
@@ -15504,7 +16512,7 @@ let regData = {
   admissionNumber: "", lastName: "", firstName: "", middleName: "", dateOfBirth: "", formGrade: "", stream: "", gender: "", boardingStatus: "", house: "",
   nationality: "", birthCertNumber: "", religion: "", denomination: "", photo: "",
   county: "", subcounty: "", division: "",
-  previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "", assessmentYear: "",
+  previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "", kcseIndexNumber: "", assessmentYear: "",
   admissionType: "", term: "", pathway: "", track: "", admissionStatus: "", mathematicsChoice: "", optionalSubjects: [],
   studentPhones: [""],
   familyType: "", guardianIdNumber: "", guardianName: "", guardianPhone: "", guardianEmail: "", guardianKraPin: "", guardianShaRate: "", guardianEducation: "", guardianCounty: "", occupation: "", guardianEmployed: "", guardianPhysicalChallenge: "", guardianIncomeBasic: "", guardianIncomeOther: "",
@@ -15805,7 +16813,7 @@ function editStudent(i){
     permBoxNo: s.permBoxNo || "", permPostalCode: s.permPostalCode || "", permTown: s.permTown || "", permCounty: s.permCounty || "", permConstituency: s.permConstituency || "", permWard: s.permWard || "", permHomeAddress: s.permHomeAddress || "", permHouseNumber: s.permHouseNumber || "", permVillageEstate: s.permVillageEstate || "",
     nearestPrimarySchool: s.nearestPrimarySchool || "", town: s.town || "", birthCounty: s.birthCounty || "", constituency: s.constituency || "", ward: s.ward || "",
     nearestStreetRoad: s.nearestStreetRoad || "", houseNumber: s.houseNumber || "", villageEstate: s.villageEstate || "",
-    previousSchool: s.previousSchool || "", juniorSchool: s.juniorSchool || "", dateOfAdmission: s.dateOfAdmission || "", pointsObtained: s.pointsObtained || "", previousIndexNumber: s.previousIndexNumber || "", assessmentYear: s.assessmentYear || "",
+    previousSchool: s.previousSchool || "", juniorSchool: s.juniorSchool || "", dateOfAdmission: s.dateOfAdmission || "", pointsObtained: s.pointsObtained || "", previousIndexNumber: s.previousIndexNumber || "", kcseIndexNumber: s.kcseIndexNumber || "", assessmentYear: s.assessmentYear || "",
     admissionType: s.admissionType || "", term: s.term || "", pathway: s.pathway || "", track: s.track || "", admissionStatus: s.admissionStatus || "",
     mathematicsChoice: s.mathematicsChoice || "", optionalSubjects: s.optionalSubjects && s.optionalSubjects.length ? [...s.optionalSubjects] : [],
     studentPhones: s.studentPhones && s.studentPhones.length ? [...s.studentPhones] : [""],
@@ -17403,7 +18411,7 @@ function editExamGroup(term, exam){
   subjects.forEach(s => { maxMarks[s] = getMaxMarks(found.group.exam, s); });
   const editCurriculum = /^Form/i.test(found.group.rows[0]?.class || "") ? "844" : "CBC";
   createExamData = {
-    examType: editCurriculum === "844" ? "Summative Assessment" : "Written Tests", name: found.group.exam, term,
+    examType: isKcseExamGroup(found.group) ? "KCSE" : (editCurriculum === "844" ? "Summative Assessment" : "Written Tests"), kcseYear: isKcseExamGroup(found.group) ? kcseYearOfExam(found.group.exam) : "", name: found.group.exam, term,
     year: createExamData.year || "2026", forms, minSubjects:{},
     streams: streamsByForm, curriculum: editCurriculum, subjects, maxMarks, sourceExams:[],
   };
@@ -17448,6 +18456,7 @@ function sendExamResults(term, exam, cls){
   if(!row) return;
   row.status = "Released";
   row.released = true;
+  row.releasedOn = todayDDMMYYYY(); row.releasedBy = currentUserName;
   row.updatedBy = currentUserName;
   row.updatedOn = todayDDMMYYYY();
   render();
@@ -17464,35 +18473,74 @@ function republishExamResults(term, exam, cls){
   render();
 }
 
+// ---- Publishing order lock ----
+// Publishing an exam locks the exams published before it (for the same class):
+// they cannot be unpublished until the later exam has been unpublished, and so
+// on down the chain. Order = the order exams were published (publishedSeq);
+// exams published before this rule existed fall back to the order they were created in.
+function nextPublishSeq(){
+  let m = 0;
+  examTerms.forEach(t => t.groups.forEach(g => g.rows.forEach(r => { if(r.publishedSeq > m) m = r.publishedSeq; })));
+  return m + 1;
+}
+function publishedExamChain(cls){
+  const list = [];
+  let i = 0;
+  examTerms.slice().reverse().forEach(t => t.groups.slice().reverse().forEach(g => g.rows.forEach(r => {
+    if(r.class === cls && r.published) list.push({ term: t.term, exam: g.exam, row: r, idx: i++ });
+  })));
+  list.sort((a,b) => {
+    const as = a.row.publishedSeq, bs = b.row.publishedSeq;
+    if(as == null && bs == null) return a.idx - b.idx;
+    if(as == null) return -1;
+    if(bs == null) return 1;
+    return as - bs;
+  });
+  return list;
+}
+// Name of the later published exam that is keeping this one locked, or null when it can be unpublished.
+function examLockedByLater(term, exam, cls){
+  const chain = publishedExamChain(cls);
+  const i = chain.findIndex(x => x.term === term && x.exam === exam);
+  if(i < 0 || i === chain.length - 1) return null;
+  return chain[chain.length - 1].exam;
+}
+
 function withdrawExamResults(term, exam, cls){
   const found = findExamGroup(term, exam);
   if(!found) return;
   const row = found.group.rows.find(r => r.class === cls);
   if(!row) return;
+  if(row.released){ alert(`${exam} has been released and is locked. Unlock it first (Unlock Exam), then it can be unpublished.`); return; }
+  const lockedBy = examLockedByLater(term, exam, cls);
+  if(lockedBy){ alert(`${exam} is locked because ${lockedBy} was published after it. Unpublish ${lockedBy} first (and any other exam published after ${exam}), then ${exam} can be unpublished.`); return; }
   if(!confirm(`Unpublish ${exam} results for ${cls}? Guardians will no longer be able to view them, and it will need to be republished before it can be analyzed again.`)) return;
   row.status = "Results Not Uploaded";
   row.published = false;
   row.locked = false;
   row.released = false;
+  delete row.publishedSeq;
   row.updatedBy = currentUserName;
   row.updatedOn = todayDDMMYYYY();
   render();
 }
 
-// Pulls already-released results back from cloud storage. Unlike
-// withdrawExamResults() (a full unpublish), this only reverses the release —
-// the exam stays published/locked and analyzable, it's just no longer
-// available to guardians until it's released again.
-function withdrawExamResultsFromCloud(term, exam, cls){
+// Unlocks a released exam (Super Admin, Administrator or Examination Officer only).
+// The exam goes back to "published": marks and exam setup can be corrected, it leaves the teachers'
+// Released Exams list, and it is locked again as soon as it is released again.
+function unlockReleasedExam(term, exam, cls){
+  if(!canApproveExams()){ alert("Only a Super Admin, Administrator or Examination Officer can unlock a released exam."); return; }
   const found = findExamGroup(term, exam);
   if(!found) return;
   const row = found.group.rows.find(r => r.class === cls);
-  if(!row) return;
-  if(!confirm(`Withdraw ${exam} results for ${cls} from cloud storage? Guardians will no longer be able to view them. The exam stays published, and you can release it again at any time.`)) return;
+  if(!row || !row.released) return;
+  if(!confirm(`Unlock ${exam} (${cls})? It will be removed from the teachers' Released Exams list and marks can be corrected. Release it again afterwards to lock it.`)) return;
   row.status = "Uploaded";
   row.released = false;
+  row.unlockedBy = currentUserName; row.unlockedOn = todayDDMMYYYY();
   row.updatedBy = currentUserName;
   row.updatedOn = todayDDMMYYYY();
+  logMarksAudit({ action:'Unlocked released exam', term, exam, cls, subject:'', admissionNumber:'', studentName:'', details:`${exam} (${cls}) unlocked after release by ${currentUserName} (${currentUserRole})` });
   render();
 }
 
@@ -17641,6 +18689,44 @@ function renderSubjectPapersDetailPanel(){
 }
 
 
+function examLockedActionsHtml(termBlock, g, r){
+  return r.released ? `
+            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:#fff;color:var(--blue);white-space:nowrap;cursor:pointer;" onclick="openSendResultsWindow('${r.class.replace(/'/g,"\\'")}','${g.exam.replace(/'/g,"\\'")}','${termBlock.term.replace(/'/g,"\\'")}')">
+              <i class="fa-solid fa-paper-plane"></i> Send Results
+            </button>
+            ${canApproveExams() ? `<button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--amber);background:#fff;color:var(--amber);white-space:nowrap;cursor:pointer;" onclick="unlockReleasedExam('${termBlock.term}','${g.exam}','${r.class}')" title="Unlock this released exam to correct it">
+              <i class="fa-solid fa-lock-open"></i> Unlock Exam
+            </button>` : ''}
+
+          ` : `
+            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:#fff;color:var(--blue);white-space:nowrap;cursor:pointer;" onclick="sendExamResults('${termBlock.term}','${g.exam}','${r.class}')">
+              <i class="fa-solid fa-paper-plane"></i> Release Exam
+            </button>
+            ${(() => { const lb = examLockedByLater(termBlock.term, g.exam, r.class); return lb ? `
+            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--border);background:var(--blue-tint);color:var(--muted);white-space:nowrap;cursor:not-allowed;" onclick="withdrawExamResults('${termBlock.term}','${g.exam}','${r.class}')" title="Locked: ${lb} was published after this exam. Unpublish ${lb} first.">
+              <i class="fa-solid fa-lock"></i> Locked by ${lb}
+            </button>` : `
+            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--amber);background:#fff;color:var(--amber);white-space:nowrap;cursor:pointer;" onclick="withdrawExamResults('${termBlock.term}','${g.exam}','${r.class}')">
+              <i class="fa-solid fa-rotate-left"></i> Unpublish Results
+            </button>`; })()}
+          `;
+}
+// KCSE goes through the same Publish (lock) -> Release -> Unlock process as every other exam.
+function publishKcseExam(term, exam, cls){
+  const found = findExamGroup(term, exam);
+  if(!found) return;
+  const year = kcseYearOfExam(exam);
+  const rec = kcseResults[year];
+  if(!rec){ alert(`Upload the ${exam} results first.`); return; }
+  if(!confirm(`Publish ${exam} for ${cls}? The uploaded results will be locked and can no longer be changed or deleted until it is unpublished.`)) return;
+  found.group.rows.forEach(r => { if(r.class === cls){ r.status = "Uploaded"; r.published = true; r.locked = true; r.publishedSeq = nextPublishSeq(); r.updatedBy = currentUserName; r.updatedOn = todayDDMMYYYY(); } });
+  rec.locked = true; rec.lockedOn = rec.lockedOn || todayDMY(); rec.lockedBy = rec.lockedBy || (typeof currentUserName !== 'undefined' ? currentUserName : '');
+  render();
+}
+// True while the KCSE exam for this year is published or released (its uploaded results cannot be deleted).
+function kcseExamPublished(year){
+  return examTerms.some(t => t.groups.some(g => isKcseExamGroup(g) && kcseYearOfExam(g.exam) === String(year) && g.rows.some(r => r.published || r.locked || r.released)));
+}
 function deleteExamRow(term, exam, cls){
   const found = findExamGroup(term, exam);
   if(!found) return;
@@ -17708,7 +18794,7 @@ function openPublishResults(term, exam, cls){
     rankingCriteria: "totalPoints",
     deviationExam: "",
     minSubjects: 7,
-    gradingSystem: gradingSystems[0] ? gradingSystems[0].name : "",
+    gradingSystem: (gradingSystemForGrade(publishResultsContext && publishResultsContext.cls) || {}).name || "",
     subjectGradingSystems: {}
   };
   render();
@@ -17768,7 +18854,7 @@ function resetPublishStep2Fields(){
     rankingCriteria: "totalPoints",
     deviationExam: "",
     minSubjects: 7,
-    gradingSystem: gradingSystems[0] ? gradingSystems[0].name : "",
+    gradingSystem: (gradingSystemForGrade(publishResultsContext && publishResultsContext.cls) || {}).name || "",
     subjectGradingSystems: {}
   };
   publishActionMenuOpen = false;
@@ -17831,7 +18917,7 @@ function goToPublishStep2(){
     rankingCriteria: "totalPoints",
     deviationExam: "",
     minSubjects: 7,
-    gradingSystem: gradingSystems[0] ? gradingSystems[0].name : "",
+    gradingSystem: (gradingSystemForGrade(publishResultsContext && publishResultsContext.cls) || {}).name || "",
     subjectGradingSystems: {}
   };
   render();
@@ -17907,7 +18993,7 @@ function confirmPublishResults(){
   runExamPublishProcessing("Processing exam results…", () => {
     const found = findExamGroup(term, exam);
     if(found){
-      found.group.rows.forEach(r => { if(r.class === cls){ r.status = "Uploaded"; r.published = true; r.locked = true; r.updatedBy = currentUserName; r.updatedOn = todayDDMMYYYY(); } });
+      found.group.rows.forEach(r => { if(r.class === cls){ r.status = "Uploaded"; r.published = true; r.locked = true; r.publishedSeq = nextPublishSeq(); r.updatedBy = currentUserName; r.updatedOn = todayDDMMYYYY(); } });
     }
     alert(`Exams successfully published for ${cls} — ${exam}.`);
     closePublishResults();
@@ -17952,6 +19038,7 @@ function publishExamRow(term, exam, cls){
     row.status = "Uploaded";
     row.published = true;
     row.locked = true;
+    row.publishedSeq = nextPublishSeq();
     row.updatedBy = currentUserName;
     row.updatedOn = todayDDMMYYYY();
     alert(`Exams successfully published for ${cls} — ${exam}.`);
@@ -18006,8 +19093,30 @@ function useExamNameDropdown(){
   render();
 }
 
+// An exam of type KCSE is named "KCSE <year>" - the Exam Name box is replaced by a Year box.
+function setKcseExamYear(v){
+  createExamData.kcseYear = String(v).replace(/\D/g,'').slice(0,4);
+  createExamData.name = createExamData.kcseYear ? 'KCSE ' + createExamData.kcseYear : '';
+}
+function isKcseExamGroup(g){ return !!g && (g.examType === 'KCSE' || /^KCSE\s*\d{4}$/i.test(String(g.exam || '').trim())); }
+function kcseYearOptions(sel, withPlaceholder){
+  const cy = Number(getCurrentTermInfo().year) || new Date().getFullYear(), ys = [];
+  for(let y = cy + 1; y >= 2000; y--) ys.push(String(y));
+  Object.keys(kcseResults || {}).concat(sel ? [String(sel)] : []).forEach(y => { if(/^\d{4}$/.test(y) && !ys.includes(y)) ys.push(y); });
+  ys.sort((a, b) => Number(b) - Number(a));
+  return (withPlaceholder ? '<option value="">Select year</option>' : '') + ys.map(y => `<option value="${y}"${String(sel) === y ? ' selected' : ''}>${y}</option>`).join('');
+}
+function kcseYearOfExam(name){ const m = String(name || '').match(/(\d{4})/); return m ? m[1] : String(getCurrentTermInfo().year); }
 function setExamType(t){
+  const prevType = createExamData.examType;
   createExamData.examType = t;
+  if(t === 'KCSE'){
+    if(!createExamData.kcseYear) createExamData.kcseYear = String(createExamData.year || getCurrentTermInfo().year);
+    createExamData.name = 'KCSE ' + createExamData.kcseYear;
+    createExamNameMode = 'custom';
+  } else if(prevType === 'KCSE'){
+    createExamData.name = ''; createExamNameMode = 'select';
+  }
   if(t !== "Consolidated Exam") createExamData.sourceExams = [];
   // The Grade 10-12 elective cap (4 compulsory + max 3 electives) already
   // keeps every exam type within 7 subjects per learner, so no extra
@@ -18119,11 +19228,22 @@ function resetCreateExamForm(){
 
 
 function submitCreateExam(){
+  if(createExamData.examType === "KCSE"){
+    // KCSE needs no Term / Classes / Subjects entries: Form 4, all streams, the current term and the 8-4-4 subject list.
+    if(!createExamData.term) createExamData.term = getCurrentTermInfo().term;
+    if(!examFormsForCurriculum(createExamData.curriculum).some(f => createExamData.forms[f])){
+      createExamData.forms = { "Form 4": true }; createExamData.streams = { "Form 4": activeStreamNames() };
+    }
+    if(!createExamData.subjects || !createExamData.subjects.length){
+      const d = defaultExamSubjectsAndMarks("844"); createExamData.subjects = d.subjects; createExamData.maxMarks = d.maxMarks;
+    }
+  }
   const name = (createExamData.name || "").trim();
   const term = createExamData.term;
   const selectedForms = examFormsForCurriculum(createExamData.curriculum).filter(f => createExamData.forms[f]);
   const isConsolidated = createExamData.examType === "Consolidated Exam";
   const sourceExams = (createExamData.sourceExams || []).slice();
+  if(createExamData.examType === "KCSE" && !/^KCSE \d{4}$/.test(name)){ document.getElementById('kcse_year')?.focus(); alert("Enter the KCSE year, e.g. 2026."); return; }
   if(!name){ document.getElementById('exam_name')?.scrollIntoView({block:'center'}); document.getElementById('exam_name')?.focus(); alert("Please enter or choose the Exam Name."); return; }
   if(!term){ document.getElementById('exam_term')?.scrollIntoView({block:'center'}); document.getElementById('exam_term')?.focus(); alert("Please choose the Term."); return; }
   if(selectedForms.length === 0){ document.querySelector('.exam-band-list')?.scrollIntoView({block:'center'}); alert("Tick at least one class that sits this exam."); return; }
@@ -18200,7 +19320,7 @@ function submitCreateExam(){
   const rows = selectedForms.map(cls => keptRows[cls] || { class: cls, status: "Results Not Uploaded", updatedBy: currentUserName, updatedOn });
   let termBlock = examTerms.find(t => t.term === term);
   if(!termBlock){ termBlock = { term, groups: [] }; examTerms.unshift(termBlock); }
-  termBlock.groups.unshift({ exam: name, rows, subjects: createExamData.subjects.slice() });
+  termBlock.groups.unshift({ exam: name, rows, subjects: createExamData.subjects.slice(), ...(createExamData.examType === 'KCSE' ? { examType: 'KCSE' } : {}) });
 
   resetCreateExamForm();
   academicTab = "examSetup";
@@ -18295,7 +19415,12 @@ function renderExamSetupStepCreate(){
     </div>
     ${consolidatedBlock}
     <!--EXAM_NAME_SPLIT-->
+    ${createExamData.examType === 'KCSE' ? `
     <div class="exam-setup-block exam-field-cell">
+      <label class="exam-field-label" for="kcse_year">KCSE Year</label>
+      <select id="kcse_year" class="exam-field-input" onchange="setKcseExamYear(this.value)">${kcseYearOptions(createExamData.kcseYear, true)}</select>
+    </div>` : ''}
+    <div class="exam-setup-block exam-field-cell" ${createExamData.examType === 'KCSE' ? 'style="display:none;"' : ''}>
       <label class="exam-field-label" for="exam_name">Exam Name</label>
       ${createExamNameMode === 'custom' ? `
         <input id="exam_name" class="exam-field-input" type="text" placeholder="Name" value="${createExamData.name}" oninput="createExamData.name=this.value">
@@ -18558,6 +19683,8 @@ function renderExamSetupStepSubjects(){
 
 function renderExamSetupStepBody(){
   const createParts = renderExamSetupStepCreate().split('<!--EXAM_NAME_SPLIT-->');
+  // KCSE: only the exam type and the Year box - term, classes and subjects are filled in automatically on Add Exam.
+  if(createExamData.examType === 'KCSE') return createParts[0] + '<div class="exam-field-row3">' + createParts[1] + '</div>';
   return createParts[0]
     + '<div class="exam-field-row3">' + createParts[1] + renderExamSetupStepTermYear() + '</div>'
     + renderExamSetupStepClasses()
@@ -18886,18 +20013,22 @@ function renderPublishResultsStep2(){
     `;
   }).join('') || `<tr><td colspan="3" style="border:1px solid var(--border);text-align:center;color:var(--muted);padding:16px;">No streams configured yet.</td></tr>`;
 
-  const gsOptions = gradingSystems.map(gs => `<option value="${gs.name}" ${d.gradingSystem===gs.name?'selected':''}>${gs.name}</option>`).join('');
+  // Only grading systems for this class's curriculum are offered (Form 1-4 -> KCSE, Grade -> CBC), and the right one is picked automatically
+  const allowedGs = gradingSystemsForGrade(cls);
+  if(!allowedGs.some(gs => gs.name === d.gradingSystem)) d.gradingSystem = (gradingSystemForGrade(cls) || allowedGs[0] || {}).name || "";
+  const gsOptions = allowedGs.map(gs => `<option value="${gs.name}" ${d.gradingSystem===gs.name?'selected':''}>${gs.name}</option>`).join('');
   const ready = publishResultsReady(d.exam, cls);
 
   const subjectGradingRows = subjectsForExam(d.exam).map((subject, i) => {
-    const sel = (d.subjectGradingSystems && d.subjectGradingSystems[subject]) || d.gradingSystem;
+    const pickedGs = d.subjectGradingSystems && d.subjectGradingSystems[subject];
+    const sel = (pickedGs && allowedGs.some(gs => gs.name === pickedGs)) ? pickedGs : d.gradingSystem;
     return `
       <tr style="${i % 2 === 1 ? 'background:#f8fafc;' : ''}">
         <td style="border:1px solid var(--border);padding:12px 16px;font-weight:600;color:var(--blue-dark);">${subject}</td>
         <td style="border:1px solid var(--border);padding:10px 16px;">
           <select onchange="setPublishSubjectGradingSystem('${safe(subject)}', this.value)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:0;font-size:13.5px;background:#f8fafc;color:var(--text);outline:none;font-family:inherit;">
             <option value="">Select grading system...</option>
-            ${gradingSystems.map(gs => `<option value="${gs.name}" ${sel===gs.name?'selected':''}>${gs.name}</option>`).join('')}
+            ${allowedGs.map(gs => `<option value="${gs.name}" ${sel===gs.name?'selected':''}>${gs.name}</option>`).join('')}
           </select>
         </td>
       </tr>
@@ -19494,6 +20625,13 @@ function gradingSystemForGrade(gradeLabel){
       || gradingSystems[0];
 }
 
+// Grading systems that may be offered for a class: Form 1-4 (8-4-4) only sees KCSE-type systems,
+// Grade (CBC) classes only see CBC/CBE-type ones. Falls back to the full list if none match.
+function gradingSystemsForGrade(gradeLabel){
+  const want = isEight44Grade(gradeLabel) ? '844' : 'CBC';
+  const list = gradingSystems.filter(gs => gradingSystemCurriculum(gs) === want);
+  return list.length ? list : gradingSystems;
+}
 // gradeLabel is optional (e.g. "Form 2", "Grade 7") — when provided, the
 // correct grading system for that curriculum is used; when omitted, falls
 // back to the first configured system exactly as before.
@@ -20066,6 +21204,7 @@ function triggerMarksImport(){
 function handleMarksImport(input){
   const file = input.files && input.files[0];
   if(!file || !marksEntryContext || !canEditMarks()){ if(input) input.value=""; return; }
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? handleMarksImport(input) : (alert(XLSX_FAIL_MSG), input.value = '')); return; }
   const reader = new FileReader();
   reader.onload = (e) => {
     try{
@@ -20169,8 +21308,10 @@ function teacherAuthorizedForSubject(subject){
 }
 function isExamLocked(term, exam){
   const found = findExamGroup(term, exam);
-  return !!(found && found.group.locked);
+  return !!(found && (found.group.locked || isExamReleased(found.group)));
 }
+// A released exam is locked for good: marks, exam setup and publishing can no longer be changed.
+function isExamReleased(group){ return !!(group && group.rows && group.rows.some(r => r.released)); }
 function canApproveExams(){ return EXAM_APPROVAL_ROLES.includes(currentUserRole); }
 
 function canEditMarks(){
@@ -20188,6 +21329,7 @@ function canEditMarks(){
 function marksEntryLockReason(){
   if(!marksEntryContext) return '';
   const { term, exam, subject } = marksEntryContext;
+  { const f = findExamGroup(term, exam); if(f && isExamReleased(f.group)) return `${exam} has been released and is locked. Marks can't be edited until an Examination Officer or Administrator unlocks it.`; }
   if(isExamLocked(term, exam)) return `${exam} has been approved and locked by an Examination Officer. Marks can't be edited until it's unlocked.`;
   if(MARKS_EDIT_ROLES.includes(currentUserRole)) return '';
   if(currentUserRole === "Teacher" && !teacherAuthorizedForSubject(subject)) return `You aren't assigned to teach ${subject} — only the assigned subject teacher (or an Examination Officer/Administrator) can enter these marks.`;
@@ -20211,6 +21353,7 @@ function unlockExam(term, exam){
   if(!canApproveExams()) return;
   const found = findExamGroup(term, exam);
   if(!found) return;
+  if(isExamReleased(found.group)){ alert(`${exam} has been released. Use "Unlock Exam" on the Manage Exams page to unlock it.`); return; }
   if(!confirm(`Unlock "${exam}" for editing? Only do this to correct a genuine error — it will be re-locked once corrections are done.`)) return;
   found.group.locked = false;
   logMarksAudit({ action:'Unlocked exam', term, exam, cls:'', subject:'', admissionNumber:'', studentName:'', details:`${exam} unlocked by ${currentUserName} (${currentUserRole})` });
@@ -21067,7 +22210,7 @@ const STUDENT_UPLOAD_TEMPLATE_HEADERS = [
   "Nationality","BC No","Religion",
   "DoA","Admission Type","Term","Grade","Stream","Pathway","Track",
   "Mathematics Subject","Electives","Previous School","County","Sub County",
-  "Assessment Number","Points Obtained","Boarding Status","House",
+  "Assessment Number","Points Obtained","KCSE Index No","Boarding Status","House",
   "Student Phone Number(s)",
   "Father's Name","Mother's Name","Guardian's Name","Relationship","Guardian Phone",
   "Guardian Alternative Phone","Guardian Email","Occupation","Home Address",
@@ -21078,7 +22221,7 @@ const STUDENT_UPLOAD_TEMPLATE_SAMPLE_ROW = [
   "Kenyan","","",
   "DD/MM/YYYY","New","Term 1","Grade 10","North","STEM","",
   "Core Mathematics","","","","",
-  "","","Day scholar","",
+  "","","","Day scholar","",
   "",
   "","","","","",
   "","","","",
@@ -21445,6 +22588,7 @@ const CLASS_LIST_COLUMNS = ["S/No","Adm No","Name","Stream","Contact","Guardian"
 // to pull its value off a student record.
 const CLASS_LIST_COLUMN_DEFS = [
   { key:'admNo', label:'Adm No', get:s => s.admissionNumber||'' },
+  { key:'kcseIndex', label:'KCSE Index No', get:s => s.kcseIndexNumber||'' },
   { key:'name', label:'Name', get:s => upperStr(fullName(s)) },
   { key:'grade', label:'Grade', get:s => upperStr(s.grade||'') },
   { key:'stream', label:'Stream', get:s => upperStr(s.stream||'') },
@@ -21468,7 +22612,7 @@ function classListColumnDefs(){ return schoolHasBoarding() ? CLASS_LIST_COLUMN_D
 // Which columns are checked by default — S/No, Adm No, Name, Grade, Stream,
 // Phone (Contact), plus Guardian, Gender and Date of Birth as the extra
 // three columns class teachers typically need on a printed class list.
-let classListSelectedColumns = ['admNo','name','grade','stream','contact','guardian','gender','dob'];
+let classListSelectedColumns = ['admNo','kcseIndex','name','grade','stream','contact','guardian','gender','dob'];
 
 // Builds {columns, rows} for a per-student roster from the currently
 // selected columns. Always leads with a serial number; when the roster
@@ -21478,7 +22622,7 @@ function classListColumnsAndRows(roster){
   const labels = roster.map(r => r.classLabel || '');
   const spansClasses = new Set(labels).size > 1;
   const defs = classListColumnDefs().filter(d => classListSelectedColumns.includes(d.key));
-  const columns = ['S\\NO', ...defs.map(d => d.label), ...(spansClasses ? ['Class'] : [])];
+  const columns = ['S/NO', ...defs.map(d => d.label), ...(spansClasses ? ['Class'] : [])];
   const rows = roster.map((r, idx) => [
     idx+1,
     ...defs.map(d => d.get(r.student)),
@@ -23129,6 +24273,8 @@ function updateRegField(key, value){
 // Curriculum decides the rest of Education Background: 8-4-4 learners are in a Form
 // (no Pathway / Track) and carry KCPE details; CBE learners use Grade, Pathway and Track.
 function regIs844(){ return regData.curriculum === "8-4-4"; }
+// KCSE Index No is only asked for 8-4-4 Form 4 learners (shown right after KCPE Marks).
+function regIsForm4844(){ return regIs844() && regData.formGrade === "Form 4"; }
 // New learner: the school they came from is their Junior School. Transfer: Junior School AND the Previous School.
 // Re-admission: Previous School only. Moving between types clears the box whose meaning changed.
 function onRegAdmissionTypeChange(value){
@@ -23232,6 +24378,7 @@ function regSubmitFinal(){
     dateOfAdmission: regData.dateOfAdmission,
     pointsObtained: regData.pointsObtained,
     previousIndexNumber: regData.previousIndexNumber,
+    kcseIndexNumber: (regIs844() && regData.formGrade === "Form 4") ? (regData.kcseIndexNumber || "") : "",
     assessmentYear: regData.assessmentYear,
     admissionType: regData.admissionType,
     term: regData.term,
@@ -23289,7 +24436,7 @@ function regSubmitFinal(){
     admissionNumber: "", lastName: "", firstName: "", middleName: "", dateOfBirth: "", formGrade: "", stream: "", gender: "", boardingStatus: "", house: "",
     nationality: "", birthCertNumber: "", religion: "", denomination: "", photo: "",
     county: "", subcounty: "", division: "",
-    previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "",
+    previousSchool: "", dateOfAdmission: todayDMY(), pointsObtained: "", previousIndexNumber: "", kcseIndexNumber: "",
     admissionType: "", term: "", pathway: "", track: "", admissionStatus: "", mathematicsChoice: "", optionalSubjects: [],
     studentPhones: [""],
     familyType: "", guardianIdNumber: "", guardianName: "", guardianPhone: "", guardianEmail: "", guardianKraPin: "", guardianShaRate: "", guardianEducation: "", guardianCounty: "", occupation: "", guardianEmployed: "", guardianPhysicalChallenge: "", guardianIncomeBasic: "", guardianIncomeOther: "",
@@ -23676,7 +24823,7 @@ function renderAddStudentSectionRaw(){
             ${stepCalendarField("Date of Admission","dateOfAdmission",false)}
             ${stepSelect("Admission Type","admissionType",(studentReadmitting || regData.admissionType === 'Re-admission') ? ["New","Transfer","Re-admission"] : ["New","Transfer"],false,"onRegAdmissionTypeChange(this.value)")}
             ${stepSelect("Term","term",["Term 1","Term 2","Term 3"],false)}
-            ${regIs844() ? stepSelect("Form","formGrade",["Form 1","Form 2","Form 3","Form 4"],true) : stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true)}
+            ${regIs844() ? stepSelect("Form","formGrade",["Form 1","Form 2","Form 3","Form 4"],true,"regKeepTyped('formGrade'); updateRegField('formGrade', this.value); render();") : stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true)}
             ${stepSelect("Stream","stream",activeStreamNames(),true)}
             ${regIs844() ? '' : `<label class="field"><span>Pathway</span>
               <select id="pathway" onchange="onRegPathwayChange(this.value)">
@@ -23714,6 +24861,7 @@ function renderAddStudentSectionRaw(){
             ${regIs844() ? stepField("KCPE Index No","previousIndexNumber",false,"e.g. 12345678",true) : stepField("Assessment Number","previousIndexNumber",false,"e.g. KPSEA/KCPE index number")}
             ${stepSelect(regIs844() ? "KCPE Year" : "Assessment Year","assessmentYear",assessmentYearOptions(),false)}
             ${regIs844() ? stepField("KCPE Marks","pointsObtained",false,"e.g. 350",true) : stepField("Points","pointsObtained",false,"")}
+            ${regIsForm4844() ? stepField("KCSE Index No","kcseIndexNumber",false,"e.g. 12345678001",true) : ''}
             ${schoolHasBoarding() ? `<label class="field"><span>Boarding Status&nbsp;<span class="req">*</span></span>
               <select id="boardingStatus" onchange="regKeepTyped('boardingStatus','house'); updateRegField('boardingStatus', this.value); render();">
                 <option value="" ${!regData.boardingStatus?'selected':''} disabled>Select boarding status...</option>
@@ -23957,13 +25105,14 @@ function renderAddStudentTab(){
             </button>
           </div>
           ${uploadSubTab === 'search' ? renderSearchPanel() : `
-            <label class="upload-dropzone" for="studentSheetInput">
+            <label class="upload-dropzone" for="studentSheetInput" ondragover="event.preventDefault()" ondrop="dropStudentSheetFile(event)" style="cursor:pointer;">
               <i class="fa-solid fa-file-arrow-up" style="font-size:26px;color:var(--blue);margin-bottom:10px;display:block;"></i>
               ${pickedUploadFileName
                 ? `<span style="color:var(--blue-dark);font-weight:600;">${pickedUploadFileName}</span><br><span style="font-size:12.5px;">Click to choose a different file</span>`
                 : `Drag a .xlsx or .csv file here, or click to browse.`}
               <input type="file" id="studentSheetInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="pickStudentSheetFile(this)">
             </label>
+            <div style="margin-top:14px;"><button type="button" class="btn-primary" style="width:auto;padding:9px 22px;${pickedUploadFile ? '' : 'opacity:.5;'}" onclick="importStudentSheet()"><i class="fa-solid fa-upload"></i> Upload students</button></div>
           `}
         </div>
       ` : `
@@ -24001,7 +25150,7 @@ function cancelAddStudent(){
   regData = {
     admissionNumber: "", lastName: "", firstName: "", middleName: "", dateOfBirth: "", formGrade: "", stream: "", gender: "", boardingStatus: "", house: "", county: "", subcounty: "", division: "",
     nationality: "", birthCertNumber: "", religion: "", denomination: "", photo: "",
-    previousSchool: "", dateOfAdmission: "", pointsObtained: "", previousIndexNumber: "", assessmentYear: "",
+    previousSchool: "", dateOfAdmission: "", pointsObtained: "", previousIndexNumber: "", kcseIndexNumber: "", assessmentYear: "",
     admissionType: "", term: "", pathway: "", track: "", admissionStatus: "", mathematicsChoice: "", optionalSubjects: [],
     studentPhones: [""],
     familyType: "", guardianIdNumber: "", guardianName: "", guardianPhone: "", guardianEmail: "", guardianKraPin: "", guardianShaRate: "", guardianEducation: "", guardianCounty: "", occupation: "", guardianEmployed: "", guardianPhysicalChallenge: "", guardianIncomeBasic: "", guardianIncomeOther: "",
@@ -24469,7 +25618,7 @@ function renderStudentProfilePage(){
     cell('Curriculum', cur), cell('Form/Grade', s.grade), cell('Stream', s.stream),
     is844 ? '' : cell('Pathway', s.pathway), is844 ? '' : cell('Track', s.track),
     cell('Previous School', s.previousSchool), cell('County', s.county), cell('Sub County', s.subcounty),
-    cell(is844 ? 'KCPE Marks' : 'Points Obtained', s.pointsObtained), cell('Assessment Year', s.assessmentYear),
+    cell(is844 ? 'KCPE Marks' : 'Points Obtained', s.pointsObtained), (is844 && /^form\s*4/i.test(s.grade || '')) ? cell('KCSE Index Number', s.kcseIndexNumber) : '', cell('Assessment Year', s.assessmentYear),
     (s.boardingStatus === 'Boarder' && schoolHasBoarding()) ? cell('Dormitory/House', s.house) : '',
     (s.optionalSubjects && s.optionalSubjects.length) ? cell('Electives', s.optionalSubjects.join(', ')) : '',
   ];
@@ -24680,6 +25829,7 @@ function renderStudentProfileModal(){
             <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Index No' : 'Assessment Number'}</span><strong>${s.previousIndexNumber || '—'}</strong></div>
             <div class="profile-detail-row"><span>Assessment Year</span><strong>${s.assessmentYear || '—'}</strong></div>
             <div class="profile-detail-row"><span>${(s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) ? 'KCPE Marks' : 'Points Obtained'}</span><strong>${s.pointsObtained || '—'}</strong></div>
+            ${((s.curriculum === '8-4-4' || /^form/i.test(s.grade || '')) && /^form\s*4/i.test(s.grade || '')) ? `<div class="profile-detail-row"><span>KCSE Index No</span><strong>${s.kcseIndexNumber || '—'}</strong></div>` : ''}
             ${schoolHasBoarding() ? `<div class="profile-detail-row"><span>Boarding Status</span><strong>${s.boardingStatus || '—'}</strong></div>` : ''}
             ${isBoarder && schoolHasBoarding() ? `<div class="profile-detail-row"><span>Dormitory/House</span><strong>${s.house || '—'}</strong></div>` : ''}
             ${s.exitDate ? `<div class="profile-detail-row"><span>Exit Date</span><strong>${s.exitDate}</strong></div>` : ''}
@@ -25743,7 +26893,7 @@ function renderManageClassesTab(){
   if(showGraduatedClasses){
     return `
       ${header}
-      <div class="panel"><div class="empty" style="padding:40px 24px;">No graduated classes yet. Classes appear here once a Form/Grade completes its final year.</div></div>
+      ${renderGraduatedClassesView()}
     `;
   }
 
@@ -39404,11 +40554,22 @@ function renderManageExamsTermTable(termBlock){
       <td style="${cellB}color:var(--muted);">${r.updatedBy}</td>
       <td style="${cellB}color:var(--muted);">${r.updatedOn}</td>
       <td style="${cellB}text-align:center;">
-        <button class="btn-ghost" style="padding:6px 12px;font-size:12px;width:auto;white-space:nowrap;" onclick="editExamGroup('${termBlock.term}','${g.exam}')">
+        ${r.released ? `<span style="font-size:12px;font-weight:600;color:#166534;white-space:nowrap;"><i class="fa-solid fa-lock"></i> Released &amp; locked</span>` : `<button class="btn-ghost" style="padding:6px 12px;font-size:12px;width:auto;white-space:nowrap;" onclick="editExamGroup('${termBlock.term}','${g.exam}')">
           <i class="fa-solid fa-pen"></i> Edit Exam
-        </button>
+        </button>`}
       </td>
+      ${isKcseExamGroup(g) ? `<td colspan="2" style="${cellB}text-align:center;">
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+          ${kcseResults[kcseYearOfExam(g.exam)] ? '' : `<button class="btn-ghost" style="padding:6px 12px;font-size:12px;width:auto;white-space:nowrap;" onclick="downloadKcseResultsForm('${r.class.replace(/'/g,"\\'")}','',false)"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Download List</button>`}
+          <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:var(--blue);color:#fff;white-space:nowrap;cursor:pointer;${kcseResults[kcseYearOfExam(g.exam)] ? 'background:var(--green);border-color:var(--green);' : ''}" onclick="openKcseForExam('${g.exam.replace(/'/g,"\\'")}','${r.class.replace(/'/g,"\\'")}')">${kcseResults[kcseYearOfExam(g.exam)] ? '<i class="fa-solid fa-chart-column"></i> Analyze Results' : '<i class="fa-solid fa-upload"></i> Upload List'}</button>
+        </div></td>
       <td style="${cellB}text-align:center;">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch;">
+          ${r.locked ? examLockedActionsHtml(termBlock, g, r) : `
+          ${kcseResults[kcseYearOfExam(g.exam)] ? `<button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:var(--blue);color:#fff;white-space:nowrap;cursor:pointer;" onclick="publishKcseExam('${termBlock.term}','${g.exam}','${r.class}')"><i class="fa-solid fa-newspaper"></i> Publish Results</button>` : ''}
+          <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--rose);background:#fff;color:var(--rose);white-space:nowrap;cursor:pointer;" onclick="deleteExamRow('${termBlock.term}','${g.exam}','${r.class}')"><i class="fa-solid fa-trash"></i> Delete Exam</button>`}
+        </div>
+      </td>` : `<td style="${cellB}text-align:center;">
         <button class="btn-ghost" style="padding:6px 12px;font-size:12px;width:auto;white-space:nowrap;" onclick="openSubjectPapers('${termBlock.term}','${g.exam}','${r.class}')">
           <i class="fa-solid fa-diagram-project"></i> Subject Papers
         </button>
@@ -39430,23 +40591,9 @@ function renderManageExamsTermTable(termBlock){
             <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--rose);background:#fff;color:var(--rose);white-space:nowrap;cursor:pointer;" onclick="deleteExamRow('${termBlock.term}','${g.exam}','${r.class}')">
               <i class="fa-solid fa-trash"></i> Delete Exam
             </button>
-          ` : r.released ? `
-            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:#fff;color:var(--blue);white-space:nowrap;cursor:pointer;" onclick="openSendResultsWindow('${r.class.replace(/'/g,"\\'")}','${g.exam.replace(/'/g,"\\'")}','${termBlock.term.replace(/'/g,"\\'")}')">
-              <i class="fa-solid fa-paper-plane"></i> Send Results
-            </button>
-            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--amber);background:#fff;color:var(--amber);white-space:nowrap;cursor:pointer;" onclick="withdrawExamResultsFromCloud('${termBlock.term}','${g.exam}','${r.class}')" title="Withdraw from cloud storage">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Withdraw Results
-            </button>
-          ` : `
-            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--blue);background:#fff;color:var(--blue);white-space:nowrap;cursor:pointer;" onclick="sendExamResults('${termBlock.term}','${g.exam}','${r.class}')">
-              <i class="fa-solid fa-paper-plane"></i> Release Exam
-            </button>
-            <button style="padding:6px 12px;font-size:12px;border-radius:0;border:1px solid var(--amber);background:#fff;color:var(--amber);white-space:nowrap;cursor:pointer;" onclick="withdrawExamResults('${termBlock.term}','${g.exam}','${r.class}')">
-              <i class="fa-solid fa-rotate-left"></i> Unpublish Results
-            </button>
-          `}
+          ` : examLockedActionsHtml(termBlock, g, r)}
         </div>
-      </td>
+      </td>`}
     </tr>
   `).join('')).join('');
 
@@ -39487,7 +40634,7 @@ function renderManageExamsTab(){
   const body = examTerms.length
     ? examTerms.map(renderManageExamsTermTable).join('')
     : `<div class="panel"><div class="empty" style="padding:40px 24px;">No exams found for this academic year.</div></div>`;
-  return header + body + renderExamAnalysisPanel();
+  return header + body + renderExamAnalysisPanel() + renderKcseModal();
 }
 
 function renderMarksEntryTab(){
@@ -45269,7 +46416,7 @@ function scoreSheetAction(kind, el){
 function scoreSheetUploadPick(){ const f = document.getElementById('ssUploadFile'); if(f) f.click(); }
 function scoreSheetUploadFile(input){
   const file = input.files && input.files[0]; if(!file) return;
-  if(typeof XLSX === 'undefined'){ alert('The Excel library could not be loaded.'); input.value = ''; return; }
+  if(typeof XLSX === 'undefined'){ ensureXLSX(ok => ok ? scoreSheetUploadFile(input) : (alert(XLSX_FAIL_MSG), input.value = '')); return; }
   const reader = new FileReader();
   reader.onload = e => {
     try{
@@ -45416,6 +46563,8 @@ function renderScoreSheetEntry(){
             </div>
           </details>
           <div class="xl-right">
+            <input id="ssUploadFile" type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="scoreSheetUploadFile(this)">
+            <button type="button" class="xl-btn" title="Upload marks from an Excel/CSV file" onclick="scoreSheetUploadPick()"><i class="fa-solid fa-upload"></i> Upload</button>
             <button type="button" class="xl-btn" ${locked ? '' : 'disabled'} onclick="scoreSheetEntryEdit()">Edit</button>
             <button type="button" class="xl-btn pri" ${locked ? 'disabled' : ''} onclick="scoreSheetEntrySave()">Save</button>
           </div>
