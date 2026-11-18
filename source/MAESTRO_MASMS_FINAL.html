@@ -460,6 +460,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     if(!FS || !SH){ alert('Saving files is not available in this version of the app.'); return; }
     name = String(name || ('MASMS-file-' + Date.now())).replace(/[^\w.\- ]+/g, '_');
     if(!/\.[A-Za-z0-9]{2,5}$/.test(name)) name += extFor(blob.type);
+    var DL = C.registerPlugin ? C.registerPlugin('Downloads') : plug('Downloads');
+    var mime = blob.type || 'application/octet-stream';
+    // 1) Save into the phone's Downloads folder first, 2) then offer "Open with".
+    // Older app builds without the Downloads plugin fall back to the share sheet below.
+    var viaDownloads = toBase64(blob).then(function(b64){
+      return DL.save({ name: name, mime: mime, data: b64 });
+    }).then(function(r){
+      toast('Saved to Downloads: ' + (r.name || name));
+      return DL.open({ uri: r.uri, mime: mime }).catch(function(){ /* saved; no viewer installed */ });
+    });
+    viaDownloads.catch(function(e){
+      var m = String((e && e.message) || e || '');
+      if(/denied/i.test(m)){ alert('Allow storage access to save files to Downloads.'); return; }
+      return shareFromCache(blob, name);
+    });
+  }
+  function toast(msg){
+    try{
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;font:600 13px/1.3 sans-serif;z-index:2147483647;max-width:88vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);';
+      document.body.appendChild(t);
+      setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3500);
+    }catch(e){}
+  }
+  function shareFromCache(blob, name){
+    var FS = plug('Filesystem'), SH = plug('Share');
     toBase64(blob).then(function(b64){
       return FS.writeFile({ path: name, data: b64, directory: 'CACHE' });
     }).then(function(r){
@@ -14036,7 +14063,7 @@ function setTeacherHomeTab(key){ teacherHomeTab = key; render(); }
 
 // Sub-tabs shown inside "My Subjects": the subject list itself, plus
 // Syllabus Coverage and Exam Analysis, both scoped to the teacher's subjects.
-let mySubjectsSubTab = "subjects"; // "subjects" | "syllabusCoverage" | "exams"
+let mySubjectsSubTab = "subjects"; // "subjects" | "syllabusCoverage"
 function setMySubjectsSubTab(key){ mySubjectsSubTab = key; render(); }
 
 // ---- Syllabus coverage (teacher self-tracked, per subject) ----
@@ -14129,9 +14156,6 @@ function renderTeacherHomeDashboard(){
     const MY_SUBJECTS_SUB_TABS = [
       { key:"subjects", label:"Subjects", icon:"fa-book-open" },
       { key:"syllabusCoverage", label:"Syllabus Coverage", icon:"fa-list-check" },
-      { key:"exams", label:"Exams", icon:"fa-file-lines" },
-      { key:"subjectClassPerformance", label:"Subject Class Performance", icon:"fa-chart-line" },
-      { key:"attendance", label:"Attendance", icon:"fa-clipboard-check" },
     ];
     const subTabBar = `
       <div class="subject-tab-row">
@@ -14145,14 +14169,6 @@ function renderTeacherHomeDashboard(){
     let subBody = "";
     if(mySubjectsSubTab === "syllabusCoverage"){
       subBody = renderTeacherSyllabusCoverageTab();
-    } else if(mySubjectsSubTab === "exams"){
-      subBody = renderTeacherExamsSubTab();
-    } else if(mySubjectsSubTab === "subjectClassPerformance"){
-      // Same per-subject, per-class average breakdown shown on the
-      // Dashboard's Exams section — surfaced here too as its own card.
-      subBody = renderTeacherExamAnalysisTab();
-    } else if(mySubjectsSubTab === "attendance"){
-      subBody = renderAttendance();
     } else {
       const rec = currentTeacherRecord();
       const mySubjectsList = (rec && rec.subjects) || [];
@@ -14213,7 +14229,7 @@ function renderTeacherHomeDashboard(){
     body = `
       <div class="exams-hub-cards reg-card-row">
         <button class="reg-card" onclick="teacherExamView='analysis';go('examinations')"><div class="reg-card-icon"><i class="fa-solid fa-chart-line"></i></div><div class="reg-card-label">Exam Analysis</div><div class="reg-card-sub">Subject, class &amp; stream analysis (view only)</div></button>
-        <button class="reg-card" onclick="mySubjectsSubTab='subjectClassPerformance';setTeacherHomeTab('mySubjects')"><div class="reg-card-icon"><i class="fa-solid fa-ranking-star"></i></div><div class="reg-card-label">Subject Class Performance</div><div class="reg-card-sub">Averages for the subjects you teach</div></button>
+        <button class="reg-card" onclick="teacherExamView='subjectClassPerformance';go('examinations')"><div class="reg-card-icon"><i class="fa-solid fa-ranking-star"></i></div><div class="reg-card-label">Subject Class Performance</div><div class="reg-card-sub">Averages for the subjects you teach</div></button>
         <button class="reg-card" onclick="mySubjectsSubTab='syllabusCoverage';setTeacherHomeTab('mySubjects')"><div class="reg-card-icon"><i class="fa-solid fa-list-check"></i></div><div class="reg-card-label">Syllabus Coverage</div><div class="reg-card-sub">Your coverage progress per subject</div></button>
         <button class="reg-card" onclick="mySubjectsSubTab='subjects';setTeacherHomeTab('mySubjects')"><div class="reg-card-icon"><i class="fa-solid fa-file-lines"></i></div><div class="reg-card-label">Subject Lists</div><div class="reg-card-sub">View / print / download class lists</div></button>
         ${hasClass ? `<button class="reg-card" onclick="setTeacherHomeTab('myClass')"><div class="reg-card-icon"><i class="fa-solid fa-users-line"></i></div><div class="reg-card-label">Class Register</div><div class="reg-card-sub">Lists for the class you teach</div></button>` : ''}
@@ -14256,7 +14272,14 @@ function renderTeacherHomeDashboard(){
       <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
     </div>
   ` : '';
-  return `${viewModeBadge}${teacherResponsibilityStrip()}${tabBar}${body}`;
+  // Opening one section hides the other section cards; a back button returns to the dashboard.
+  const curTab = TEACHER_HOME_TABS.find(t => t.key === teacherHomeTab);
+  const sectionBar = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
+      <button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" onclick="setTeacherHomeTab('dashboard')"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</button>
+      <div style="font-size:16px;font-weight:700;"><i class="fa-solid ${curTab ? curTab.icon : 'fa-table-cells-large'}" style="color:var(--blue);margin-right:8px;"></i>${curTab ? curTab.label : ''}</div>
+    </div>`;
+  return `${viewModeBadge}${teacherHomeTab === "dashboard" ? teacherResponsibilityStrip() + tabBar : sectionBar}${body}`;
 }
 
 // =====================================================================
@@ -14461,23 +14484,8 @@ function renderDepartmentAndClubPanels(){
 }
 
 function teacherResponsibilityStrip(){
-  const chips = [];
-  const cls = myClassTeacherClasses();
-  if(cls.length) chips.push(["fa-users-line", "Class Teacher: " + cls.map(c => classDisplayName(c)).join(", ")]);
-  const subs = (currentTeacherRecord() || {}).subjects || [];
-  if(subs.length) chips.push(["fa-book-open", "Subject Teacher: " + subs.join(", ")]);
-  const dorms = boardingDorms.filter(d => tNameEq(d.warden, currentUserName));
-  if(dorms.length) chips.push(["fa-bed", "Boarding Master: " + dorms.map(d => d.name).join(", ")]);
-  if(teacherIsTransportInCharge()) chips.push(["fa-bus", "Transport In-Charge"]);
-  const clubs = teacherCocurricularClubs();
-  if(clubs.length) chips.push(["fa-trophy", "Patron: " + clubs.join(", ")]);
-  const headed = myHeadedDepartments();
-  if(headed.length) chips.push(["fa-sitemap", "Head of Department: " + headed.join(", ")]);
-  if(!chips.length) return '';
-  return `<div class="panel" style="margin-bottom:16px;padding:12px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-    <strong style="font-size:12.5px;color:var(--muted);margin-right:6px;">Your roles</strong>
-    ${chips.map(c => `<span style="background:var(--blue-tint);color:var(--blue-dark);font-size:12px;font-weight:600;padding:5px 10px;"><i class="fa-solid ${c[0]}"></i> ${c[1]}</span>`).join('')}
-  </div>`;
+  const rec = currentTeacherRecord();
+  return rec ? renderTeacherProfileCard(rec) : '';
 }
 
 
@@ -14595,18 +14603,22 @@ function renderTeacherTimetablePortal(){
 }
 
 // ---------- Examinations: enter marks + view-only analysis ----------
-let teacherExamView = null; // null | "marksEntry" | "analysis"
+let teacherExamView = null; // null | "marksEntry" | "analysis" | "subjectClassPerformance"
 function setTeacherExamView(v){ teacherExamView = v; if(v === 'marksEntry') academicTab = 'marksEntry'; render(); }
 function renderTeacherExaminations(){
   if(!teacherExamView){
     return `<div class="exams-hub-cards reg-card-row">
       <button class="reg-card" onclick="setTeacherExamView('marksEntry')"><div class="reg-card-icon"><i class="fa-solid fa-pen-to-square"></i></div><div class="reg-card-label">Enter Marks</div><div class="reg-card-sub">Marksheets for the subjects you teach</div></button>
       <button class="reg-card" onclick="setTeacherExamView('analysis')"><div class="reg-card-icon"><i class="fa-solid fa-chart-line"></i></div><div class="reg-card-label">Analysis Reports</div><div class="reg-card-sub">View only</div></button>
+      <button class="reg-card" onclick="setTeacherExamView('subjectClassPerformance')"><div class="reg-card-icon"><i class="fa-solid fa-ranking-star"></i></div><div class="reg-card-label">Subject Class Performance</div><div class="reg-card-sub">Class averages for the subjects you teach</div></button>
     </div>`;
   }
   const back = `<button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;margin-bottom:16px;" onclick="teacherExamView=null;academicTab=null;render();"><i class="fa-solid fa-arrow-left"></i> Back to Examinations</button>`;
   if(teacherExamView === 'marksEntry'){
     return `${back}${renderMarksEntryTab()}`;
+  }
+  if(teacherExamView === 'subjectClassPerformance'){
+    return `${back}${renderTeacherExamAnalysisTab()}`;
   }
   const subs = ACADEMIC_SUBTABS.analysis;
   const cur = currentAcademicSubTab('analysis');
@@ -14843,27 +14855,6 @@ function renderTeacherExamAnalysisTab(){
     return `<div class="panel"><div class="empty" style="padding:40px 24px;">No analysed exams yet for your subjects. Analysis appears here once results have been uploaded for an exam you teach.</div></div>`;
   }
   return cards.join('');
-}
-
-// Shown under My Subjects > Exams: any created exam covering one of the
-// teacher's subjects that hasn't been uploaded/analysed yet — i.e. still
-// open for marks entry. Once an exam's results are uploaded it drops off
-// this list and shows up in the Dashboard's Exams (analysis) section instead.
-function renderTeacherExamsSubTab(){
-  const rec = currentTeacherRecord();
-  const teacherSubjects = (rec && rec.subjects) || [];
-  if(!teacherSubjects.length){
-    return `<div class="panel"><div class="empty" style="padding:40px 24px;">No subjects assigned yet, so there are no exams to enter marks for. Ask an administrator to assign subjects to you under Registration &gt; Teachers.</div></div>`;
-  }
-  const rows = flattenExamRows().filter(r => {
-    if(r.status === "Uploaded") return false;
-    const examSubjects = subjectsForExam(r.exam);
-    return teacherSubjects.some(s => examSubjects.includes(s));
-  });
-  if(!rows.length && !marksEntryContext){
-    return `<div class="panel"><div class="empty" style="padding:40px 24px;">No exams awaiting marks entry right now. Newly created exams covering your subjects will appear here.</div></div>`;
-  }
-  return renderMarksEntrySubTab(rows);
 }
 
 // Generic inline SVG donut chart. segments: [{value, color}]. Returns just
@@ -23960,46 +23951,105 @@ function saveTeacherRow(i){
   teacherRowEdit = null;
   render();
 }
+function teacherCardCss(){
+  return `<style>
+      .tc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:0 4px 20px;}
+      @media (max-width:1000px){.tc-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+      @media (max-width:640px){.tc-grid{grid-template-columns:1fr;}}
+      .tc-card{background:#fff;border:1px solid #111;padding:8px 10px 6px;display:flex;flex-direction:column;}
+      .tc-top{display:flex;gap:10px;}
+      .tc-photo{flex:0 0 92px;height:104px;border:1px solid #111;display:flex;align-items:center;justify-content:center;font-size:12px;color:#111;overflow:hidden;}
+      .tc-photo img{width:100%;height:100%;object-fit:cover;}
+      .tc-info{flex:1;min-width:0;}
+      .tc-line{display:flex;gap:8px;font-size:12.5px;line-height:1.55;}
+      .tc-k{flex:0 0 60px;color:#16a34a;white-space:nowrap;}
+      .tc-v{flex:1;min-width:0;color:#111;overflow-wrap:anywhere;text-transform:none !important;}
+      .tc-roles-h{text-align:center;color:#1d34c8;font-weight:700;font-size:12px;margin:4px 0 2px;}
+      .tc-roles{margin:0;padding-left:34px;font-size:12.5px;line-height:1.5;color:#111;min-height:24px;}
+      .tc-flags{display:flex;gap:16px;font-size:12px;margin:6px 0 0;}
+      .tc-actions{margin-top:auto;padding-top:6px;border-top:1px solid #e5e7eb;display:flex;gap:6px;justify-content:flex-end;white-space:nowrap;}
+    </style>`;
+}
+// Read-only profile card (teacher dashboard).
+function renderTeacherProfileCard(t){
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const line = (label, val) => `<div class="tc-line"><span class="tc-k">${label}:</span><span class="tc-v">${val}</span></div>`;
+  const subj = (t.subjects && t.subjects.length) ? t.subjects.map(x => subjectShortForm(x)).join(', ') : '—';
+  const roles = teacherRolesList(t);
+  return `${teacherCardCss()}<div class="tc-card" style="max-width:440px;margin-bottom:16px;">
+    <div class="tc-top">
+      <div class="tc-photo">${t.photo ? `<img src="${esc(t.photo)}" alt="">` : 'PHOTO'}</div>
+      <div class="tc-info">
+        ${line('NAME', esc(teacherFullName(t)))}
+        ${line('ID NO', esc(t.nationalId || '—'))}
+        ${line('TSC NO', esc(t.tscNumber || '—'))}
+        ${line('GENDER', esc(t.gender || '—'))}
+        ${line('MOB NO', esc(t.phone || '—'))}
+        ${line('SUBJ', esc(subj))}
+      </div>
+    </div>
+    <div class="tc-roles-h">ROLES &amp; RESPONSIBILITY</div>
+    <ol class="tc-roles">${roles.map(r => `<li>${esc(String(r).toUpperCase())}</li>`).join('')}</ol>
+  </div>`;
+}
+// Every role a teacher holds, for the "Roles & Responsibility" list on their card.
+function teacherRolesList(t){
+  const name = teacherFullName(t), out = [];
+  const add = r => { r = String(r || '').trim(); if(r && !out.some(x => x.toLowerCase() === r.toLowerCase())) out.push(r); };
+  // A plain "Teacher" / "Class Teacher" is never listed on its own: a class teacher shows the actual class
+  // (e.g. "Class Teacher Grade 10 East"); a teacher with no other role shows just "Teacher".
+  // Principal, Deputy Principal, Dean of Studies, HOD ...: "Teacher" is always No. 1, the other roles follow.
+  const isLeader = !!String(t.responsibility || '').trim() && !/^(class\s+)?teacher$/i.test(String(t.responsibility).trim());
+  if(isLeader){ add("Teacher"); add(t.responsibility); }
+  classesList.forEach(c => { if(c.teacher && tNameEq(c.teacher, name)) add("Class Teacher " + classDisplayName(c)); });
+  (boardingDorms || []).forEach(d => { if(d.warden && tNameEq(d.warden, name)) add("Boarding Master " + d.name); });
+  if(t.transportInCharge) add("Transport In-Charge");
+  Object.keys(clubPatrons || {}).forEach(k => { if(clubPatrons[k] && tNameEq(clubPatrons[k], name)) add(k + " Patron"); });
+  (t.subjectHead || []).forEach(sub => add("Head of " + sub));
+  if(!out.length) out.push("Teacher");
+  return out;
+}
+function setTeacherFlag(i, k, v){ if(teachersList[i]){ teachersList[i][k] = !!v; render(); } }
 function renderManageTeachersPanel(){
   const shown = teachersList.map((t, i) => ({ t, i })).filter(({ t }) =>
     !schoolHasBoarding() ? true : teacherManageFilter === "boarding" ? teacherBoarderFlag(t) : teacherManageFilter === "day" ? teacherDayFlag(t) : true);
   const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  const inp = 'width:100%;box-sizing:border-box;padding:5px 8px;font-family:inherit;font-size:13px;border:1px solid #94a3b8;border-radius:0;';
-  const rows = shown.map(({ t, i }, n) => {
-    const ed = teacherRowEdit && teacherRowEdit.i === i ? teacherRowEdit : null;
-    const day = ed ? ed.dayScholars : teacherDayFlag(t), bo = ed ? ed.boarder : teacherBoarderFlag(t);
+  const inp = 'width:100%;box-sizing:border-box;padding:3px 6px;font-family:inherit;font-size:12.5px;border:1px solid #94a3b8;border-radius:0;';
+  const cards = shown.map(({ t, i }) => {
+    const day = teacherDayFlag(t), bo = teacherBoarderFlag(t);
     const btn = (label, icon, fn, extra) => `<button class="link-btn ${extra||''}" onclick="${fn}"><i class="fa-solid ${icon}"></i>&nbsp;${label}</button>`;
-    return `<tr style="cursor:default;">
-      <td style="text-align:center;">${n+1}</td>
-      <td style="font-weight:600;white-space:nowrap;">${esc(teacherFullName(t))}</td>
-      <td>${esc(t.nationalId || '—')}</td>
-      <td>${ed ? `<input style="${inp}" value="${esc(ed.tscNumber)}" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this);setTeacherRowField('tscNumber',this.value)">` : esc(t.tscNumber || '—')}</td>
-      <td>${ed ? `<input style="${inp}" value="${esc(ed.phone)}" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this);setTeacherRowField('phone',this.value)">` : esc(t.phone || '—')}</td>
-      <td>${esc((t.subjects && t.subjects.length) ? t.subjects.map(x => subjectShortForm(x)).join(', ') : '—')}</td>
-      <td>${esc(t.responsibility || '—')}</td>
-      <td>${esc(t.countyOfBirth || '—')}</td>
-      <td>${esc(t.subCountyOfBirth || '—')}</td>
-      ${schoolHasBoarding() ? `<td style="text-align:center;"><input type="checkbox" ${day?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('dayScholars',this.checked)"></td>
-      <td style="text-align:center;"><input type="checkbox" ${bo?'checked':''} ${ed?'':'disabled'} onchange="setTeacherRowField('boarder',this.checked)"></td>` : ''}
-      <td style="white-space:nowrap;text-align:center;">
-        ${btn('Edit','fa-pen',`startTeacherRowEdit(${i})`)}
-        ${btn('Save','fa-floppy-disk',`saveTeacherRow(${i})`, ed ? '' : '" style="opacity:.4;pointer-events:none;')}
+    const subj = (t.subjects && t.subjects.length) ? t.subjects.map(x => subjectShortForm(x)).join(', ') : '—';
+    const line = (label, val) => `<div class="tc-line"><span class="tc-k">${label}:</span><span class="tc-v">${val}</span></div>`;
+    const roles = teacherRolesList(t);
+    return `<div class="tc-card">
+      <div class="tc-top">
+        <div class="tc-photo">${t.photo ? `<img src="${esc(t.photo)}" alt="">` : 'PHOTO'}</div>
+        <div class="tc-info">
+          ${line('NAME', esc(teacherFullName(t)))}
+          ${line('ID NO', esc(t.nationalId || '—'))}
+          ${line('TSC NO', esc(t.tscNumber || '—'))}
+          ${line('GENDER', esc(t.gender || '—'))}
+          ${line('MOB NO', esc(t.phone || '—'))}
+          ${line('SUBJ', esc(subj))}
+        </div>
+      </div>
+      <div class="tc-roles-h">ROLES &amp; RESPONSIBILITY</div>
+      <ol class="tc-roles">${roles.length ? roles.map(r => `<li>${esc(String(r).toUpperCase())}</li>`).join('') : '<li style="list-style:none;color:var(--muted);">—</li>'}</ol>
+      ${schoolHasBoarding() ? `<div class="tc-flags"><label><input type="checkbox" ${day?'checked':''} onchange="setTeacherFlag(${i},'dayScholars',this.checked)"> Day Scholars</label><label><input type="checkbox" ${bo?'checked':''} onchange="setTeacherFlag(${i},'boarder',this.checked)"> Boarder</label></div>` : ''}
+      <div class="tc-actions">
+        ${btn('Edit','fa-pen',`editTeacher(${i})`)}
         ${btn('Delete','fa-trash',`deleteTeacher(${i})`,'danger')}
-      </td></tr>`;
-  }).join('') || `<tr style="cursor:default;"><td colspan="${schoolHasBoarding() ? 12 : 10}" class="empty">${teachersList.length ? 'No teachers in this group.' : 'No teachers yet. Add one from the "Add New Teacher" tab.'}</td></tr>`;
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty" style="grid-column:1/-1;">${teachersList.length ? 'No teachers in this group.' : 'No teachers yet. Add one from the "Add New Teacher" tab.'}</div>`;
   const nDay = teachersList.filter(teacherDayFlag).length, nBo = teachersList.filter(teacherBoarderFlag).length;
   const links = [["all","All Teachers",teachersList.length],["day","Day Scholars Teachers",nDay],["boarding","Boarding Teachers",nBo]]
     .map(([k,l,n]) => `<button type="button" onclick="setTeacherManageFilter('${k}')" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;padding:7px 16px;border:1px solid #2f5fa8;border-radius:0;${teacherManageFilter===k?'background:#2f5fa8;color:#fff;':'background:#fff;color:#2f5fa8;'}">${l} (${n})</button>`).join('');
   return `
+    ${teacherCardCss()}
     <div class="panel-header" style="padding:16px 4px;"><h3>Teachers (${shown.length})</h3></div>
     ${schoolHasBoarding() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 4px 14px;">${links}</div>` : ''}
-    <div class="bsms-table-card"><div class="bsms-table-scroll">
-      <style>.mt-head th{font-weight:800 !important;}</style>
-      <table class="bsms-table" style="width:100%;">
-        <thead class="mt-head"><tr style="text-transform:uppercase;font-weight:700;"><th style="width:60px;text-align:center;">S/NO</th><th style="white-space:nowrap;">Name</th><th>ID No</th><th>TSC No</th><th>Mobile No</th><th>Subject Combination</th><th style="white-space:normal;min-width:130px;line-height:1.25;">Roles &amp; Responsibility</th><th>Home County</th><th>Home Sub-County</th>${schoolHasBoarding() ? '<th style="text-align:center;">Day Scholars</th><th style="text-align:center;">Boarder</th>' : ''}<th style="text-align:center;">Action</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div></div>
+    <div class="tc-grid">${cards}</div>
   `;
 }
 
