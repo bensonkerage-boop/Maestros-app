@@ -20,7 +20,8 @@ function injectLocal(html) {
   const js = ['local-store.js', 'keep-session.js', 'app-update.js'].map(f => '<script>' + fs.readFileSync(path.join(__dirname, f), 'utf8') + '</script>').join('\n');
   return html.slice(0, i) + js + '\n' + html.slice(i);
 }
-module.exports = { injectDark, injectLocal };
+const { injectLanding, landingHtml } = require('./landing');
+module.exports = { injectDark, injectLocal, injectLanding };
 if (require.main !== module) return;
 (async () => {
   fs.rmSync(pub, { recursive: true, force: true });
@@ -94,10 +95,12 @@ if (require.main !== module) return;
   fs.writeFileSync(path.join(pub, 'vendor/fa/all.min.css'), fs.readFileSync(path.join(pub, 'vendor/fa/all.min.css'), 'utf8').replace(/\.\.\/webfonts\//g, 'webfonts/'));
 
   html = injectDark(html);
+  html = injectLanding(html, root);   // landing page first; its Log in button reveals the app login
   // PWA: manifest, icons, service worker; optional API base for the Android app (API_BASE=https://your-site)
   fs.cpSync(path.join(root, 'pwa', 'icons'), path.join(pub, 'icons'), { recursive: true });
   cp(path.join(root, 'pwa', 'manifest.webmanifest'), path.join(pub, 'manifest.webmanifest'));
   cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
+  fs.writeFileSync(path.join(pub, 'landing.html'), landingHtml(root));   // landing page; its Log in link goes to /#app
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
   // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.

@@ -1,0 +1,6 @@
+HOME PAGE CIRCLE PHOTO
+Save one photo here as  hero.jpg  (or hero.png / hero.webp), then run:  npm run build
+- Use a square-ish picture, about 900 x 900 px, under 500 KB, subject near the centre/upper-middle
+  (the circle crops the corners).
+- No hero file = the built-in drawing stays.
+- Photos published from the System Developer "Web Page" tab (hero.photo) override this file.

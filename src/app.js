@@ -98,6 +98,38 @@ app.get('/api/app-version', (req, res) => {
   });
 });
 
+// Landing-page content (text, contacts, gallery photos) edited by the System Developer in the app (Web Page tab).
+// Reading is public so the landing page can show it before anyone logs in; saving needs a cloud admin sign-in.
+const WP_STR = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+function cleanWebPage(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+  const hero = c.hero || {}, ct = c.contacts || {};
+  const gallery = [];
+  for (const g of (Array.isArray(c.gallery) ? c.gallery : []).slice(0, 24)) {
+    const src = typeof g.src === 'string' ? g.src : '';
+    if (!/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(src) || src.length > 700 * 1024) continue;
+    gallery.push({ id: WP_STR(g.id, 40), title: WP_STR(g.title, 80), caption: WP_STR(g.caption, 240), src });
+  }
+  return {
+    hero: { heading: WP_STR(hero.heading, 80), text: WP_STR(hero.text, 600) },
+    contacts: { phone: WP_STR(ct.phone, 40), email: WP_STR(ct.email, 120), facebookName: WP_STR(ct.facebookName, 80), facebookUrl: WP_STR(ct.facebookUrl, 300), whatsapp: WP_STR(ct.whatsapp, 40) },
+    gallery,
+  };
+}
+app.get('/api/web-page', wrap(async (req, res) => {
+  const rec = await (await getStore()).getTx('webpage');
+  res.set('Cache-Control', 'no-store');
+  res.json(rec ? { version: rec.version, content: rec.content } : { version: 0, content: null });
+}));
+app.put('/api/web-page', auth, wrap(async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only the cloud admin can change the web page' });
+  const content = cleanWebPage(req.body && req.body.content);
+  if (!content) return res.status(400).json({ error: 'Body must be { content: { hero, contacts, gallery } }' });
+  const rec = { version: Date.now(), content, updatedBy: req.user.username };
+  await (await getStore()).saveTx('webpage', rec);
+  res.json({ version: rec.version });
+}));
+
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // Static site (local/Node hosting). On Vercel, files in /public are served by the CDN instead.

@@ -90,3 +90,28 @@ describe('app update version feed', () => {
     delete process.env.APP_LATEST_VERSION_CODE; delete process.env.APP_MIN_VERSION_CODE;
   });
 });
+
+describe('web page (landing content)', () => {
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const content = { hero: { heading: 'Hello', text: 'Intro' }, contacts: { phone: '0700000000', email: 'a@b.co' }, gallery: [{ title: 'Open day', caption: 'c', src: png }, { title: 'bad', src: 'javascript:alert(1)' }] };
+  test('anyone can read it; nothing saved yet', async () => {
+    const r = await call('GET', '/api/web-page');
+    expect(r.s).toBe(200);
+    expect(r.j.content).toBeNull();
+  });
+  test('saving needs a cloud sign-in', async () => {
+    expect((await call('PUT', '/api/web-page', { content })).s).toBe(401);
+  });
+  test('admin saves; the public read returns it with unsafe photos dropped', async () => {
+    const put = await call('PUT', '/api/web-page', { content }, admin);
+    expect(put.s).toBe(200);
+    const got = (await call('GET', '/api/web-page')).j.content;
+    expect(got.hero.heading).toBe('Hello');
+    expect(got.contacts.phone).toBe('0700000000');
+    expect(got.gallery).toHaveLength(1);
+    expect(got.gallery[0].src).toBe(png);
+  });
+  test('rejects a body without content', async () => {
+    expect((await call('PUT', '/api/web-page', { nope: 1 }, admin)).s).toBe(400);
+  });
+});

@@ -6,6 +6,7 @@ self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Prom
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  if (req.mode === 'navigate' && url.pathname !== '/') return;   // e.g. /landing.html: leave to the browser, never cache it as the app shell
   if (req.mode === 'navigate') {            // page: network first, cached copy when offline
     e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('/', c)); return r; }).catch(() => caches.match('/')));
     return;

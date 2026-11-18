@@ -4445,6 +4445,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     padding:36px;
     font-family:var(--font-body);
   }
+  .login-back{position:fixed;top:max(14px,env(safe-area-inset-top));left:14px;z-index:5;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 14px;border:0;border-radius:999px;background:#fff;color:#0040d8;font:700 15px 'Inter',sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  .login-back:hover{background:#eef3ff}.login-back:active{transform:scale(.97)}
+  .login-back i{font-size:16px}
   .login-cert-frame{
     width:100%;max-width:730px;
     background:linear-gradient(155deg,#fbfbfa 0%,#e9ebe9 100%);
@@ -5771,6 +5774,7 @@ function renderLoginPage(){
   if(isLoggedIn){ root.innerHTML = ""; return; }
   root.innerHTML = `
     <div class="login-page">
+      ${window.MASMS_LANDING ? `<button type="button" class="login-back" aria-label="Back to home page" title="Back to home page" onclick="MASMS_LANDING.home()"><i class="fa-solid fa-arrow-left"></i><span>Home</span></button>` : ''}
       <div class="login-cert-frame">
         <div class="login-cert-title">Maestro Advanced School<br>Management System</div>
         <div class="login-cert-rule"></div>
@@ -12885,6 +12889,202 @@ function renderSdDocuments(){
     </div>`;
   return nav + (sdDocsView === "letter" ? renderSdLetterStudio() : renderSdDocumentFiles());
 }
+// ---- System Developer > Web Page ----------------------------------------------
+// Lets the System Developer edit what visitors see on the landing page before login: the home text, the contacts
+// and photo cards for the gallery. Saved on this device (localStorage "maestroWebPage", which the landing page reads)
+// and published to the server (PUT /api/web-page, needs the cloud sign-in) so every visitor sees it.
+// Kept out of school backups on purpose, like Documents.
+const SWP_KEY = "maestroWebPage";
+const SWP_DEFAULT = {
+  hero: { heading: "Maestro School Management", text: "Maestro brings admissions, attendance, timetables, fees, exams and parent communication into one system, so your staff spend less time on paperwork and more time on students." },
+  contacts: { phone: "0724743019", email: "bensonkerage@gmail.com", facebookName: "Benson Oimeke", facebookUrl: "https://www.facebook.com/search/top?q=Benson%20Oimeke", whatsapp: "0724743019" },
+  gallery: []
+};
+const SWP_MAX_PHOTOS = 12, SWP_MAX_CHARS = 3200000;
+let swpSaved = null, swpDraft = null, swpDirty = false, swpMsg = "", swpMsgOk = true, swpBusy = false, swpFetched = false;
+function swpEsc(v){ return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function swpClone(o){ return JSON.parse(JSON.stringify(o)); }
+function swpMerge(c){
+  const d = swpClone(SWP_DEFAULT); c = c || {};
+  Object.keys(d.hero).forEach(k => { if(c.hero && typeof c.hero[k] === "string" && c.hero[k]) d.hero[k] = c.hero[k]; });
+  Object.keys(d.contacts).forEach(k => { if(c.contacts && typeof c.contacts[k] === "string" && c.contacts[k]) d.contacts[k] = c.contacts[k]; });
+  d.gallery = Array.isArray(c.gallery) ? c.gallery.filter(g => g && typeof g.src === "string").map(g => ({ id: g.id || ("p" + Math.random().toString(36).slice(2, 9)), title: g.title || "", caption: g.caption || "", src: g.src })) : [];
+  return d;
+}
+function swpReadSaved(){ try{ const r = JSON.parse(localStorage.getItem(SWP_KEY) || "null"); return r && r.c ? r : null; }catch(_e){ return null; } }
+function swpEnsure(){
+  if(swpDraft) return;
+  swpSaved = swpReadSaved();
+  swpDraft = swpMerge(swpSaved && swpSaved.c);
+  swpDirty = false;
+}
+function swpCloudIn(){ return !!(window.MASMS_CLOUD && window.MASMS_CLOUD.signedIn && window.MASMS_CLOUD.signedIn()); }
+function swpFlash(msg, ok){ swpMsg = msg; swpMsgOk = ok !== false; render(); }
+function swpStorageWrite(rec){ try{ localStorage.setItem(SWP_KEY, JSON.stringify(rec)); return true; }catch(_e){ return false; } }
+function swpTouchLanding(){ try{ if(window.MASMS_LANDING && MASMS_LANDING.refresh) MASMS_LANDING.refresh(); }catch(_e){} }
+// pick up what was published from another device, unless this device has edits that are not published yet
+function swpFetchServer(){
+  if(swpFetched) return; swpFetched = true;
+  try{
+    fetch((window.MASMS_API_BASE || "") + "/api/web-page", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
+      if(!j || !j.content) return;
+      const cur = swpReadSaved();
+      if((cur && cur.pending) || swpDirty) return;
+      swpStorageWrite({ c: j.content, pending: false, version: j.version || 0 });
+      swpSaved = swpReadSaved(); swpDraft = swpMerge(j.content);
+      swpTouchLanding();
+      if(isLoggedIn && active === "sysdev" && sdMainTab === "webpage") render();
+    }).catch(() => {});
+  }catch(_e){}
+}
+function swpSet(path, val){
+  swpEnsure(); const [a, b] = path.split(".");
+  if(swpDraft[a]) swpDraft[a][b] = val;
+  swpDirty = true;
+}
+function swpSetPhoto(i, k, val){ swpEnsure(); if(swpDraft.gallery[i]) swpDraft.gallery[i][k] = val; swpDirty = true; }
+function swpSize(){ return swpDraft ? swpDraft.gallery.reduce((n, g) => n + g.src.length, 0) : 0; }
+function swpPhotoData(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("read"));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => rej(new Error("image"));
+      im.onload = () => {
+        const enc = (max, q) => {
+          const k = Math.min(1, max / Math.max(im.width, im.height));
+          const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+          const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+          return c.toDataURL("image/jpeg", q);
+        };
+        let d = enc(1200, 0.78);
+        if(d.length > 600000) d = enc(900, 0.6);
+        res(d);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+async function swpAddPhotos(input){
+  swpEnsure();
+  const files = Array.from(input.files || []); input.value = "";
+  if(!files.length) return;
+  let added = 0, skipped = [];
+  swpBusy = true; render();
+  for(const f of files){
+    if(swpDraft.gallery.length >= SWP_MAX_PHOTOS){ skipped.push(f.name + " (limit " + SWP_MAX_PHOTOS + " photos)"); continue; }
+    if(!/^image\//.test(f.type)){ skipped.push(f.name + " (not an image)"); continue; }
+    try{
+      const src = await swpPhotoData(f);
+      if(swpSize() + src.length > SWP_MAX_CHARS){ skipped.push(f.name + " (gallery is full — remove a photo first)"); continue; }
+      swpDraft.gallery.push({ id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "), caption: "", src });
+      added++;
+    }catch(_e){ skipped.push(f.name + " (could not be read)"); }
+  }
+  swpBusy = false; if(added) swpDirty = true;
+  swpFlash((added ? added + " photo" + (added === 1 ? "" : "s") + " added — edit the title and caption, then press Save." : "") + (skipped.length ? " Skipped: " + skipped.join(", ") + "." : ""), added > 0);
+}
+function swpRemove(i){ swpEnsure(); swpDraft.gallery.splice(i, 1); swpDirty = true; render(); }
+function swpMove(i, d){ swpEnsure(); const j = i + d, g = swpDraft.gallery; if(j < 0 || j >= g.length) return; const t = g[i]; g[i] = g[j]; g[j] = t; swpDirty = true; render(); }
+function swpResetText(){
+  if(!confirm("Put the home text and contacts back to the original wording? Your photos stay. Press Save afterwards to apply it.")) return;
+  swpEnsure(); const d = swpClone(SWP_DEFAULT); swpDraft.hero = d.hero; swpDraft.contacts = d.contacts; swpDirty = true; render();
+}
+async function swpPublish(content){
+  if(!swpCloudIn()) return { ok: false, why: "not-signed-in" };
+  try{ await window.MASMS_CLOUD.api("PUT", "/web-page", { content }); return { ok: true }; }
+  catch(e){ return { ok: false, why: e && e.message ? e.message : "failed" }; }
+}
+async function swpSave(){
+  swpEnsure();
+  if(swpSize() > SWP_MAX_CHARS){ return swpFlash("The photos are too large to save. Remove one or two.", false); }
+  const content = swpClone(swpDraft);
+  if(!swpStorageWrite({ c: content, pending: true })) return swpFlash("This device has no room to save the photos. Remove some and try again.", false);
+  swpSaved = swpReadSaved(); swpDirty = false; swpTouchLanding();
+  swpBusy = true; render();
+  const r = await swpPublish(content);
+  swpBusy = false;
+  if(r.ok){ swpStorageWrite({ c: content, pending: false, version: Date.now() }); swpSaved = swpReadSaved(); swpFlash("Saved and published — visitors now see this on the web page.", true); }
+  else if(r.why === "not-signed-in") swpFlash("Saved on this device. To show it to everyone, sign in to the cloud (the cloud button, bottom-left) with the admin account, then press Publish.", true);
+  else swpFlash("Saved on this device, but publishing failed: " + r.why + ". Press Publish to try again.", false);
+}
+async function swpRepublish(){
+  swpEnsure(); const rec = swpReadSaved(); if(!rec) return swpFlash("Nothing saved yet — press Save first.", false);
+  swpBusy = true; render();
+  const r = await swpPublish(rec.c);
+  swpBusy = false;
+  if(r.ok){ swpStorageWrite({ c: rec.c, pending: false, version: Date.now() }); swpSaved = swpReadSaved(); swpFlash("Published — visitors now see this on the web page.", true); }
+  else swpFlash(r.why === "not-signed-in" ? "Sign in to the cloud first (cloud button, bottom-left), using the admin account." : "Publishing failed: " + r.why, false);
+}
+function renderSdWebPage(){
+  swpEnsure(); swpFetchServer();
+  const d = swpDraft, pending = !!(swpSaved && swpSaved.pending), published = !!(swpSaved && !swpSaved.pending);
+  const kb = Math.round(swpSize() * 0.75 / 1024), cap = Math.round(SWP_MAX_CHARS * 0.75 / 1024);
+  const field = (label, path, val, ph, extra) => `<label class="field"${extra ? ' style="grid-column:1/-1"' : ""}><span>${label}</span><input type="text" value="${swpEsc(val)}" placeholder="${swpEsc(ph || "")}" oninput="swpSet('${path}',this.value)"></label>`;
+  const status = pending
+    ? `<span style="color:#b45309;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Saved on this device only — not published yet</span>`
+    : published ? `<span style="color:var(--green);font-weight:700;"><i class="fa-solid fa-circle-check"></i> Published</span>`
+    : `<span style="color:#6b7a99;font-weight:700;"><i class="fa-solid fa-circle-info"></i> Showing the original web page</span>`;
+  const photos = d.gallery.map((g, i) => `
+    <div style="border:2px solid var(--blue);border-radius:16px;overflow:hidden;background:#fff;display:flex;flex-direction:column;">
+      <img src="${g.src}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#f0e1f7;">
+      <div style="padding:12px;display:grid;gap:8px;">
+        <input type="text" value="${swpEsc(g.title)}" placeholder="Photo title" maxlength="80" oninput="swpSetPhoto(${i},'title',this.value)" style="font-weight:700;">
+        <textarea rows="2" maxlength="240" placeholder="Caption (optional)" oninput="swpSetPhoto(${i},'caption',this.value)" style="resize:vertical;">${swpEsc(g.caption)}</textarea>
+        <div style="display:flex;gap:6px;justify-content:space-between;">
+          <span style="display:flex;gap:6px;"><button type="button" class="btn-ghost" ${i === 0 ? "disabled" : ""} onclick="swpMove(${i},-1)" title="Move earlier" aria-label="Move earlier"><i class="fa-solid fa-arrow-left"></i></button><button type="button" class="btn-ghost" ${i === d.gallery.length - 1 ? "disabled" : ""} onclick="swpMove(${i},1)" title="Move later" aria-label="Move later"><i class="fa-solid fa-arrow-right"></i></button></span>
+          <button type="button" class="btn-ghost" style="color:#c0392b;" onclick="swpRemove(${i})"><i class="fa-solid fa-trash"></i> Remove</button>
+        </div>
+      </div>
+    </div>`).join("");
+  return `
+    <div style="display:grid;gap:18px;max-width:980px;">
+      <div class="panel"><div style="padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;">
+        <div style="display:grid;gap:4px;"><div style="font-size:14px;">${status}</div>
+          <div style="font-size:13px;color:#6b7a99;">Cloud: ${swpCloudIn() ? "signed in" : "not signed in — needed to publish to everyone"}</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <button type="button" class="btn-primary auto" ${swpBusy ? "disabled" : ""} onclick="swpSave()"><i class="fa-solid ${swpBusy ? "fa-spinner fa-spin" : "fa-floppy-disk"}"></i> Save${swpCloudIn() ? " &amp; publish" : ""}</button>
+          ${pending ? `<button type="button" class="btn-ghost" ${swpBusy ? "disabled" : ""} onclick="swpRepublish()"><i class="fa-solid fa-cloud-arrow-up"></i> Publish</button>` : ""}
+        </div>
+        ${swpMsg ? `<div role="status" style="flex-basis:100%;font-size:13px;font-weight:600;color:${swpMsgOk ? "var(--green)" : "#c0392b"};">${swpEsc(swpMsg)}</div>` : ""}
+      </div></div>
+
+      <div class="panel">
+        <div class="panel-header"><h3><i class="fa-solid fa-house" style="color:var(--blue);"></i>&nbsp;Home page</h3></div>
+        <div style="padding:6px 20px 20px;display:grid;gap:12px;">
+          <div class="profile-form-grid">${field("Heading", "hero.heading", d.hero.heading, "", true)}</div>
+          <label class="field"><span>Description (shown in the card under the heading)</span><textarea rows="4" maxlength="600" oninput="swpSet('hero.text',this.value)" style="resize:vertical;">${swpEsc(d.hero.text)}</textarea></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3><i class="fa-solid fa-address-book" style="color:var(--blue);"></i>&nbsp;Contacts</h3></div>
+        <div style="padding:6px 20px 20px;"><div class="profile-form-grid">
+          ${field("Phone", "contacts.phone", d.contacts.phone, "0700 000 000")}
+          ${field("Email", "contacts.email", d.contacts.email, "name@example.com")}
+          ${field("WhatsApp number", "contacts.whatsapp", d.contacts.whatsapp, "0700 000 000")}
+          ${field("Facebook name", "contacts.facebookName", d.contacts.facebookName, "Page or person")}
+          ${field("Facebook link", "contacts.facebookUrl", d.contacts.facebookUrl, "https://www.facebook.com/…", true)}
+        </div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3><i class="fa-solid fa-images" style="color:var(--blue);"></i>&nbsp;Photo gallery</h3></div>
+        <div style="padding:6px 20px 20px;display:grid;gap:14px;">
+          <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;">
+            <label class="btn-primary auto" style="cursor:pointer;display:inline-flex;align-items:center;gap:8px;"><i class="fa-solid fa-plus"></i> Add photos
+              <input type="file" accept="image/*" multiple style="display:none" onchange="swpAddPhotos(this)"></label>
+            <span style="font-size:13px;color:#6b7a99;">${d.gallery.length} of ${SWP_MAX_PHOTOS} photos · ${kb} of ${cap} KB used · photos are resized automatically</span>
+          </div>
+          ${d.gallery.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;">${photos}</div>`
+            : `<div style="border:2px dashed #b565d8;border-radius:16px;padding:28px;text-align:center;color:#6b7a99;"><i class="fa-solid fa-image" style="font-size:34px;color:#b565d8;"></i><div style="margin-top:8px;font-weight:600;">No photos yet — press <b>Add photos</b>. Each photo becomes a card on the web page's Gallery.</div></div>`}
+        </div>
+      </div>
+      <div><button type="button" class="btn-ghost" onclick="swpResetText()"><i class="fa-solid fa-rotate-left"></i> Put home text and contacts back to original</button></div>
+    </div>`;
+}
 function renderSystemDeveloperPage(){
   if(currentUserRole === "System Developer") saEnsureDeveloperAgent();
   if(isSalesAgentRole()){
@@ -12894,11 +13094,12 @@ function renderSystemDeveloperPage(){
     if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections the schools you registered see, and post a notice on their dashboard</p></div></div>` + aBar + renderSchoolModules() + renderSchoolDashMgmt();
     return `<div class="dash2-topline"><div><h1 class="dash2-title">Registered Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + aBar + renderSystemDeveloperPageSchools();
   }
-  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"]];
-  const bar = `<div class="class-tab-row" style="margin-bottom:16px;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
+  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"],["webpage","Web Page","fa-globe"]];
+  const bar = `<div class="class-tab-row" style="margin-bottom:16px;flex-wrap:wrap;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
   if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + sdLoginGuideHtml() + renderLoginMonitor();
   if(sdMainTab === "pricing") return `<div class="dash2-topline"><div><h1 class="dash2-title">Pricing</h1><p class="dash2-sub">Fixed and variable cost for each registered school &mdash; total = fixed cost + (variable cost &times; enrollment)</p></div></div>` + bar + renderSdPricing();
   if(sdMainTab === "account") return `<div class="dash2-topline"><div><h1 class="dash2-title">Account Information</h1><p class="dash2-sub">Your platform account and payment details</p></div></div>` + bar + renderSdAccountInfo();
+  if(sdMainTab === "webpage") return `<div class="dash2-topline"><div><h1 class="dash2-title">Web Page</h1><p class="dash2-sub">Edit the information, contacts and photos visitors see on the web page before they log in</p></div></div>` + bar + renderSdWebPage();
   if(sdMainTab === "documents") return `<div class="dash2-topline"><div><h1 class="dash2-title">Documents</h1><p class="dash2-sub">Contracts, licences, invoices and other files you keep for the platform</p></div></div>` + bar + renderSdDocuments();
   if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections each registered school sees, and post a notice on its dashboard</p></div></div>` + bar + renderSchoolModules() + renderSchoolDashMgmt();
   return bar + renderSystemDeveloperPageSchools();
