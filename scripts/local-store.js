@@ -114,8 +114,9 @@
   }
 
   // idle=true is the timer path: skip the expensive serialize+hash while nothing has changed.
+  var stopped=false;   // set by wipe(): the page is about to reload, nothing may be written back
   function save(force,idle){
-    if(!ready||readFailed||busy) return Promise.resolve();
+    if(stopped||!ready||readFailed||busy||window.MASMS_NO_PERSIST) return Promise.resolve();
     if(idle&&!force&&D.epoch===seenEpoch&&Date.now()-seenAt<D.RECHECK) return Promise.resolve();
     var ep=D.epoch, s; try{ s=snapshot(); }catch(e){ return Promise.resolve(); }
     seenEpoch=ep; seenAt=Date.now();
@@ -178,8 +179,24 @@
     retryAt=Date.now()+30000; dbP=null; init();
   }
 
+  // Remove everything this device keeps (used when a different school signs in on a shared device, so one school's
+  // data can never be uploaded into another school's account). The caller reloads the page afterwards.
+  function wipe(){
+    stopped=true;
+    try{ Object.keys(localStorage).forEach(function(k){ if(k.indexOf('masmsLocal')===0||k==='masmsSessionL') localStorage.removeItem(k); }); }catch(e){}
+    try{ sessionStorage.removeItem('masmsSession'); sessionStorage.removeItem('masms_landing_seen'); }catch(e){}
+    return new Promise(function(res){
+      try{
+        var q=indexedDB.deleteDatabase(DB);
+        q.onsuccess=q.onerror=q.onblocked=function(){ res(); };
+        setTimeout(res,1500);
+      }catch(e){ res(); }
+    });
+  }
+
   window.MASMS_LOCAL={
     ready:readyP,
+    wipe:wipe,
     saveNow:function(){ return save(true); },
     tick:function(){ retryRead(); save(false,true); paint(); },   // what the autosave timer runs
     status:savedLabel,

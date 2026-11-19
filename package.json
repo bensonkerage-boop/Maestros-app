@@ -32,7 +32,8 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.4",
-    "nodemailer": "^10.3.1"
+    "nodemailer": "^10.3.1",
+    "pdfjs-dist": "^3.11.174"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",

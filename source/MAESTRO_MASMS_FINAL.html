@@ -5424,13 +5424,13 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
 <script>
 const NAV_ITEMS = [
   { key:"dashboard", label:"Dashboard", icon:"fa-table-cells-large", note:"Overview of your school today" },
-  { key:"students", label:"Students", icon:"fa-user-graduate", note:"Enroll & manage students" },
-  { key:"teachers", label:"Teachers & Staff", icon:"fa-chalkboard-user", note:"Manage teachers, non-teaching staff & BOM" },
+  { key:"students", label:"Student Management", icon:"fa-user-graduate", note:"Enroll & manage students" },
+  { key:"teachers", label:"Teacher & Non-Teaching Staff", icon:"fa-chalkboard-user", note:"Manage teachers, non-teaching staff & BOM" },
   { key:"classes", label:"Classes", icon:"fa-chalkboard", note:"Manage classes & streams" },
   { key:"timetable", label:"Timetable", icon:"fa-calendar-days", note:"Class & teacher timetables" },
   { key:"academics", label:"Academics", icon:"fa-book-open", note:"Subjects, pathways & syllabus" },
-  { key:"examinations", label:"Examinations", icon:"fa-file-lines", note:"Create exams, grading & marks" },
-  { key:"finance", label:"Finance", icon:"fa-wallet", note:"Fees & invoices" },
+  { key:"examinations", label:"Examinations & Analysis", icon:"fa-file-lines", note:"Create exams, grading & marks" },
+  { key:"finance", label:"Accounting & Finance", icon:"fa-wallet", note:"Fees & invoices" },
   { key:"stores", label:"Stores", icon:"fa-boxes-stacked", note:"Inventory, stock in/out & requisitions" },
   { key:"library", label:"Library", icon:"fa-book-bookmark", note:"Books & borrowing" },
   { key:"laboratory", label:"Laboratory", icon:"fa-flask", note:"Apparatus, chemicals & lab safety" },
@@ -5449,13 +5449,13 @@ const NAV_ITEMS = [
 ];
 
 const CARD_ITEMS = [
-  { key:"students", label:"Students", icon:"fa-user-graduate", note:"Enroll & manage students" },
-  { key:"teachers", label:"Teachers & Staff", icon:"fa-chalkboard-user", note:"Manage teachers, non-teaching staff & BOM" },
+  { key:"students", label:"Student Management", icon:"fa-user-graduate", note:"Enroll & manage students" },
+  { key:"teachers", label:"Teacher & Non-Teaching Staff", icon:"fa-chalkboard-user", note:"Manage teachers, non-teaching staff & BOM" },
   { key:"classes", label:"Classes", icon:"fa-chalkboard", note:"Manage classes & streams" },
   { key:"timetable", label:"Timetable", icon:"fa-calendar-days", note:"Class & teacher timetables" },
   { key:"academics", label:"Academics", icon:"fa-book-open", note:"Subjects, pathways & syllabus" },
-  { key:"examinations", label:"Examinations", icon:"fa-file-lines", note:"Create exams, grading & marks" },
-  { key:"finance", label:"Finance", icon:"fa-wallet", note:"Fees & invoices" },
+  { key:"examinations", label:"Examinations & Analysis", icon:"fa-file-lines", note:"Create exams, grading & marks" },
+  { key:"finance", label:"Accounting & Finance", icon:"fa-wallet", note:"Fees & invoices" },
   { key:"stores", label:"Stores", icon:"fa-boxes-stacked", note:"Inventory, stock in/out & requisitions" },
   { key:"library", label:"Library", icon:"fa-book-bookmark", note:"Books & borrowing" },
   { key:"laboratory", label:"Laboratory", icon:"fa-flask", note:"Apparatus, chemicals & lab safety" },
@@ -5580,28 +5580,28 @@ let active = "dashboard";
 
 // ---- Language (topbar) ----
 const I18N = {
-  en: { dashboard:"Dashboard", students:"Students", teachers:"Teachers & Staff", classes:"Classes",
+  en: { dashboard:"Dashboard", students:"Student Management", teachers:"Teacher & Non-Teaching Staff", classes:"Classes",
         timetable:"Timetable",
-        academics:"Academics", examinations:"Examinations", exams:"Exams", registration:"Registration",
-        finance:"Finance", stores:"Stores", library:"Library", laboratory:"Laboratory", cocurricular:"Co-curricular", attendance:"Attendance", boarding:"Boarding", medicalalerts:"Medical Alerts",
+        academics:"Academics", examinations:"Examinations & Analysis", exams:"Exams", registration:"Registration",
+        finance:"Accounting & Finance", stores:"Stores", library:"Library", laboratory:"Laboratory", cocurricular:"Co-curricular", attendance:"Attendance", boarding:"Boarding", medicalalerts:"Medical Alerts",
         portal:"Parent/Student Portal",
         transport:"Transport", communication:"Communication", messaging:"Messaging",
         announcements:"Announcement", staff:"Non-Teaching Staff", bom:"BOM",
         reports:"Reports", settings:"Settings", sysdev:"System Developer", legal:"Maestro Legal", login:"Log in", logout:"Log out",
         searchPlaceholder:"Search..." },
-  sw: { dashboard:"Dashibodi", students:"Wanafunzi", teachers:"Walimu na Wafanyakazi", classes:"Madarasa",
+  sw: { dashboard:"Dashibodi", students:"Usimamizi wa Wanafunzi", teachers:"Walimu na Wafanyakazi Wasio Walimu", classes:"Madarasa",
         timetable:"Ratiba",
-        academics:"Taaluma", examinations:"Mitihani", exams:"Mitihani", registration:"Usajili",
-        finance:"Fedha", stores:"Bohari", library:"Maktaba", laboratory:"Maabara", cocurricular:"Ziada", attendance:"Mahudhurio", boarding:"Bweni",
+        academics:"Taaluma", examinations:"Mitihani na Uchambuzi", exams:"Mitihani", registration:"Usajili",
+        finance:"Uhasibu na Fedha", stores:"Bohari", library:"Maktaba", laboratory:"Maabara", cocurricular:"Ziada", attendance:"Mahudhurio", boarding:"Bweni",
         portal:"Lango la Wazazi/Wanafunzi",
         transport:"Usafiri", communication:"Mawasiliano", messaging:"Ujumbe",
         announcements:"Tangazo", staff:"Wafanyakazi Wasio Walimu", bom:"Bodi ya Usimamizi",
         reports:"Ripoti", settings:"Mipangilio", sysdev:"Msanidi wa Mfumo", legal:"Maestro Legal", login:"Ingia", logout:"Toka",
         searchPlaceholder:"Tafuta..." },
-  fr: { dashboard:"Tableau de bord", students:"Élèves", teachers:"Enseignants et personnel", classes:"Classes",
+  fr: { dashboard:"Tableau de bord", students:"Gestion des élèves", teachers:"Enseignants et personnel non enseignant", classes:"Classes",
         timetable:"Emploi du temps",
-        academics:"Académique", examinations:"Examens", exams:"Examens", registration:"Inscription",
-        finance:"Finances", stores:"Magasin", library:"Bibliothèque", laboratory:"Laboratoire", cocurricular:"Parascolaire", attendance:"Présence", boarding:"Internat",
+        academics:"Académique", examinations:"Examens et analyse", exams:"Examens", registration:"Inscription",
+        finance:"Comptabilité et finances", stores:"Magasin", library:"Bibliothèque", laboratory:"Laboratoire", cocurricular:"Parascolaire", attendance:"Présence", boarding:"Internat",
         portal:"Portail Parent/Élève",
         transport:"Transport", communication:"Communication", messaging:"Messagerie",
         announcements:"Annonce", staff:"Personnel non enseignant", bom:"Conseil de gestion",
@@ -5783,7 +5783,7 @@ function renderLoginPage(){
           <div class="login-cert-fields">
             <div class="login-cert-field">
               <label for="login_username">User Name:</label>
-              <input id="login_username" type="text" placeholder="Username or phone number" autocomplete="username">
+              <input id="login_username" type="text" placeholder="Username, phone or admission number" autocomplete="username">
             </div>
             <div class="login-cert-field">
               <label for="login_password">Password:</label>
@@ -6247,6 +6247,16 @@ function submitLoginCore(e){
     renderLoginPage();
   } else {
     submitLoginCore0();
+    // Learner with admission number + "welcome": the admission number may belong to another school on this server.
+    if(!isLoggedIn && !pwChangePending && _pw.toLowerCase() === 'welcome' && uname){
+      const _others = (schools || []).filter(n => n !== currentSchool && schoolLoginAllowed(n) && ((schoolData[n] && schoolData[n].students) || []).some(st => st && String(st.admissionNumber).trim().toLowerCase() === uname.toLowerCase()));
+      for(let i = 0; i < _others.length; i++){
+        try{ switchToSchool(_others[i]); }catch(_e){ continue; }
+        { const ue = document.getElementById('login_username'), pe = document.getElementById('login_password'); if(ue) ue.value = uname; if(pe) pe.value = _pw; }
+        submitLoginCore0();
+        if(isLoggedIn) break;
+      }
+    }
   }
   if(isLoggedIn && !wasLoggedIn && currentUserRole !== "System Developer" && currentUserRole !== "Sales Agent" && !schoolLoginAllowed(currentSchool)){
     logout(); loginError = "This school's MASMS account is inactive. Please contact MASMS support."; renderLoginPage();
@@ -6482,26 +6492,46 @@ function submitLoginCore0(e){
     return;
   }
 
-  // Not a staff account — try parent/student portal credentials: guardian's
-  // phone number as username, student's admission number as password.
+  // Not a staff account — try parent/student portal credentials. A device that is not signed in to the cloud holds no
+  // school data of its own, so ask the server first (see "Learner portal on the learner's own device"); if the server
+  // is unreachable or does not know the learner, fall back to the data on this device.
+  if(!prStaffCloudIn() && usernameRaw && passwordRaw && typeof fetch === 'function'){
+    prLogin(usernameRaw, passwordRaw).then(r => {
+      if(r && r.ok){ prBegin(r.data); const stu = studentByAdmissionNumber(String(r.data.student.admissionNumber).trim()); if(stu){ portalSessionStart(stu, usernameRaw.toLowerCase(), digitsOnly(usernameRaw)); return; } }
+      if(r && r.status === 409 && r.error){ loginError = r.error; renderLoginPage(); return; }
+      loginLearnerLocal(usernameRaw);
+    }).catch(() => loginLearnerLocal(usernameRaw));
+    return;
+  }
+  loginLearnerLocal(usernameRaw);
+}
+function portalSessionStart(matchedStudent, admKey, phoneDigits){
+  isLoggedIn = true;
+  isPortalSession = true;
+  currentPortalStudentAdm = matchedStudent.admissionNumber;
+  currentUserName = (String(matchedStudent.admissionNumber).toLowerCase() === admKey ? fullName(matchedStudent) : matchedStudent.guardian) || "Parent/Guardian";
+  currentUserRole = "Parent/Student";
+  myPhoneKey = phoneDigits ? loginPhoneKey(phoneDigits) : ""; myPortalOpen = false;
+  loginError = "";
+  document.getElementById('appWrap').style.display = "none";
+  document.getElementById('portalAppRoot').style.display = "";
+  renderLoginPage();
+  renderPortalApp();
+}
+function loginLearnerLocal(usernameRaw){
+  // guardian's phone number as username, student's admission number as password.
   const phoneDigits = digitsOnly(document.getElementById('login_username').value);
   const admInput = document.getElementById('login_password').value.trim();
-  const matchedStudent = portalEnabled && phoneDigits ? students.find(s =>
+  // Learner login: admission number as user name, "welcome" as password (checked first); the guardian phone + admission number login still works.
+  const admKey = usernameRaw.toLowerCase();
+  const matchedStudent = (portalEnabled && admKey && admInput.toLowerCase() === 'welcome' ? students.find(s =>
+    String(s.admissionNumber).trim().toLowerCase() === admKey
+  ) : null) || (portalEnabled && phoneDigits ? students.find(s =>
     s.admissionNumber === admInput && (s.guardianPhones || []).some(p => guardianPhoneMatches(p, phoneDigits))
-  ) : null;
+  ) : null);
 
   if(matchedStudent){
-    isLoggedIn = true;
-    isPortalSession = true;
-    currentPortalStudentAdm = matchedStudent.admissionNumber;
-    currentUserName = matchedStudent.guardian || "Parent/Guardian";
-    currentUserRole = "Parent/Student";
-    myPhoneKey = loginPhoneKey(phoneDigits); myPortalOpen = false;
-    loginError = "";
-    document.getElementById('appWrap').style.display = "none";
-    document.getElementById('portalAppRoot').style.display = "";
-    renderLoginPage();
-    renderPortalApp();
+    portalSessionStart(matchedStudent, admKey, phoneDigits);
   } else {
     loginError = "Incorrect username or password.";
     renderLoginPage();
@@ -6510,10 +6540,12 @@ function submitLoginCore0(e){
 
 function logout(){
   try{ closeUserMenu(); }catch(_e){}
+  if(window.MASMS_PR && MASMS_PR.token){ prEnd(); return; }
   isLoggedIn = false;
   currentAgentId = null;
   isPortalSession = false;
   currentPortalStudentAdm = null;
+  portalQuiz = null; try{ qzStopTimer(); }catch(_e){}
   myPhoneKey = ""; myPortalOpen = false; schoolDropdownOpen = false;
   loginError = "";
   document.getElementById('appWrap').style.display = "none";
@@ -7702,6 +7734,7 @@ let portalFeatures = {
   attendance: true,
   announcements: true,
   messaging: false,
+  quizzes: true,
 };
 const PORTAL_FEATURE_LIST = [
   { key:"feeStatements", label:"Fee Statements", icon:"fa-file-invoice-dollar", note:"View balances & payment history" },
@@ -7709,6 +7742,7 @@ const PORTAL_FEATURE_LIST = [
   { key:"attendance", label:"Attendance", icon:"fa-clipboard-check", note:"View daily attendance records" },
   { key:"announcements", label:"Announcements", icon:"fa-bullhorn", note:"See school announcements & notices" },
   { key:"messaging", label:"Messaging", icon:"fa-comments", note:"Message teachers & school office directly" },
+  { key:"quizzes", label:"Online Quizzes", icon:"fa-circle-question", note:"Take quizzes set by teachers; scores are marked automatically" },
 ];
 function togglePortalAccess(){ portalEnabled = !portalEnabled; render(); }
 function togglePortalFeature(key){ portalFeatures[key] = !portalFeatures[key]; render(); }
@@ -8150,6 +8184,7 @@ function renderPortalApp(){
   if(!isLoggedIn || !isPortalSession){ root.innerHTML = ''; return; }
   const student = studentByAdmissionNumber(currentPortalStudentAdm);
   if(!student){ root.innerHTML = ''; return; }
+  if(portalQuiz){ root.innerHTML = renderPortalQuizPage(student); return; }
 
   const entries = buildStudentFeeLedger(student);
   const balance = entries.length ? entries[entries.length - 1].balance : 0;
@@ -8200,7 +8235,14 @@ function renderPortalApp(){
       <div style="padding-top:6px;">${annList}</div>
     </div>` : '';
 
-  const cards = [feeCard, examCard, attCard, msgCard].filter(Boolean).join('');
+  const _qOpen = qzOpenCount(student);
+  const quizCard = portalFeatures.quizzes !== false ? `
+    <div class="panel dash2-panel portal-card" onclick="qzOpenQuizzes()" role="button" tabindex="0">
+      <h3><i class="fa-solid fa-circle-question" style="color:var(--orange);margin-right:8px;"></i>Online Quizzes</h3>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">${_qOpen ? `<strong style="color:var(--rose);">${_qOpen} quiz${_qOpen===1?'':'zes'} waiting</strong> for ${fullName(student)}.` : 'No quizzes waiting. Past quiz scores appear here.'}</p>
+      <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open quizzes</div>
+    </div>` : '';
+  const cards = [feeCard, examCard, quizCard, attCard, msgCard].filter(Boolean).join('');
 
   root.innerHTML = `
     <div style="min-height:100vh;background:var(--shell-bg);">
@@ -8271,8 +8313,8 @@ function renderParentStudentPortal(){
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:10px;">
         <div style="font-size:13px;color:var(--muted);max-width:520px;">
-          When enabled, parents and students can log in to the portal using the parent/guardian's Phone Number as
-          username and the student's Admission Number as password, to view whichever features are switched on below.
+          When enabled, parents and students can log in to the portal using the student's Admission Number as
+          username and <b>welcome</b> as password (or the guardian's phone number with the admission number), to view whichever features are switched on below.
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
           <button class="link-btn" onclick="openPortalLoginPreview()"><i class="fa-solid fa-eye"></i>&nbsp; Try portal login</button>
@@ -9468,6 +9510,1039 @@ const academicRows = [
 ];
 const clubs = ["Athletics","Football","Volleyball","Basketball","Netball","Rugby","Swimming","Music","Drama","Debate","Journalism","Science & Engineering clubs","Environmental clubs","ICT/Computer clubs","Agriculture clubs","Scouts/Guides","Religious clubs","Other school clubs and societies"];
 
+// ================= Online Quizzes (multiple choice) =================
+// Teachers build a quiz (Exams > Online Quizzes), publish it to a class, students take it in the
+// Parent/Student Portal, it is marked automatically, and the teacher approves & posts the marks
+// into Marks Entry (marksData) for the chosen exam.
+let onlineQuizzes = [];   // { id, title, grade, stream, subject, term, exam, createdBy, createdOn, dueISO, minutes, shuffle, allowRetake, published, questions:[{id,text,options:[],answer}], postedOn }
+let quizAttempts = [];    // { id, quizId, adm, startedAt, order:{qids:[],opts:{}}, answers:{qid:origOptionIdx}, submittedAt, score, total, auto }
+let quizView = "list";    // list | edit | results
+let quizDraft = null;
+let quizResultsId = null;
+let quizBulkText = "";
+let quizMsg = null;       // { type, text }
+let quizMarking = null;   // { adm, draft } while a teacher looks at / marks one learner's answers
+
+function qzEsc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function qzUid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function qzCanManage(){ return (typeof MARKS_EDIT_ROLES !== 'undefined' && MARKS_EDIT_ROLES.includes(currentUserRole)) || ['Administrator','Teacher','Principal','Deputy Principal','Dean of Studies'].includes(currentUserRole); }
+function qzGrades(){ return Array.from(new Set(classesList.map(c => c.grade).filter(Boolean))); }
+function qzStreams(grade){ return Array.from(new Set(classesList.filter(c => c.grade === grade && c.stream).map(c => c.stream))); }
+function qzSubjects(grade){
+  const set = new Set();
+  classesList.filter(c => c.grade === grade).forEach(c => (c.subjects || []).forEach(s => set.add(s)));
+  return Array.from(set);
+}
+function qzExamsFor(grade){
+  const out = [];
+  examTerms.forEach(t => t.groups.forEach(g => { if(g.rows.some(r => r.class === grade)) out.push({ term:t.term, exam:g.exam }); }));
+  return out;
+}
+function qzBlankQuestion(){ return { id:qzUid(), text:"", options:["","","",""], answer:0, image:"", accepted:[""], modelAnswer:"", marks:1 }; }
+function qzBlankQuiz(){
+  return { id:qzUid(), title:"", grade:"", stream:"", subject:"", term:"", exam:"", createdBy:currentUserName, createdOn:todayDDMMYYYY(),
+    type:"mcq", dueISO:"", startTime:"", endTime:"", minutes:30, shuffle:true, allowRetake:false, published:false, questions:[qzBlankQuestion()], postedOn:"" };
+}
+// Test window: the quiz date (dueISO) plus an optional start time and end time, e.g. 18:30 to 20:00.
+// With no times it is open all day (as before). The student's own countdown starts when they press Start.
+function qzWindowStart(q){ return (q.dueISO && q.startTime) ? new Date(q.dueISO + "T" + q.startTime + ":00").getTime() : -Infinity; }
+function qzDueEnd(q){ return q.dueISO ? new Date(q.dueISO + "T" + (q.endTime ? q.endTime + ":00" : "23:59:59")).getTime() : Infinity; }
+function qzIsClosed(q){ return Date.now() > qzDueEnd(q); }
+function qzNotOpenYet(q){ return Date.now() < qzWindowStart(q); }
+function qzTimeLabel(t){ if(!t) return ""; const [h, m] = String(t).split(':').map(Number); return ((h % 12) || 12) + ':' + String(m || 0).padStart(2, '0') + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+function qzWhenLabel(q){
+  if(!q.dueISO) return 'No due date';
+  const d = q.dueISO.split('-').reverse().join('/');
+  return q.startTime || q.endTime ? `${d}, ${q.startTime ? qzTimeLabel(q.startTime) : 'any time'} – ${q.endTime ? qzTimeLabel(q.endTime) : 'end of day'}` : d;
+}
+function qzStudentsOf(q){ return studentsForGrade(q.grade, q.stream); }
+function qzAttempt(quizId, adm){ return quizAttempts.find(a => a.quizId === quizId && a.adm === adm); }
+function qzSubmitted(quizId){ return quizAttempts.filter(a => a.quizId === quizId && a.submittedAt); }
+// ---- Quiz types: mcq = multiple choice; short = typed answer, marked automatically; structured = typed answers, marked by the teacher ----
+const QZ_TYPES = { mcq:"Multiple choice (MCQ)", short:"Short answer (typed, auto-marked)", structured:"Structured (typed, teacher-marked)" };
+function qzType(q){ return q && (q.type === 'short' || q.type === 'structured') ? q.type : 'mcq'; }
+// typed answers are compared ignoring capitals, extra spaces and punctuation at either end (the server uses the same rule)
+function qzNorm(s){ return String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').replace(/^[\s.,;:!?'"]+|[\s.,;:!?'"]+$/g, '').trim(); }
+function qzQMarks(q, x){ if(qzType(q) !== 'structured') return 1; const m = Math.floor(Number(x.marks)); return m > 0 ? m : 1; }
+function qzTotal(q){ return q.questions.reduce((t, x) => t + qzQMarks(q, x), 0); }
+function qzShortOk(x, v){ const n = qzNorm(v); return !!n && (Array.isArray(x.accepted) ? x.accepted : []).some(t => qzNorm(t) === n); }
+function qzScoreAttempt(q, a){
+  const t = qzType(q);
+  if(t === 'structured') return q.questions.reduce((sum, x) => sum + Math.max(0, Math.min(qzQMarks(q, x), Number(a.marks && a.marks[x.id]) || 0)), 0);
+  if(t === 'short') return q.questions.filter(x => qzShortOk(x, a.answers[x.id])).length;
+  return q.questions.filter(x => a.answers[x.id] === x.answer).length;
+}
+function qzAwaiting(q, a){ return qzType(q) === 'structured' && !!a && !!a.submittedAt && !a.marked; }
+// Diagram upload (any question): shrunk to at most 900 px so the school's cloud data stays small
+function qzSetImage(i, input){
+  const f = input.files && input.files[0]; if(!f) return;
+  if(!/^image\//.test(f.type)){ try{ alert('Choose an image file (PNG or JPG).'); }catch(_e){} input.value = ''; return; }
+  const rd = new FileReader();
+  rd.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 900 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      if(quizDraft && quizDraft.questions[i]){ quizDraft.questions[i].image = c.toDataURL('image/jpeg', 0.8); render(); }
+    };
+    img.onerror = () => { try{ alert('That image could not be read. Try a PNG or JPG.'); }catch(_e){} };
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function qzClearImage(i){ if(quizDraft && quizDraft.questions[i]){ quizDraft.questions[i].image = ""; render(); } }
+
+// ---------- Teacher: list ----------
+function qzNew(){ quizDraft = qzBlankQuiz(); quizBulkText = ""; quizMsg = null; quizView = "edit"; render(); }
+function qzEdit(id){
+  const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  quizDraft = JSON.parse(JSON.stringify(q)); quizBulkText = ""; quizMsg = null; quizView = "edit"; render();
+}
+function qzDelete(id){
+  const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  if(!confirm(`Delete "${q.title}" and all student attempts? Marks already posted to Marks Entry are kept.`)) return;
+  onlineQuizzes = onlineQuizzes.filter(x => x.id !== id);
+  quizAttempts = quizAttempts.filter(a => a.quizId !== id);
+  render();
+}
+function qzTogglePublish(id){
+  const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  if(!q.published){
+    const bad = qzValidate(q);
+    if(bad){ quizMsg = { type:'error', text:bad }; try{ alert(bad); }catch(_e){} render(); return; }
+  }
+  q.published = !q.published; quizMsg = q.published ? qzPublishNote('Quiz published to students.') : { type:'ok', text:'Quiz unpublished.' };
+  if(!q.published) qzCloudNow();
+  render();
+}
+function qzAddExample(){
+  const g = qzGrades()[0] || "Grade 8";
+  const subs = qzSubjects(g);
+  const subject = subs.find(x => /math/i.test(x)) || subs[0] || "Mathematics";
+  const ex = qzExamsFor(g)[0] || { term:"", exam:"" };
+  const mk = (text, options, answer) => ({ id:qzUid(), text, options, answer });
+  onlineQuizzes.unshift({
+    id:qzUid(), title:"Example: Fractions Quiz", grade:g, stream:"", subject, term:ex.term, exam:ex.exam,
+    createdBy:currentUserName, createdOn:todayDDMMYYYY(), dueISO:"", minutes:10, shuffle:true, allowRetake:true, published:false, postedOn:"",
+    questions:[
+      mk("What is 1/2 + 1/4?", ["1/6","3/4","2/6","1/8"], 1),
+      mk("Which fraction is the largest?", ["1/3","2/5","3/4","1/2"], 2),
+      mk("What is 3/4 of 20?", ["12","15","16","5"], 1),
+      mk("Simplify 6/8.", ["2/3","3/4","1/2","4/5"], 1),
+      mk("What is 2/3 expressed as a decimal (to 2 places)?", ["0.23","0.32","0.67","0.60"], 2),
+    ],
+  });
+  quizMsg = { type:'ok', text:`Example quiz added for ${g}. Click Publish to send it to students, or Edit to see how it is built.` };
+  render();
+}
+function qzBackToList(){ quizView = "list"; quizDraft = null; quizResultsId = null; quizMarking = null; quizMsg = null; render(); }
+function qzOpenResults(id){ quizResultsId = id; quizView = "results"; quizMsg = null; render(); }
+
+function renderQuizList(){
+  const rows = onlineQuizzes.map(q => {
+    const n = qzStudentsOf(q).length, done = qzSubmitted(q.id).length;
+    const status = !q.published ? ['Draft','status-pending'] : qzIsClosed(q) ? ['Closed','status-pending'] : qzNotOpenYet(q) ? ['Scheduled','status-pending'] : ['Open','status-paid'];
+    return `<tr>
+      <td style="font-weight:600;">${qzEsc(q.title)}</td>
+      <td style="color:var(--muted);">${qzEsc({ mcq:'MCQ', short:'Short answer', structured:'Structured' }[qzType(q)])}</td>
+      <td style="color:var(--muted);">${qzEsc([q.grade, q.stream].filter(Boolean).join(' ') || '—')}</td>
+      <td style="color:var(--muted);">${qzEsc(q.subject || '—')}</td>
+      <td style="color:var(--muted);">${qzEsc(q.exam || '—')}</td>
+      <td style="text-align:center;">${q.questions.length}</td>
+      <td style="color:var(--muted);">${qzEsc(qzWhenLabel(q))}</td>
+      <td style="text-align:center;">${done}/${n}</td>
+      <td><span class="pill-status ${status[1]}">${status[0]}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="link-btn" onclick="qzTogglePublish('${q.id}')"><i class="fa-solid ${q.published ? 'fa-eye-slash' : 'fa-upload'}"></i>&nbsp;${q.published ? 'Unpublish' : 'Publish'}</button>
+        <button class="link-btn" onclick="qzOpenResults('${q.id}')"><i class="fa-solid fa-chart-column"></i>&nbsp;Results</button>
+        <button class="link-btn" onclick="qzEdit('${q.id}')"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>
+        <button class="link-btn danger" onclick="qzDelete('${q.id}')"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+      </td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty">No online quizzes yet. Click "New Quiz" to create one.</td></tr>`;
+  return `
+    <div class="panel" style="overflow:hidden;">
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <h3>Online Quizzes (${onlineQuizzes.length})</h3>
+        ${qzCanManage() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" style="width:auto;" onclick="qzAddExample()"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Add Example Quiz</button><button class="btn-primary auto" onclick="qzNew()"><i class="fa-solid fa-plus"></i>&nbsp;New Quiz</button></div>` : ''}
+      </div>
+      ${quizMsg ? `<div style="padding:10px 20px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
+      <div class="streams-scroll"><table style="min-width:900px;">
+        <thead><tr><th>Title</th><th>Type</th><th>Class</th><th>Subject</th><th>Exam</th><th>Questions</th><th>Date &amp; time</th><th>Done</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+    </div>`;
+}
+
+// ---------- Teacher: editor ----------
+function qzSet(k, v){ if(quizDraft) quizDraft[k] = v; }
+function qzSetGrade(v){ quizDraft.grade = v; quizDraft.stream = ""; quizDraft.subject = ""; quizDraft.term = ""; quizDraft.exam = ""; render(); }
+function qzSetExam(v){ const [t, e] = String(v).split('||'); quizDraft.term = t || ""; quizDraft.exam = e || ""; }
+function qzSetQ(i, v){ quizDraft.questions[i].text = v; }
+function qzSetOpt(i, j, v){ quizDraft.questions[i].options[j] = v; }
+function qzSetAns(i, j){ quizDraft.questions[i].answer = j; delete quizDraft.questions[i].needsCheck; render(); }
+function qzSetType(v){ quizDraft.type = (v === 'short' || v === 'structured') ? v : 'mcq'; quizMsg = null; render(); }
+function qzSetAccepted(i, v){ quizDraft.questions[i].accepted = String(v).split('\n'); }
+function qzSetModel(i, v){ quizDraft.questions[i].modelAnswer = v; }
+function qzSetMarks(i, v){ quizDraft.questions[i].marks = v; }
+function qzAddQ(){ quizDraft.questions.push(qzBlankQuestion()); render(); }
+function qzDelQ(i){ if(quizDraft.questions.length > 1) quizDraft.questions.splice(i, 1); render(); }
+function qzAddOpt(i){ /* quizzes use exactly 4 options (A-D) */ }
+function qzDelOpt(i, j){
+  return; // exactly 4 options
+  const q = quizDraft.questions[i];
+  q.options.splice(j, 1);
+  if(q.answer === j) q.answer = 0; else if(q.answer > j) q.answer--;
+  render();
+}
+function qzValidate(q){
+  if(!q.title.trim()) return "Give the quiz a title.";
+  if(!q.grade) return "Choose the class this quiz is for.";
+  if(!q.subject) return "Choose the subject.";
+  if(!q.questions.length) return "Add at least one question.";
+  for(let i = 0; i < q.questions.length; i++){
+    const x = q.questions[i];
+    if(!x.text.trim()) return `Question ${i+1} has no text.`;
+    if(qzType(q) === 'short'){
+      if(!(Array.isArray(x.accepted) ? x.accepted : []).some(t => String(t || '').trim())) return `Question ${i+1} needs at least one accepted answer (the typed answer that earns the mark).`;
+      continue;
+    }
+    if(qzType(q) === 'structured'){
+      if(!(Math.floor(Number(x.marks)) > 0)) return `Question ${i+1} needs its marks (a whole number above 0).`;
+      continue;
+    }
+    if(x.options.length !== 4 || x.options.some(o => !String(o || '').trim())) return `Question ${i+1} needs all 4 options (A, B, C and D) filled in.`;
+    if(!String(x.options[x.answer] || '').trim()) return `Question ${i+1}: the correct answer is blank.`;
+    if(x.needsCheck) return `Question ${i+1}: please tick the correct answer (it was not marked in the file).`;
+  }
+  if(!(Number(q.minutes) > 0)) return "Set a time limit in minutes.";
+  if((q.startTime || q.endTime) && !q.dueISO) return "Choose the quiz date for the start / end time.";
+  if(q.startTime && q.endTime && q.endTime <= q.startTime) return "The end time must be later than the start time.";
+  return "";
+}
+// Students open quizzes on their own phones, which only receive them through the cloud. Upload at once, and say plainly when this device is not signed in.
+function qzCloudNow(){ try{ if(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()) MASMS_CLOUD.syncNow(); }catch(_e){} }
+function qzPublishNote(base){
+  let on = false; try{ on = !!(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()); }catch(_e){}
+  if(on){ qzCloudNow(); return { type:'ok', text: base + ' It is being uploaded to the cloud, so students can open it on their own phones within a few seconds.' }; }
+  return { type:'error', text: base + ' BUT this device is not signed in to the cloud, so students on other phones or computers cannot see it yet. Tap the cloud button (bottom-left), sign in, and it will upload.' };
+}
+function qzSave(publish){
+  const q = quizDraft; if(!q){ try{ alert('Nothing to save. Open New Quiz first.'); }catch(_e){} return; }
+  const fail = msg => {
+    quizMsg = { type:'error', text:msg };
+    try{ alert(msg); }catch(_e){}
+    render();
+    try{ const c = document.getElementById('content'); if(c) c.scrollIntoView({ block:'start' }); window.scrollTo(0, 0); }catch(_e){}
+  };
+  try{
+    q.title = String(q.title || '').trim(); q.minutes = Number(q.minutes) || 30; q.type = qzType(q);
+    q.questions.forEach(x => {
+      x.options = x.options.slice(0, 4).map(o => String(o == null ? '' : o).trim());
+      while(x.options.length < 4) x.options.push("");
+      x.answer = (x.answer >= 0 && x.answer < 4) ? x.answer : 0;
+      x.text = String(x.text || '').trim();
+      x.accepted = (Array.isArray(x.accepted) ? x.accepted : []).map(t => String(t || '').trim()).filter(Boolean);
+      x.modelAnswer = String(x.modelAnswer || '').trim();
+      x.marks = Math.floor(Number(x.marks)) > 0 ? Math.floor(Number(x.marks)) : 1;
+      x.image = (typeof x.image === 'string' && /^data:image\//.test(x.image)) ? x.image : "";
+    });
+    const bad = (publish || q.published) ? qzValidate(q) : (!q.title ? "Give the quiz a title." : "");
+    if(bad){ fail(bad); return; }
+    if(publish) q.published = true;
+    const i = onlineQuizzes.findIndex(x => x.id === q.id);
+    if(i >= 0) onlineQuizzes[i] = q; else onlineQuizzes.unshift(q);
+    quizView = "list"; quizDraft = null;
+    quizMsg = (publish || q.published) ? qzPublishNote(publish ? 'Quiz saved and published to students.' : 'Quiz saved.') : { type:'ok', text:'Quiz saved.' };
+    render();
+    try{ window.scrollTo(0, 0); }catch(_e){}
+  }catch(err){
+    fail('Could not save the quiz: ' + (err && err.message || err));
+  }
+}
+// ---------- Import questions from a Word / PDF / text file ----------
+// Reads the file's lines in order and rebuilds the questions as written: numbered questions, A) B) C) D) options,
+// "Answer: B" lines or an answer key at the end. In Word files, an option that is bold / underlined / highlighted /
+// coloured (and the only one of its question that is) is taken as the correct answer.
+function qzParseLines(lines){
+  const qs = []; let cur = null, keyMode = false; const key = {};
+  const optRe = /^\(?([A-Ha-h])[\).:\]]\s*(.*)$/;
+  const qRe = /^(?:q(?:uestion)?\s*)?(\d{1,3})\s*[\).:\-]\s*(.+)$/i;
+  const ansRe = /^(?:correct\s+)?(?:answer|ans)\s*(?:is)?\s*[:\-=]?\s*\(?([A-Ha-h])\b/i;
+  const keyHead = /^(?:answers?|answer\s*key|marking\s*scheme|memo|key)\s*[:\-]?\s*$/i;
+  const finish = () => { if(cur && cur.options.length >= 2){ cur.options = cur.options.slice(0, 4); cur._marks = (cur._marks || []).slice(0, 4); while(cur.options.length < 4) cur.options.push(""); qs.push(cur); } cur = null; };
+  lines.forEach(raw => {
+    const text = String(raw.text == null ? '' : raw.text).replace(/ /g, ' ').trim();
+    if(!text) return;
+    if(keyHead.test(text)){ finish(); keyMode = true; return; }
+    if(keyMode){
+      let m, found = false; const re = /(\d{1,3})\s*[\).:\-–]?\s*\(?([A-Ha-h])\)?(?![a-z])/g;
+      while((m = re.exec(text))){ key[Number(m[1])] = m[2].toUpperCase().charCodeAt(0) - 65; found = true; }
+      if(found) return;
+    }
+    if(raw.bullet && cur && !(cur.options.length >= 2 && /[?:]\s*$/.test(text))){
+      cur.options.push(text); cur._marks.push(!!raw.mark); return;
+    }
+    const am = text.match(ansRe);
+    if(am && cur){ cur.answer = am[1].toUpperCase().charCodeAt(0) - 65; cur._explicit = true; return; }
+    const om = text.match(optRe);
+    if(om && cur){
+      const want = String.fromCharCode(65 + cur.options.length), got = om[1].toUpperCase();
+      if(got === want){
+        let t = om[2].trim(), star = false;
+        if(/\*\s*$/.test(t) || /\((?:correct|answer)\)\s*$/i.test(t)){ star = true; t = t.replace(/\s*(?:\*|\((?:correct|answer)\))\s*$/i, '').trim(); }
+        cur.options.push(t); cur._marks.push(!!(raw.mark || star));
+        if(star) cur._star = cur.options.length - 1;
+        return;
+      }
+    }
+    const qm = text.match(qRe);
+    if(qm && (!cur || cur.options.length >= 2 || !cur.options.length)){
+      if(!(cur && !cur.options.length && !/^\d/.test(text))){ finish(); cur = { id:qzUid(), num:Number(qm[1]), text:qm[2].trim(), options:[], answer:0, _marks:[], _explicit:false }; return; }
+    }
+    if(cur && cur.options.length >= 2 && !qm && !om){
+      // an un-numbered line after a finished question starts the next question; a short wrapped line continues the option
+      if(/[?:]\s*$/.test(text) || text.length > 60){ finish(); cur = { id:qzUid(), num:qs.length + 1, text, options:[], answer:0, _marks:[], _explicit:false }; return; }
+      cur.options[cur.options.length - 1] += ' ' + text; return;
+    }
+    if(cur){ if(cur.options.length) cur.options[cur.options.length - 1] += ' ' + text; else cur.text += ' ' + text; return; }
+    cur = { id:qzUid(), num:qs.length + 1, text, options:[], answer:0, _marks:[], _explicit:false };
+  });
+  finish();
+  qs.forEach((q, i) => {
+    let ans = -1;
+    if(q._explicit) ans = q.answer;
+    else if(q._star !== undefined) ans = q._star;
+    else if(key[q.num] !== undefined) ans = key[q.num];
+    else if(key[i + 1] !== undefined) ans = key[i + 1];
+    else { const m = q._marks.map((v, k) => v ? k : -1).filter(k => k >= 0); if(m.length === 1 && q.options.length > 1) ans = m[0]; }
+    if(ans < 0 || ans >= q.options.length){ q.answer = 0; q.needsCheck = true; } else q.answer = ans;
+    delete q.num; delete q._marks; delete q._explicit; delete q._star;
+  });
+  return qs;
+}
+function qzParseBulk(text){ return qzParseLines(String(text || '').replace(/\r/g, '').split('\n').map(t => ({ text:t }))); }
+
+// -- DOCX: read the zip with the browser's built-in inflate, then walk the paragraphs --
+async function qzUnzip(buf, wanted){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), out = {};
+  let e = u8.length - 22; while(e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if(e < 0) throw new Error('Not a valid .docx file');
+  let n = dv.getUint16(e + 10, true), p = dv.getUint32(e + 16, true);
+  const dec = new TextDecoder();
+  for(let i = 0; i < n; i++){
+    if(dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + xl + cl;
+    if(!wanted.includes(name)) continue;
+    const lnl = dv.getUint16(lo + 26, true), lxl = dv.getUint16(lo + 28, true), start = lo + 30 + lnl + lxl;
+    const data = u8.subarray(start, start + csize);
+    if(method === 0) out[name] = dec.decode(data);
+    else if(method === 8){
+      const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      out[name] = dec.decode(await new Response(ds).arrayBuffer());
+    }
+  }
+  return out;
+}
+async function qzDocxLines(buf){
+  const files = await qzUnzip(buf, ['word/document.xml', 'word/numbering.xml', 'word/styles.xml']);
+  if(!files['word/document.xml']) throw new Error('Could not read this Word file');
+  const parse = x => new DOMParser().parseFromString(x, 'application/xml');
+  const doc = parse(files['word/document.xml']);
+  const tag = (el, n) => Array.from(el.getElementsByTagName(n));
+  const val = el => el ? (el.getAttribute('w:val') || el.getAttribute('val')) : null;
+  // numbering definitions
+  const fmts = {}, starts = {}, numToAbs = {};
+  if(files['word/numbering.xml']){
+    const nd = parse(files['word/numbering.xml']);
+    tag(nd, 'w:abstractNum').forEach(a => { const id = a.getAttribute('w:abstractNumId'); fmts[id] = {}; starts[id] = {};
+      tag(a, 'w:lvl').forEach(l => { const il = l.getAttribute('w:ilvl'); fmts[id][il] = val(l.getElementsByTagName('w:numFmt')[0]) || 'decimal'; const st = val(l.getElementsByTagName('w:start')[0]); starts[id][il] = st ? Number(st) : 1; }); });
+    tag(nd, 'w:num').forEach(nu => { numToAbs[nu.getAttribute('w:numId')] = val(nu.getElementsByTagName('w:abstractNumId')[0]); });
+  }
+  // list numbering can also come from the paragraph style (e.g. "List Number")
+  const styleNum = {};
+  if(files['word/styles.xml']){
+    tag(parse(files['word/styles.xml']), 'w:style').forEach(st => { const np = st.getElementsByTagName('w:numPr')[0]; if(np) styleNum[st.getAttribute('w:styleId')] = np; });
+  }
+  const counters = {};
+  const letter = k => { let s = ''; k = Math.max(1, k); while(k > 0){ s = String.fromCharCode(65 + ((k - 1) % 26)) + s; k = Math.floor((k - 1) / 26); } return s; };
+  const lines = [];
+  tag(doc, 'w:p').forEach(par => {
+    let text = '', mark = false;
+    Array.from(par.getElementsByTagName('w:r')).forEach(r => {
+      let t = '';
+      Array.from(r.childNodes).forEach(c => { if(c.nodeName === 'w:t') t += c.textContent; else if(c.nodeName === 'w:tab') t += ' '; else if(c.nodeName === 'w:br') t += ' '; });
+      if(!t.trim()){ text += t; return; }
+      text += t;
+      const rp = r.getElementsByTagName('w:rPr')[0];
+      if(rp){
+        const b = rp.getElementsByTagName('w:b')[0], u = rp.getElementsByTagName('w:u')[0], h = rp.getElementsByTagName('w:highlight')[0], c = rp.getElementsByTagName('w:color')[0], sh = rp.getElementsByTagName('w:shd')[0];
+        if((b && !/^(0|false)$/.test(val(b) || '')) || (u && val(u) !== 'none') || (h && val(h) !== 'none') ||
+           (c && !/^(auto|000000|FFFFFF)$/i.test(val(c) || 'auto')) || (sh && !/^(auto|FFFFFF)$/i.test(sh.getAttribute('w:fill') || 'auto'))) mark = true;
+      }
+    });
+    // automatic list numbering (1. 2. / A. B.) is not in the text, so rebuild the label
+    let np = par.getElementsByTagName('w:numPr')[0];
+    if(!np){ const ps = par.getElementsByTagName('w:pStyle')[0]; if(ps) np = styleNum[val(ps)] || null; }
+    let bullet = false;
+    if(np){
+      const numId = val(np.getElementsByTagName('w:numId')[0]), il = val(np.getElementsByTagName('w:ilvl')[0]) || '0';
+      if(numId && numId !== '0'){
+        const abs = numToAbs[numId], fmt = (fmts[abs] || {})[il] || 'decimal', st = (starts[abs] || {})[il] || 1;
+        const key = numId + '|' + il; counters[key] = counters[key] === undefined ? st : counters[key] + 1;
+        Object.keys(counters).forEach(k => { const [ni, l2] = k.split('|'); if(ni === numId && Number(l2) > Number(il)) delete counters[k]; });
+        const n = counters[key];
+        if(fmt === 'bullet') bullet = true;
+        else text = (fmt === 'upperLetter' ? letter(n) + '.' : fmt === 'lowerLetter' ? letter(n).toLowerCase() + ')' : n + '.') + ' ' + text;
+      }
+    }
+    lines.push({ text, mark, bullet });
+  });
+  return lines;
+}
+
+// -- PDF: pdf.js is loaded the first time a PDF is uploaded --
+let _pdfjsLoading = null;
+function qzLoadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(_pdfjsLoading) return _pdfjsLoading;
+  _pdfjsLoading = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = 'vendor/pdf.min.js';
+    s.onload = () => { try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js'; res(window.pdfjsLib); }catch(e){ rej(e); } };
+    s.onerror = () => { _pdfjsLoading = null; rej(new Error('PDF reader could not be loaded (needs the vendor/ folder).')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsLoading;
+}
+async function qzPdfLines(buf){
+  const lib = await qzLoadPdfJs();
+  const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+  const lines = []; let total = 0;
+  for(let pg = 1; pg <= pdf.numPages; pg++){
+    const content = await (await pdf.getPage(pg)).getTextContent();
+    const rows = [];
+    content.items.forEach(it => { if(!it.str || !it.str.trim() && !it.str) return; const y = Math.round(it.transform[5]), x = it.transform[4];
+      let row = rows.find(r => Math.abs(r.y - y) <= 3); if(!row){ row = { y, parts:[] }; rows.push(row); } row.parts.push({ x, s: it.str }); });
+    rows.sort((a, b) => b.y - a.y).forEach(r => { const t = r.parts.sort((a, b) => a.x - b.x).map(p => p.s).join(' ').replace(/\s+/g, ' ').trim(); if(t){ lines.push({ text:t }); total += t.length; } });
+  }
+  if(total < 20) throw new Error('This PDF looks like a scanned image with no readable text. Please upload a Word file or a PDF saved from Word.');
+  return lines;
+}
+
+async function qzImportFile(inputEl){
+  const f = inputEl.files && inputEl.files[0]; inputEl.value = '';
+  if(!f) return;
+  const name = f.name.toLowerCase();
+  try{
+    let lines;
+    if(name.endsWith('.docx')) lines = await qzDocxLines(await f.arrayBuffer());
+    else if(name.endsWith('.pdf')) lines = await qzPdfLines(await f.arrayBuffer());
+    else if(name.endsWith('.txt')) lines = (await f.text()).replace(/\r/g, '').split('\n').map(t => ({ text:t }));
+    else if(name.endsWith('.doc')) throw new Error('Old .doc files are not supported. Open it in Word and use Save As → .docx, then upload again.');
+    else throw new Error('Upload a Word (.docx), PDF or text file.');
+    const found = qzParseLines(lines);
+    if(!found.length) throw new Error('No questions were found. Questions should be numbered (1. 2. 3.) with options A) B) C) D).');
+    if(quizDraft.questions.length === 1 && !quizDraft.questions[0].text.trim()) quizDraft.questions = [];
+    quizDraft.questions.push(...found);
+    const check = found.filter(x => x.needsCheck).length;
+    quizMsg = { type: check ? 'error' : 'ok', text:`Imported ${found.length} question${found.length===1?'':'s'} from ${f.name}, in the same order.` + (check ? ` ${check} had no answer marked — they are flagged below; tick the correct option for each before publishing.` : ' Please skim them to confirm.') };
+  }catch(err){ quizMsg = { type:'error', text: String(err && err.message || err) }; }
+  render();
+}
+
+function qzImportBulk(){
+  const found = qzParseBulk(quizBulkText);
+  if(!found.length){ quizMsg = { type:'error', text:'No questions found. Use: question line, options A) B) C) D), then "Answer: B", with a blank line between questions.' }; render(); return; }
+  const missing = found.filter(f => f.needsCheck).length;
+  if(quizDraft.questions.length === 1 && !quizDraft.questions[0].text.trim()) quizDraft.questions = [];
+  quizDraft.questions.push(...found);
+  quizBulkText = "";
+  quizMsg = { type:'ok', text:`Imported ${found.length} question${found.length===1?'':'s'}.` + (missing ? ` ${missing} had no "Answer:" line — flagged below; tick the correct option for each.` : '') };
+  render();
+}
+
+function renderQuizEditor(){
+  const q = quizDraft;
+  const grades = qzGrades();
+  const exams = q.grade ? qzExamsFor(q.grade) : [];
+  const opt = (v, cur, label) => `<option value="${qzEsc(v)}" ${v===cur?'selected':''}>${qzEsc(label == null ? v : label)}</option>`;
+  const qt = qzType(q);
+  const imgBox = (x, i) => `
+      <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-height:110px;max-width:200px;border:1px solid var(--border);border-radius:6px;background:#fff;"><button type="button" class="link-btn danger" onclick="qzClearImage(${i})"><i class="fa-solid fa-xmark"></i>&nbsp;Remove diagram</button>` : ''}
+        <label class="link-btn" style="cursor:pointer;"><i class="fa-solid fa-image"></i>&nbsp;${x.image ? 'Replace diagram' : 'Add diagram (optional)'}<input type="file" accept="image/*" style="display:none;" onchange="qzSetImage(${i},this)"></label>
+      </div>`;
+  const typedBody = (x, i) => qt === 'short' ? `
+      <div style="margin-top:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">Accepted answers — one per line (capital letters, extra spaces and a full stop at the end are ignored)</div>
+        <textarea rows="2" placeholder="e.g. photosynthesis" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;" oninput="qzSetAccepted(${i},this.value)">${qzEsc((Array.isArray(x.accepted) ? x.accepted : []).join('\n'))}</textarea>
+      </div>` : `
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;align-items:flex-start;">
+        <label style="font-size:12px;font-weight:700;color:var(--muted);">Marks<br><input type="number" min="1" max="100" value="${qzEsc(x.marks == null ? 1 : x.marks)}" style="width:80px;padding:6px 8px;" oninput="qzSetMarks(${i},this.value)"></label>
+        <label style="flex:1;min-width:220px;font-size:12px;font-weight:700;color:var(--muted);">Marking guide / model answer (optional, only teachers see it)<br><textarea rows="2" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetModel(${i},this.value)">${qzEsc(x.modelAnswer || '')}</textarea></label>
+      </div>`;
+  const qs = q.questions.map((x, i) => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;background:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;">Question ${i+1}</strong>${(qt === 'mcq' && x.needsCheck) ? '<span style="margin-left:10px;color:#b45309;font-size:12px;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Tick the correct answer</span>' : ''}
+        <button type="button" class="link-btn danger" onclick="qzDelQ(${i})" ${q.questions.length<2?'disabled':''}><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <textarea rows="2" placeholder="Type the question" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;" oninput="qzSetQ(${i},this.value)">${qzEsc(x.text)}</textarea>
+      ${imgBox(x, i)}
+      ${qt !== 'mcq' ? typedBody(x, i) : `${x.options.map((o, j) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="radio" name="qzans_${qzEsc(x.id)}" ${x.answer===j?'checked':''} onchange="qzSetAns(${i},${j})" onclick="qzSetAns(${i},${j})" title="Mark as the correct answer">
+          <span style="width:18px;font-weight:700;color:var(--muted);">${String.fromCharCode(65+j)}</span>
+          <input type="text" value="${qzEsc(o)}" placeholder="Option ${String.fromCharCode(65+j)}" style="flex:1;padding:6px 8px;font-family:inherit;font-size:13px;${x.answer===j?'border:2px solid var(--green);':''}" oninput="qzSetOpt(${i},${j},this.value)">
+        </div>`).join('')}
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11.5px;color:var(--muted);">4 options (A–D)</span>
+        <span style="font-size:11.5px;color:var(--muted);">Tick the circle beside the correct answer</span>
+      </div>`}
+    </div>`).join('');
+  return `
+    <div class="panel">
+      <div class="panel-header"><h3>${onlineQuizzes.some(x => x.id === q.id) ? 'Edit Quiz' : 'New Online Quiz'}</h3></div>
+      <div style="padding:20px 24px;">
+        ${quizMsg ? `<div style="margin-bottom:12px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
+        <div class="form-grid-2">
+          <label class="field"><span>Quiz Title&nbsp;<span class="req">*</span></span>
+            <input type="text" value="${qzEsc(q.title)}" placeholder="e.g. Fractions CAT 1" oninput="qzSet('title',this.value)"></label>
+          <label class="field"><span>Quiz Type&nbsp;<span class="req">*</span></span>
+            <select onchange="qzSetType(this.value)">${Object.keys(QZ_TYPES).map(k => opt(k, qt, QZ_TYPES[k])).join('')}</select></label>
+          <label class="field"><span>Class&nbsp;<span class="req">*</span></span>
+            <select onchange="qzSetGrade(this.value)"><option value="" ${!q.grade?'selected':''} disabled>Select class...</option>${grades.map(g => opt(g, q.grade)).join('')}</select></label>
+          <label class="field"><span>Stream</span>
+            <select onchange="qzSet('stream',this.value)"><option value="">All streams</option>${qzStreams(q.grade).map(s => opt(s, q.stream)).join('')}</select></label>
+          <label class="field"><span>Subject&nbsp;<span class="req">*</span></span>
+            <select onchange="qzSet('subject',this.value)"><option value="" ${!q.subject?'selected':''} disabled>Select subject...</option>${qzSubjects(q.grade).map(s => opt(s, q.subject)).join('')}</select></label>
+          <label class="field"><span>Post marks to exam</span>
+            <select onchange="qzSetExam(this.value)"><option value="">— choose later —</option>${exams.map(e => opt(e.term+'||'+e.exam, q.term+'||'+q.exam, `${e.exam} (${e.term})`)).join('')}</select></label>
+          <label class="field"><span>Time limit (minutes)&nbsp;<span class="req">*</span></span>
+            <input type="number" min="1" max="300" value="${qzEsc(q.minutes)}" oninput="qzSet('minutes',this.value)"></label>
+          <label class="field"><span>Quiz date</span>
+            <input type="date" value="${qzEsc(q.dueISO)}" onchange="qzSet('dueISO',this.value)"></label>
+          <label class="field"><span>Opens at (e.g. 6:30 PM)</span>
+            <input type="time" value="${qzEsc(q.startTime || '')}" onchange="qzSet('startTime',this.value)"></label>
+          <label class="field"><span>Closes at (e.g. 8:00 PM)</span>
+            <input type="time" value="${qzEsc(q.endTime || '')}" onchange="qzSet('endTime',this.value)"></label>
+          <div style="font-size:12px;color:var(--muted);align-self:center;">Students can only start between the opening and closing time. Each student's time limit starts counting when they press <strong>Start</strong>, and never runs past the closing time. Leave the times empty to keep it open all day.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:13px;">
+            <label><input type="checkbox" ${q.shuffle?'checked':''} onchange="qzSet('shuffle',this.checked)"> Shuffle questions &amp; options</label>
+            <label><input type="checkbox" ${q.allowRetake?'checked':''} onchange="qzSet('allowRetake',this.checked)"> Allow students to retake</label>
+          </div>
+        </div>
+
+        <h4 style="margin:22px 0 10px;">Questions (${q.questions.length})</h4>
+        ${qs}
+        <button type="button" class="btn-ghost" style="width:auto;" onclick="qzAddQ()"><i class="fa-solid fa-plus"></i>&nbsp;Add question</button>
+
+        ${qt !== 'mcq' ? '<div style="margin-top:14px;font-size:12px;color:var(--muted);">Uploading questions from Word, PDF or pasted text works for multiple-choice quizzes only. Type or paste each question above.</div>' : `
+        <div style="margin-top:18px;border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px;"><i class="fa-solid fa-file-arrow-up" style="color:var(--blue);"></i>&nbsp;Upload questions from a Word or PDF file</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Questions are added in the same order as the document. Number each question (1. 2. 3.) and list options A) B) C) D). Mark the answer with "Answer: B", an answer key at the end, or make the correct option <strong>bold / highlighted</strong> (Word).</div>
+          <input type="file" accept=".docx,.pdf,.txt" onchange="qzImportFile(this)" style="font-size:12px;">
+        </div>
+        <details style="margin-top:12px;border:1px dashed var(--border);border-radius:8px;padding:12px;">
+          <summary style="cursor:pointer;font-weight:700;font-size:13px;">Paste many questions at once</summary>
+          <div style="font-size:12px;color:var(--muted);margin:8px 0;">One question per block, blank line between blocks:<br>
+            <code>What is 1/2 + 1/4?<br>A) 1/6<br>B) 3/4<br>C) 2/6<br>D) 1/8<br>Answer: B</code></div>
+          <textarea rows="8" style="width:100%;box-sizing:border-box;padding:8px;font-family:monospace;font-size:12.5px;" oninput="quizBulkText=this.value">${qzEsc(quizBulkText)}</textarea>
+          <button type="button" class="btn-ghost" style="width:auto;margin-top:8px;" onclick="qzImportBulk()"><i class="fa-solid fa-file-import"></i>&nbsp;Import questions</button>
+        </details>`}
+
+        <div class="wizard-nav" style="padding:20px 0 0;border-top:none;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn-ghost" onclick="qzBackToList()">Cancel</button>
+            <button type="button" class="btn-primary auto" onclick="qzSave(false)">Save</button>
+            <button type="button" class="btn-ghost" style="background:var(--navy-dark);color:#fff;" onclick="qzSave(true)">Save &amp; Publish</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ---------- Teacher: results & posting marks ----------
+function qzMaxFor(q){ return q.exam ? marksEntryMaxMarksFor(q.exam, q.subject, null) : 100; }
+function qzMarkFor(q, a){ const max = qzMaxFor(q); return a.total ? Math.round((a.score / a.total) * max * 100) / 100 : 0; }
+function qzAllowRetake(quizId, adm){
+  quizAttempts = quizAttempts.filter(a => !(a.quizId === quizId && a.adm === adm)); render();
+}
+function qzSetResultsExam(v){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q) return;
+  const [t, e] = String(v).split('||'); q.term = t || ""; q.exam = e || ""; render();
+}
+function qzPostMarks(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q) return;
+  if(!q.exam){ quizMsg = { type:'error', text:'Choose the exam to post marks to first.' }; render(); return; }
+  if(typeof isExamLocked === 'function' && isExamLocked(q.term, q.exam)){ quizMsg = { type:'error', text:`${q.exam} is locked. Ask the Examination Officer/Admin to unlock it first.` }; render(); return; }
+  const subs = qzSubmitted(q.id).filter(a => !qzAwaiting(q, a) && qzStudentsOf(q).some(s => s.admissionNumber === a.adm));
+  if(!subs.length){ quizMsg = { type:'error', text: qzType(q) === 'structured' ? 'No marked attempts to post yet. Mark the learners\' answers first.' : 'No submitted attempts to post yet.' }; render(); return; }
+  const max = qzMaxFor(q);
+  const overwrite = subs.filter(a => { const k = marksDataKey(q.exam, q.grade, q.subject, a.adm); return marksData[k] !== undefined && marksData[k] !== qzMarkFor(q, a); }).length;
+  if(!confirm(`Post ${subs.length} quiz score${subs.length===1?'':'s'} to ${q.exam} (${q.subject}, ${q.grade}), scaled to ${max} marks?` + (overwrite ? `\n\n${overwrite} existing mark${overwrite===1?'':'s'} will be replaced.` : ''))) return;
+  subs.forEach(a => {
+    const key = marksDataKey(q.exam, q.grade, q.subject, a.adm);
+    const n = qzMarkFor(q, a);
+    const old = marksData[key];
+    if(old !== n){
+      try{ logMarksAudit({ action: old === undefined ? 'Entered score' : 'Changed score', term:q.term, exam:q.exam, cls:q.grade, subject:q.subject, admissionNumber:a.adm, studentName:marksAuditStudentName(a.adm), oldValue: old === undefined ? '' : old, newValue:n }); }catch(_e){}
+    }
+    marksData[key] = n;
+    if(marksRemarks[key]) delete marksRemarks[key];
+  });
+  markExamRowUploaded(q.term, q.exam, q.grade);
+  q.postedOn = todayDDMMYYYY();
+  quizMsg = { type:'ok', text:`Posted ${subs.length} mark${subs.length===1?'':'s'} to ${q.exam}. Find them under Enter Marks.` };
+  render();
+}
+function qzDownloadResults(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q) return;
+  const rows = [["Adm No","Name","Score","Out of","Percent","Mark (/"+qzMaxFor(q)+")"]];
+  qzStudentsOf(q).forEach(s => { const a = qzAttempt(q.id, s.admissionNumber);
+    rows.push(a && a.submittedAt ? (qzAwaiting(q, a) ? [s.admissionNumber, fullName(s), "", "", "", "Awaiting marking"] : [s.admissionNumber, fullName(s), a.score, a.total, (a.total ? Math.round(a.score/a.total*100) : 0)+"%", qzMarkFor(q,a)]) : [s.admissionNumber, fullName(s), "", "", "", "Not attempted"]); });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' })); a.download = (q.title || 'quiz') + '-results.csv'; a.click();
+}
+function renderQuizResults(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId);
+  if(!q) return `<div class="panel"><div class="empty">Quiz not found.</div></div>`;
+  const studs = qzStudentsOf(q);
+  const max = qzMaxFor(q);
+  const done = qzSubmitted(q.id).filter(a => studs.some(s => s.admissionNumber === a.adm));
+  const scored = done.filter(a => !qzAwaiting(q, a) && a.total), toMark = done.length - done.filter(a => !qzAwaiting(q, a)).length;
+  const avg = scored.length ? Math.round(scored.reduce((t, a) => t + a.score / a.total * 100, 0) / scored.length) : null;
+  const rows = studs.map(s => {
+    const a = qzAttempt(q.id, s.admissionNumber);
+    const fin = !!(a && a.submittedAt), wait = qzAwaiting(q, a), isStruct = qzType(q) === 'structured';
+    const k = marksDataKey(q.exam, q.grade, q.subject, s.admissionNumber);
+    const posted = q.exam && fin && !wait && marksData[k] === qzMarkFor(q, a);
+    const status = !fin ? '<span style="color:var(--muted);">Not attempted</span>' : wait ? '<span class="pill-status status-pending">Needs marking</span>' : `<span class="pill-status ${posted?'status-paid':'status-pending'}">${posted ? 'Posted' : 'Not posted'}</span>`;
+    return `<tr>
+      <td>${qzEsc(s.admissionNumber)}</td><td style="font-weight:600;">${qzEsc(fullName(s))}</td>
+      <td style="text-align:center;">${fin ? (wait ? '—' : `${a.score}/${a.total}`) : (a ? 'In progress' : '—')}</td>
+      <td style="text-align:center;">${fin && !wait && a.total ? Math.round(a.score/a.total*100) + '%' : '—'}</td>
+      <td style="text-align:center;font-weight:700;">${fin && !wait ? qzMarkFor(q, a) : '—'}</td>
+      <td>${status}</td>
+      <td style="white-space:nowrap;">${fin ? `<button class="link-btn" onclick="qzOpenMarking('${q.id}','${qzEsc(s.admissionNumber)}')"><i class="fa-solid ${isStruct ? 'fa-pen-to-square' : 'fa-eye'}"></i>&nbsp;${isStruct ? (a.marked ? 'Edit marks' : 'Mark') : 'View answers'}</button> ` : ''}${a ? `<button class="link-btn" onclick="qzAllowRetake('${q.id}','${qzEsc(s.admissionNumber)}')" title="Clear this attempt so the student can do it again"><i class="fa-solid fa-rotate-left"></i>&nbsp;Allow retake</button>` : ''}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">No students in ${qzEsc(q.grade)}.</td></tr>`;
+  const exams = qzExamsFor(q.grade);
+  return `
+    <div class="panel" style="overflow:hidden;">
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <h3>${qzEsc(q.title)} — Results</h3>
+        <button class="btn-ghost" style="width:auto;" onclick="qzBackToList()"><i class="fa-solid fa-arrow-left"></i>&nbsp;Back to quizzes</button>
+      </div>
+      <div style="padding:14px 24px;font-size:13px;color:var(--muted);">
+        ${qzEsc([q.grade, q.stream].filter(Boolean).join(' '))} · ${qzEsc(q.subject)} · ${qzEsc(QZ_TYPES[qzType(q)])} · ${q.questions.length} questions · ${done.length}/${studs.length} submitted${toMark ? ` (${toMark} to mark)` : ''}${avg !== null ? ` · class average ${avg}%` : ''}${q.postedOn ? ` · last posted ${qzEsc(q.postedOn)}` : ''}
+      </div>
+      ${quizMsg ? `<div style="padding:0 24px 10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
+      <div style="padding:0 24px 14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <label class="field" style="margin:0;min-width:260px;"><span>Post marks to exam (scaled to ${max})</span>
+          <select onchange="qzSetResultsExam(this.value)"><option value="">— choose exam —</option>${exams.map(e => `<option value="${qzEsc(e.term+'||'+e.exam)}" ${e.term===q.term&&e.exam===q.exam?'selected':''}>${qzEsc(e.exam)} (${qzEsc(e.term)})</option>`).join('')}</select></label>
+        <button class="btn-primary auto" onclick="qzPostMarks()" ${(!qzCanManage())?'disabled':''}><i class="fa-solid fa-check-double"></i>&nbsp;Approve &amp; post marks</button>
+        <button class="btn-ghost" style="width:auto;" onclick="qzDownloadResults()"><i class="fa-solid fa-download"></i>&nbsp;Download CSV</button>
+      </div>
+      <div class="streams-scroll"><table style="min-width:760px;">
+        <thead><tr><th>Adm No</th><th>Name</th><th>Score</th><th>%</th><th>Mark (/${max})</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+    </div>`;
+}
+// ---------- Teacher: one learner's answers (structured: mark them) ----------
+function qzOpenMarking(id, adm){ quizResultsId = id; quizMarking = { adm, draft:null }; quizView = "mark"; quizMsg = null; render(); }
+function qzMarkInput(qid, v){ if(quizMarking){ quizMarking.draft = quizMarking.draft || {}; quizMarking.draft[qid] = v; } }
+function qzSaveMarking(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
+  if(!q || !a || !a.submittedAt || qzType(q) !== 'structured') return;
+  const draft = quizMarking.draft || {}, marks = {};
+  for(let n = 0; n < q.questions.length; n++){
+    const x = q.questions[n], max = qzQMarks(q, x), raw = draft[x.id] !== undefined ? draft[x.id] : (a.marks ? a.marks[x.id] : 0);
+    const v = (raw === undefined || raw === '' || raw === null) ? 0 : Number(raw);
+    if(!isFinite(v) || v < 0 || v > max){ quizMsg = { type:'error', text:`Question ${n+1}: marks must be between 0 and ${max}.` }; render(); return; }
+    marks[x.id] = Math.round(v * 2) / 2;   // half marks allowed
+  }
+  a.marks = marks; a.marked = true; a.markedBy = currentUserName; a.markedOn = todayDDMMYYYY();
+  a.score = qzScoreAttempt(q, a); a.total = qzTotal(q);
+  quizMsg = { type:'ok', text:`Marks saved: ${a.score}/${a.total}.` };
+  quizMarking = null; quizView = "results";
+  qzCloudNow(); render();
+}
+function renderQuizMarking(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
+  if(!q || !a) return `<div class="panel"><div class="empty">Attempt not found.</div></div>`;
+  const stu = studentByAdmissionNumber(a.adm), t = qzType(q), isStruct = t === 'structured';
+  const draft = quizMarking.draft || {};
+  const rows = q.questions.map((x, n) => {
+    const mine = a.answers[x.id], has = mine !== undefined && String(mine).trim() !== '', max = qzQMarks(q, x);
+    let mineHtml, keyHtml = '', markHtml = '';
+    if(t === 'mcq'){
+      mineHtml = mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine]) + (mine === x.answer ? ' ✔' : ' ✘');
+      keyHtml = mine === x.answer ? '' : `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Correct: <strong>${qzEsc(x.options[x.answer])}</strong></div>`;
+    } else if(t === 'short'){
+      mineHtml = (has ? qzEsc(mine) : '<em>none</em>') + (qzShortOk(x, mine) ? ' ✔' : ' ✘');
+      keyHtml = `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Accepted: ${(x.accepted || []).map(z => `<strong>${qzEsc(z)}</strong>`).join(', ') || '—'}</div>`;
+    } else {
+      mineHtml = has ? qzEsc(mine) : '<em>none</em>';
+      keyHtml = x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;">Marking guide: ${qzEsc(x.modelAnswer)}</div>` : '';
+      const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : '');
+      markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)"></label>`;
+    }
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
+      <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${isStruct ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${max} mark${max===1?'':'s'}]</span>` : ''}</div>
+      ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${keyHtml}${markHtml}</div>`;
+  }).join('');
+  return `
+    <div class="panel" style="overflow:hidden;">
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <h3>${qzEsc(q.title)} — ${qzEsc(stu ? fullName(stu) : a.adm)} (${qzEsc(a.adm)})</h3>
+        <button class="btn-ghost" style="width:auto;" onclick="qzOpenResults('${q.id}')"><i class="fa-solid fa-arrow-left"></i>&nbsp;Back to results</button>
+      </div>
+      <div style="padding:14px 24px;">
+        ${quizMsg ? `<div style="margin-bottom:10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
+        ${rows}
+        ${isStruct ? `<button class="btn-primary auto" onclick="qzSaveMarking()"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save marks</button>${a.marked ? `<span style="margin-left:10px;font-size:12px;color:var(--muted);">Last marked ${qzEsc(a.markedOn || '')}${a.markedBy ? ' by ' + qzEsc(a.markedBy) : ''}</span>` : ''}` : ''}
+      </div>
+    </div>`;
+}
+function renderQuizzesTab(){
+  if(quizView === "edit" && quizDraft) return renderQuizEditor();
+  if(quizView === "mark" && quizMarking) return renderQuizMarking();
+  if(quizView === "results") return renderQuizResults();
+  return renderQuizList();
+}
+
+// ---------- Student (portal) ----------
+// ================= Learner portal on the learner's own device =================
+// A learner's phone holds none of the school's data. It signs in to the server with the learner's portal details and receives
+// only that learner's record, the quizzes published to the learner's class, and the learner's own attempts. Attempts are saved
+// back to the server (and marked there), where teachers see them. This session is never written to the phone's own storage, so
+// nothing from it can later be uploaded as if it were a school's data.
+const MASMS_PR = { token:null, name:'', timer:null, chain:Promise.resolve(), pending:0, dirty:{}, unsynced:{} };
+function prBase(){ return (window.MASMS_API_BASE || '') + '/api'; }
+function prStaffCloudIn(){ try{ return !!(window.MASMS_CLOUD && MASMS_CLOUD.signedIn && MASMS_CLOUD.signedIn()); }catch(_e){ return false; } }
+function prApi(method, path, body, token){
+  return fetch(prBase() + path, { method, headers:Object.assign({ 'Content-Type':'application/json' }, (token || MASMS_PR.token) ? { Authorization:'Bearer ' + (token || MASMS_PR.token) } : {}), body: body ? JSON.stringify(body) : undefined })
+    .then(r => r.json().catch(() => ({})).then(j => ({ ok:r.ok, status:r.status, error:j && j.error, data:j })));
+}
+function prLogin(user, pass){
+  return prApi('POST', '/portal/login', { username:user, password:pass }).then(r => {
+    if(r.ok && r.data && r.data.token && r.data.student) return { ok:true, data:r.data };
+    return { ok:false, status:r.status, error:r.error };
+  });
+}
+function prBegin(p){
+  MASMS_PR.token = p.token || MASMS_PR.token; MASMS_PR.name = p.schoolName || p.school || MASMS_PR.name;
+  window.MASMS_NO_PERSIST = true;   // see the note above: nothing from this session is saved on the phone
+  try{ sessionStorage.setItem('masmsPortalTok', JSON.stringify({ token:MASMS_PR.token, name:MASMS_PR.name })); }catch(_e){}
+  const name = MASMS_PR.name || 'School', d = emptySchoolDataset();
+  d.students = [p.student]; d.onlineQuizzes = p.quizzes || []; d.quizAttempts = p.attempts || [];
+  d.portalFeatures = { feeStatements:false, examResults:false, attendance:false, announcements:false, messaging:false, quizzes:true };
+  schools = [name]; schoolData = {}; schoolData[name] = d; currentSchool = name; loadSchoolData(name);
+  if(!MASMS_PR.timer) MASMS_PR.timer = setInterval(prTick, 20000);
+}
+function prCleanAttempt(a){ const o = {}; Object.keys(a).forEach(k => { if(k.charAt(0) !== '_') o[k] = a[k]; }); return o; }
+// send an attempt now (start / finish); one at a time, in order
+function prPush(a){
+  if(!MASMS_PR.token) return;
+  delete MASMS_PR.dirty[a.id]; MASMS_PR.pending++;
+  MASMS_PR.chain = MASMS_PR.chain.then(() => prApi('PUT', '/portal/attempt', { attempt:prCleanAttempt(a) })).then(r => {
+    if(r.ok && r.data && r.data.attempt){
+      delete MASMS_PR.unsynced[a.id];
+      const srv = r.data.attempt;
+      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
+    } else if(r.status === 401){ prSessionLost(); }
+    else if(r.status === 404){ delete MASMS_PR.unsynced[a.id]; }   // quiz withdrawn or retake granted: nothing to save
+    else { MASMS_PR.unsynced[a.id] = a; }
+  }).catch(() => { MASMS_PR.unsynced[a.id] = a; }).then(() => { MASMS_PR.pending--; });
+  return MASMS_PR.chain;
+}
+// a saved answer: sent with the next tick, so a lost phone resumes from a minute-old copy without hammering the server
+function prDirty(a){ if(MASMS_PR.token) MASMS_PR.dirty[a.id] = a; }
+function prFlush(){
+  const all = Object.assign({}, MASMS_PR.unsynced, MASMS_PR.dirty);
+  Object.keys(all).forEach(id => prPush(all[id]));
+  return MASMS_PR.chain;
+}
+function prSessionLost(){
+  try{ alert('Your session has expired. Please sign in again.'); }catch(_e){}
+  try{ sessionStorage.removeItem('masmsPortalTok'); }catch(_e){}
+  location.reload();
+}
+function prTick(){
+  if(!MASMS_PR.token || !isPortalSession) return;
+  prFlush();
+  // pick up quizzes published (or retakes allowed) after this learner signed in; never while a quiz is open
+  if(MASMS_PR.pending || (portalQuiz && portalQuiz.mode !== 'list')) return;
+  prApi('GET', '/portal/quizzes').then(r => {
+    if(r.status === 401){ prSessionLost(); return; }
+    if(!r.ok || !r.data || !Array.isArray(r.data.quizzes) || MASMS_PR.pending) return;
+    const keep = quizAttempts.filter(a => MASMS_PR.unsynced[a.id] || MASMS_PR.dirty[a.id]);
+    const fresh = (r.data.attempts || []).filter(a => !keep.some(k => k.quizId === a.quizId && k.adm === a.adm));
+    const before = JSON.stringify([onlineQuizzes, quizAttempts]);
+    onlineQuizzes = r.data.quizzes; quizAttempts = fresh.concat(keep);
+    if(JSON.stringify([onlineQuizzes, quizAttempts]) !== before && isPortalSession && (!portalQuiz || portalQuiz.mode === 'list')) renderPortalApp();
+  }).catch(() => {});
+}
+function prEnd(){
+  const done = () => { try{ sessionStorage.removeItem('masmsPortalTok'); }catch(_e){} location.reload(); };
+  Promise.race([prFlush(), new Promise(r => setTimeout(r, 2500))]).then(done, done);
+}
+// after a page refresh, resume the same learner session
+function prResume(){
+  let o = null; try{ o = JSON.parse(sessionStorage.getItem('masmsPortalTok') || 'null'); }catch(_e){}
+  if(!o || !o.token || isLoggedIn) return;
+  prApi('GET', '/portal/quizzes', null, o.token).then(r => {
+    if(!r.ok || !r.data || !r.data.student){ try{ sessionStorage.removeItem('masmsPortalTok'); }catch(_e){} return; }
+    if(isLoggedIn) return;
+    prBegin(Object.assign({ token:o.token, schoolName:o.name }, r.data));
+    const stu = studentByAdmissionNumber(String(r.data.student.admissionNumber).trim());
+    if(stu) portalSessionStart(stu, String(stu.admissionNumber).toLowerCase(), '');
+  }).catch(() => {});
+}
+window.addEventListener('load', () => { try{ const p = (window.MASMS_LOCAL && MASMS_LOCAL.ready) ? MASMS_LOCAL.ready : Promise.resolve(); p.then(() => setTimeout(prResume, 300)); }catch(_e){} });
+
+let portalQuiz = null; // null = portal home | { mode:'list'|'take'|'review', quizId }
+let _qzTimer = null;
+function qzOpenQuizzes(){ portalQuiz = { mode:'list' }; renderPortalApp(); }
+function qzPortalHome(){ qzStopTimer(); portalQuiz = null; renderPortalApp(); }
+function qzStopTimer(){ if(_qzTimer){ clearInterval(_qzTimer); _qzTimer = null; } }
+function qzQuizzesForStudent(st){
+  return onlineQuizzes.filter(q => q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream));
+}
+function qzOpenCount(st){
+  return qzQuizzesForStudent(st).filter(q => !qzIsClosed(q) && !qzNotOpenYet(q) && (!qzAttempt(q.id, st.admissionNumber) || (qzAttempt(q.id, st.admissionNumber) && !qzAttempt(q.id, st.admissionNumber).submittedAt))).length;
+}
+function qzShuffle(arr){ const a = arr.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// Student flow: instructions -> Start -> one question at a time: pick an option -> Save -> "Saved" -> Next.
+function qzIntro(quizId){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const q = onlineQuizzes.find(x => x.id === quizId);
+  if(!st || !q || !q.published || qzIsClosed(q)) return;
+  const a = qzAttempt(quizId, st.admissionNumber);
+  if(a && !a.submittedAt){ portalQuiz = { mode:'take', quizId, pending:null }; renderPortalApp(); return; }
+  if(a && a.submittedAt){ portalQuiz = { mode:'review', quizId }; renderPortalApp(); return; }
+  if(qzNotOpenYet(q)){ try{ alert(`This quiz opens on ${qzWhenLabel(q)}.`); }catch(_e){} return; }
+  portalQuiz = { mode:'intro', quizId }; renderPortalApp();
+}
+function qzStart(quizId){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const q = onlineQuizzes.find(x => x.id === quizId);
+  if(!st || !q || !q.published || qzIsClosed(q)) return;
+  let a = qzAttempt(quizId, st.admissionNumber);
+  if(a && a.submittedAt) return;
+  if(!a && qzNotOpenYet(q)){ try{ alert(`This quiz opens on ${qzWhenLabel(q)}.`); }catch(_e){} return; }
+  if(!a){
+    const qids = q.questions.map(x => x.id), opts = {};
+    q.questions.forEach(x => { opts[x.id] = x.options.map((_, i) => i); });
+    a = { id:qzUid(), quizId, adm:st.admissionNumber, startedAt:Date.now(), pos:0, saved:{},
+      order:{ qids: q.shuffle ? qzShuffle(qids) : qids, opts: Object.fromEntries(Object.keys(opts).map(k => [k, q.shuffle ? qzShuffle(opts[k]) : opts[k]])) },
+      answers:{}, submittedAt:null, score:0, total:qzTotal(q) };
+    quizAttempts.push(a);
+    try{ prPush(a); }catch(_e){}
+  }
+  portalQuiz = { mode:'take', quizId, pending:null };
+  renderPortalApp();
+}
+// the student ticks an option (not recorded until Save is pressed)
+function qzPick(quizId, qid, optIdx){
+  if(!portalQuiz || portalQuiz.quizId !== quizId) return;
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || a.submittedAt || (a.saved && a.saved[qid])) return;
+  portalQuiz.pending = optIdx;
+  const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
+}
+// typed answers (short / structured): held as "pending" until Save is pressed, like a ticked option
+function qzTyped(quizId, qid, val){
+  if(!portalQuiz || portalQuiz.quizId !== quizId) return;
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || a.submittedAt || (a.saved && a.saved[qid])) return;
+  portalQuiz.pending = String(val).trim() ? String(val) : null;
+  const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
+}
+function qzActionHtml(quizId, qid, a){
+  const q = onlineQuizzes.find(x => x.id === quizId); const last = a.pos >= a.order.qids.length - 1;
+  if(a.saved && a.saved[qid]){
+    return `<div style="color:var(--green);font-weight:700;margin-bottom:10px;"><i class="fa-solid fa-circle-check"></i> Saved</div>` +
+      (last ? `<button class="btn-primary auto" onclick="qzFinish('${quizId}',false)"><i class="fa-solid fa-flag-checkered"></i>&nbsp;Finish &amp; submit</button>`
+            : `<button class="btn-primary auto" onclick="qzNext('${quizId}')">Next <i class="fa-solid fa-arrow-right"></i></button>`);
+  }
+  if(portalQuiz && portalQuiz.pending != null) return `<button class="btn-primary auto" onclick="qzSaveAnswer('${quizId}','${qid}')"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save</button>`;
+  return `<div style="font-size:12.5px;color:var(--muted);">${q && qzType(q) !== 'mcq' ? 'Type your answer' : 'Choose an answer'}, then press Save.</div>`;
+}
+function qzSaveAnswer(quizId, qid){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || a.submittedAt || !portalQuiz || portalQuiz.pending == null) return;
+  a.answers[qid] = portalQuiz.pending; a.saved = a.saved || {}; a.saved[qid] = true;
+  try{ prDirty(a); }catch(_e){}
+  portalQuiz.pending = null;
+  const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
+  const q = onlineQuizzes.find(x => x.id === quizId), el = document.getElementById('qzCount');
+  if(q && el) el.textContent = Object.keys(a.saved).length + '/' + q.questions.length + ' saved';
+  document.querySelectorAll('#qzQuestionBox input, #qzQuestionBox textarea').forEach(r => { r.disabled = true; });
+}
+function qzNext(quizId){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || a.submittedAt) return;
+  if(a.pos < a.order.qids.length - 1) a.pos++;
+  portalQuiz = { mode:'take', quizId, pending:null }; renderPortalApp();
+  try{ window.scrollTo(0, 0); }catch(_e){}
+}
+function qzDeadline(q, a){ return Math.min(a.startedAt + Number(q.minutes) * 60000, qzDueEnd(q)); }
+function qzFinish(quizId, auto){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const q = onlineQuizzes.find(x => x.id === quizId);
+  const a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || !q || a.submittedAt) return;
+  if(!auto){
+    const left = q.questions.filter(x => a.answers[x.id] === undefined).length;
+    if(!confirm(left ? `You have ${left} unanswered question${left===1?'':'s'}. Submit anyway?` : 'Submit your answers now? You cannot change them afterwards.')) return;
+  }
+  a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); a.submittedAt = Date.now(); a.auto = !!auto;
+  if(qzType(q) === 'short') a._scoring = true;   // the server marks typed answers (it holds the accepted answers); the score appears when it replies
+  try{ prPush(a); }catch(_e){}
+  qzStopTimer();
+  portalQuiz = { mode:'review', quizId };
+  renderPortalApp();
+}
+function qzTick(){
+  if(!portalQuiz || portalQuiz.mode !== 'take'){ qzStopTimer(); return; }
+  const st = studentByAdmissionNumber(currentPortalStudentAdm); const q = onlineQuizzes.find(x => x.id === portalQuiz.quizId);
+  const a = st && q && qzAttempt(q.id, st.admissionNumber);
+  if(!a || a.submittedAt){ qzStopTimer(); return; }
+  const left = qzDeadline(q, a) - Date.now();
+  if(left <= 0){ qzFinish(q.id, true); return; }
+  const el = document.getElementById('qzTimer');
+  if(el){ const s = Math.ceil(left / 1000); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); el.style.color = s <= 60 ? 'var(--rose)' : 'inherit'; }
+}
+// An attempt whose time ran out while the student was away is submitted with the answers it has.
+function qzFinalizeExpired(st){
+  qzQuizzesForStudent(st).forEach(q => {
+    const a = qzAttempt(q.id, st.admissionNumber);
+    if(a && !a.submittedAt && Date.now() >= qzDeadline(q, a)){
+      a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); a.submittedAt = Date.now(); a.auto = true;
+      if(qzType(q) === 'short') a._scoring = true;
+      try{ prPush(a); }catch(_e){}
+    }
+  });
+}
+function renderPortalQuizBody(st){
+  const adm = st.admissionNumber;
+  if(portalQuiz.mode === 'list'){
+    try{ qzFinalizeExpired(st); }catch(_e){}
+    const list = qzQuizzesForStudent(st);
+    const rows = list.map(q => {
+      const a = qzAttempt(q.id, adm), closed = qzIsClosed(q);
+      let action = '', state = '';
+      if(a && a.submittedAt){ state = (qzAwaiting(q, a) || a._scoring) ? 'Submitted — awaiting marks' : `<strong>${a.score}/${a.total}</strong> (${a.total ? Math.round(a.score/a.total*100) : 0}%)`; action = `<button class="link-btn" onclick="portalQuiz={mode:'review',quizId:'${q.id}'};renderPortalApp();"><i class="fa-solid fa-eye"></i>&nbsp;View</button>`; }
+      else if(closed){ state = '<span style="color:var(--rose);">Missed</span>'; }
+      else if(a){ state = 'In progress'; action = `<button class="btn-primary auto" onclick="qzIntro('${q.id}')">Continue</button>`; }
+      else if(qzNotOpenYet(q)){ state = `<span style="color:var(--muted);">Opens ${qzEsc(qzTimeLabel(q.startTime))}</span>`; }
+      else { state = 'Not started'; action = `<button class="btn-primary auto" onclick="qzIntro('${q.id}')">Open</button>`; }
+      return `<tr><td style="font-weight:600;">${qzEsc(q.title)}</td><td>${qzEsc(q.subject)}</td><td style="text-align:center;">${q.questions.length}</td><td style="text-align:center;">${q.minutes} min</td>
+        <td>${q.dueISO ? qzEsc(qzWhenLabel(q)) : '—'}</td><td>${state}</td><td>${action}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty">No quizzes have been set for your class yet.</td></tr>`;
+    return `<div class="panel" style="overflow:hidden;"><div class="panel-header"><h3><i class="fa-solid fa-circle-question" style="color:var(--blue);margin-right:8px;"></i>Online Quizzes</h3></div>
+      <div class="streams-scroll"><table style="min-width:640px;"><thead><tr><th>Quiz</th><th>Subject</th><th>Questions</th><th>Time</th><th>Date &amp; time</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  const q = onlineQuizzes.find(x => x.id === portalQuiz.quizId); const a = q && qzAttempt(q.id, adm);
+  if(q && !a && portalQuiz.mode === 'intro'){
+    return `<div class="panel" style="padding:28px;max-width:720px;margin:0 auto;">
+      <h2 style="margin:0 0 4px;text-transform:uppercase;">${qzEsc(q.subject)} Online Quiz</h2>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">${qzEsc(q.title)} · ${qzEsc(fullName(st))}</div>
+      <h4 style="margin:0 0 8px;">Instructions</h4>
+      <ol style="font-size:14px;line-height:1.7;padding-left:20px;margin:0 0 16px;">
+        <li>The quiz has <strong>${q.questions.length}</strong> ${qzType(q)==='mcq' ? 'multiple-choice' : qzType(q)==='short' ? 'short-answer' : 'structured'} question${q.questions.length===1?'':'s'}${qzType(q)==='mcq' ? ', each with 4 options (A–D).' : qzType(q)==='short' ? '. Type each answer; it is marked automatically.' : `, worth <strong>${qzTotal(q)}</strong> marks in all. Your teacher will mark your answers.`}</li>
+        <li>You have <strong>${q.minutes} minutes</strong>. The timer starts the moment you press <strong>Start</strong>${q.endTime ? ` and the quiz closes at <strong>${qzEsc(qzTimeLabel(q.endTime))}</strong>` : ''}.</li>
+        <li>Questions appear one at a time. ${qzType(q)==='mcq' ? 'Choose an answer' : 'Type your answer'}, press <strong>Save</strong>, then press <strong>Next</strong>.</li>
+        <li>A saved answer cannot be changed.</li>
+        <li>When the time ends, your saved answers are submitted automatically.</li>
+        ${q.allowRetake ? '' : '<li>You can take this quiz only once.</li>'}
+      </ol>
+      <button class="btn-primary auto" onclick="qzStart('${q.id}')"><i class="fa-solid fa-play"></i>&nbsp;Start</button>
+    </div>`;
+  }
+  if(!q || !a) return `<div class="panel"><div class="empty">Quiz not found.</div></div>`;
+  if(portalQuiz.mode === 'take' && !a.submittedAt){
+    const total = a.order.qids.length;
+    if(!(a.pos >= 0 && a.pos < total)) a.pos = 0;
+    a.saved = a.saved || {};
+    const qid = a.order.qids[a.pos]; const x = q.questions.find(z => z.id === qid);
+    if(!x) return `<div class="panel"><div class="empty">Question not found.</div></div>`;
+    const isSaved = !!a.saved[qid];
+    const sel = isSaved ? a.answers[qid] : portalQuiz.pending;
+    qzStopTimer(); _qzTimer = setInterval(qzTick, 1000); setTimeout(qzTick, 50);
+    return `<div style="position:sticky;top:0;z-index:5;background:var(--shell-bg);padding:8px 0;">
+        <div class="panel" style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;gap:12px;flex-wrap:wrap;">
+          <div><strong>${qzEsc(q.subject).toUpperCase()} ONLINE QUIZ</strong><div style="font-size:12px;color:var(--muted);">${qzEsc(q.title)} · <span id="qzCount">${Object.keys(a.saved).length}/${total} saved</span></div></div>
+          <div style="font-size:22px;font-weight:800;"><i class="fa-regular fa-clock"></i> <span id="qzTimer">--:--</span></div>
+        </div></div>
+      <div id="qzQuestionBox" style="border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px;background:#fff;max-width:760px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">QUESTION ${a.pos + 1} OF ${total}</div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:12px;">${qzEsc(x.text)}${qzType(q)==='structured' ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${qzQMarks(q, x)} mark${qzQMarks(q, x)===1?'':'s'}]</span>` : ''}</div>
+        ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;background:#fff;">` : ''}
+        ${qzType(q) !== 'mcq' ? `<textarea rows="${qzType(q)==='short' ? 2 : 7}" maxlength="${qzType(q)==='short' ? 200 : 2000}" placeholder="${qzType(q)==='short' ? 'Type your answer' : 'Write your answer here'}" ${isSaved?'disabled':''} style="width:100%;box-sizing:border-box;padding:10px;font-family:inherit;font-size:15px;" oninput="qzTyped('${q.id}','${qid}',this.value)">${qzEsc(sel == null ? '' : sel)}</textarea>` : a.order.opts[qid].map((oi, k) => `
+          <label style="display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:6px;cursor:${isSaved?'default':'pointer'};${sel===oi?'background:var(--blue-tint);':''}">
+            <input type="radio" name="qa_${qzEsc(qid)}" ${sel===oi?'checked':''} ${isSaved?'disabled':''} onchange="qzPick('${q.id}','${qid}',${oi})">
+            <span><strong style="color:var(--muted);">${String.fromCharCode(65+k)}.</strong> ${qzEsc(x.options[oi])}</span>
+          </label>`).join('')}
+      </div>
+      <div id="qzActionBox" style="max-width:760px;">${qzActionHtml(q.id, qid, a)}</div>`;
+  }
+  // review / result
+  const qt = qzType(q);
+  const showKey = qzIsClosed(q);
+  const waiting = qzAwaiting(q, a) || !!a._scoring;
+  const pct = a.total ? Math.round(a.score / a.total * 100) : 0;
+  const review = qt !== 'mcq' ? qzTypedReview(q, a) : showKey ? q.questions.map((x, n) => {
+    const mine = a.answers[x.id], ok = mine === x.answer;
+    return `<div style="border:1px solid var(--border);border-left:4px solid ${ok?'var(--green)':'var(--rose)'};border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
+      <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}</div>
+      <div style="font-size:13px;margin-top:4px;">Your answer: ${mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine])}${ok ? ' ✔' : ` ✘ — correct: <strong>${qzEsc(x.options[x.answer])}</strong>`}</div></div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;margin-top:10px;">Correct answers will be shown after the due date${q.dueISO ? ' (' + qzEsc(q.dueISO.split('-').reverse().join('/')) + ')' : ''}.</div>`;
+  return `<div class="panel" style="padding:24px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">${qzEsc(q.title)} · ${qzEsc(q.subject)}</div>
+      ${waiting ? `<div style="font-size:20px;font-weight:800;margin:12px 0;">${a._scoring ? 'Submitted — marking your answers…' : 'Submitted — waiting for your teacher to mark it'}</div>` : `<div style="font-size:42px;font-weight:800;color:${pct>=50?'var(--green)':'var(--rose)'};">${a.score}/${a.total}</div>
+      <div style="font-size:16px;font-weight:700;">${pct}%</div>`}
+      ${a.auto ? '<div style="font-size:12px;color:var(--muted);margin-top:6px;">Submitted automatically when time ran out.</div>' : ''}
+      ${q.allowRetake ? `<button class="btn-ghost" style="width:auto;margin-top:12px;" onclick="qzRetake('${q.id}')"><i class="fa-solid fa-rotate-left"></i>&nbsp;Retake</button>` : ''}
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;">Your teacher will approve this score before it is added to your exam marks.</div>
+    </div>${review}`;
+}
+// review of typed answers: what the learner wrote, and (short) right / wrong or (structured, once marked) the marks given. Answer keys are never shown.
+function qzTypedReview(q, a){
+  const t = qzType(q);
+  return q.questions.map((x, n) => {
+    const mine = a.answers[x.id], has = mine !== undefined && String(mine).trim() !== '';
+    let ok = null, extra = '';
+    if(t === 'short'){ ok = a.right ? !!a.right[x.id] : (a._scoring ? null : qzShortOk(x, mine)); }
+    else if(a.marked){ const max = qzQMarks(q, x), got = Math.max(0, Math.min(max, Number(a.marks && a.marks[x.id]) || 0)); ok = got >= max; extra = ` <strong>${got}/${max}</strong>`; }
+    const col = ok === null ? 'var(--border)' : ok ? 'var(--green)' : 'var(--rose)';
+    return `<div style="border:1px solid var(--border);border-left:4px solid ${col};border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
+      <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${t === 'structured' ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${qzQMarks(q, x)} mark${qzQMarks(q, x)===1?'':'s'}]</span>` : ''}</div>
+      ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Your answer: ${has ? qzEsc(mine) : '<em>none</em>'}${ok === null ? '' : ok ? ' ✔' : ' ✘'}${extra}</div></div>`;
+  }).join('');
+}
+function qzRetake(quizId){
+  const q = onlineQuizzes.find(x => x.id === quizId); if(!q || !q.allowRetake || qzIsClosed(q)) return;
+  quizAttempts = quizAttempts.filter(a => !(a.quizId === quizId && a.adm === currentPortalStudentAdm));
+  qzStart(quizId);
+}
+function renderPortalQuizPage(student){
+  const back = portalQuiz.mode === 'list' ? `qzPortalHome()` : `portalQuiz={mode:'list'};qzStopTimer();renderPortalApp();`;
+  return `
+    <div style="min-height:100vh;background:var(--shell-bg);">
+      <header class="topbar" style="padding:16px 32px;">
+        <div class="topbar-school"><i class="fa-solid fa-people-arrows"></i>&nbsp; <span>${qzEsc(currentSchool)} · Parent/Student Portal</span></div>
+        <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; Log out</button>
+      </header>
+      <main style="max-width:860px;margin:0 auto;padding:24px 20px 60px;">
+        <button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;margin-bottom:16px;" onclick="${back}"><i class="fa-solid fa-arrow-left"></i> ${portalQuiz.mode === 'list' ? 'Back to portal' : 'Back to quizzes'}</button>
+        ${renderPortalQuizBody(student)}
+      </main>
+    </div>`;
+}
+
 // ---- Assignments ----
 let assignments = [];
 let showAddAssignmentForm = false;
@@ -9824,7 +10899,7 @@ const SCHOOL_EMPTY_KEYS = [
   "storeItems", "storeMovements", "storeRequisitions", "storeSuppliers",
   "labItems", "labUsageLog", "labIncidents", "labRequisitions", "labFines",
   "boardingDorms", "boardingAllocations", "boardingRollCalls", "boardingExeats",
-  "assignments", "syllabusCoverageData", "syllabusCoverageJustSaved", "syllabusCoverageChecked", "teacherEvents",
+  "assignments", "onlineQuizzes", "quizAttempts", "syllabusCoverageData", "syllabusCoverageJustSaved", "syllabusCoverageChecked", "teacherEvents",
   "lessonSharingList", "lessonSharingGradeData", "subjectSharingRows", "lessonAllocations",
   "classesList", "gradeSupervisors", "classSubjectTeachers", "examTerms",
   "subjectPapersEnabled", "publishSubjectAssignments", "subjectPaperRatios",
@@ -9856,7 +10931,7 @@ function emptySchoolDataset(){
   const d = {};
   SCHOOL_EMPTY_KEYS.forEach(k => { d[k] = SCHOOL_OBJECT_SHAPED_KEYS.has(k) ? {} : []; });
 
-  d.portalFeatures = { feeStatements:true, examResults:true, attendance:true, announcements:true, messaging:false };
+  d.portalFeatures = { feeStatements:true, examResults:true, attendance:true, announcements:true, messaging:false, quizzes:true };
   d.termDates = { "2026": { "Term 1": { start:"2026-01-06", end:"2026-04-03" }, "Term 2": { start:"2026-04-27", end:"2026-08-07" }, "Term 3": { start:"2026-08-10", end:"2026-11-13" } } };
   d.departments = ["Pure Sciences", "Applied Sciences", "Technical Studies", "Language & Literature", "Humanities & Business Studies", "Art & Sports Science", "Examinations", "Finance", "Boarding", "Support Staff", "Co-curricular", "Guidance & Counselling", "Transport"];
   d.responsibilities = ["Chief Principal", "Senior Principal", "Principal", "Deputy Principal", "Deputy Principal Administration", "Deputy Principal Academics", "Deputy Principal Boarding", "Director of Studies", "Senior Teacher", "Head of Department", "Subject Head", "Head of Pathway", "Class Teacher", "Teacher"];
@@ -9884,7 +10959,7 @@ function snapshotSchoolData(name){
     storeItems, storeMovements, storeRequisitions, storeSuppliers,
     labItems, labUsageLog, labIncidents, labRequisitions, labFines,
     boardingDorms, boardingAllocations, boardingRollCalls, boardingExeats,
-    assignments, syllabusCoverageData, syllabusCoverageJustSaved, syllabusCoverageChecked, teacherEvents,
+    assignments, onlineQuizzes, quizAttempts, syllabusCoverageData, syllabusCoverageJustSaved, syllabusCoverageChecked, teacherEvents,
     lessonSharingList, lessonSharingGradeData, subjectSharingRows, lessonAllocations,
     classesList, gradeSupervisors, classSubjectTeachers, examTerms,
     subjectPapersEnabled, publishSubjectAssignments, subjectPaperRatios,
@@ -10012,7 +11087,7 @@ function loadSchoolData(name){
   storesActionMsg = ""; storesSearch = ""; storesCategoryFilter = "";
   boardingDorms = d.boardingDorms || []; boardingAllocations = d.boardingAllocations || []; boardingRollCalls = d.boardingRollCalls || {}; boardingExeats = d.boardingExeats || [];
   boardingActionMsg = ""; boardingRollDorm = ""; boardingRollDraft = null;
-  assignments = d.assignments; syllabusCoverageData = d.syllabusCoverageData; syllabusCoverageJustSaved = d.syllabusCoverageJustSaved; syllabusCoverageChecked = d.syllabusCoverageChecked; teacherEvents = d.teacherEvents;
+  assignments = d.assignments; onlineQuizzes = d.onlineQuizzes || []; quizAttempts = d.quizAttempts || []; syllabusCoverageData = d.syllabusCoverageData; syllabusCoverageJustSaved = d.syllabusCoverageJustSaved; syllabusCoverageChecked = d.syllabusCoverageChecked; teacherEvents = d.teacherEvents;
   lessonSharingList = d.lessonSharingList || [];
   lessonSharingGradeData = d.lessonSharingGradeData || {}; lsgEditId = null;
   subjectSharingRows = d.subjectSharingRows || [];
@@ -11709,7 +12784,7 @@ function sdLoginGuideHtml(){
     <div><b>Sign up:</b> turned off. The Principal or the Sales Agent adds every user.</div>
     <div><b>Staff:</b> sign in with the generated user name (first and second name @ school name and level, e.g. <b>${eg}</b>) or with their phone number. The first time, they use the welcome password from the administrator, then choose their own.</div>
     <div><b>Sales Agents:</b> user name is first and second name @maestro, or phone number.</div>
-    <div><b>Parents/Students:</b> guardian's phone number as user name, student's admission number as password.</div>
+    <div><b>Students:</b> admission number as user name, password <b>welcome</b>. (Parents can still use the guardian's phone number as user name and the admission number as password.)</div>
   </div>`;
 }
 function renderLoginMonitor(){
@@ -14120,7 +15195,7 @@ function renderSchoolSelect(){
   `;
 }
 
-function go(key){ if(!canAccessModule(key)) return; if(key==='teachers' && typeof teachersHubTab!=='undefined') teachersHubTab = ""; active = key; render(); }
+function go(key){ if(!canAccessModule(key)) return; if(key==='teachers' && typeof teachersHubTab!=='undefined') teachersHubTab = ""; if(key==='classes' && typeof classTab!=='undefined') classTab = ""; active = key; render(); }
 
 // ---- Top-bar quick links: dark/light mode + cloud sign-in (mobile: in the three-dots menu) ----
 function quickIsDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -14804,19 +15879,27 @@ function renderTeacherTimetablePortal(){
 }
 
 // ---------- Examinations: enter marks + view-only analysis ----------
-let teacherExamView = null; // null | "marksEntry" | "analysis" | "subjectClassPerformance"
-function setTeacherExamView(v){ teacherExamView = v; if(v === 'marksEntry') academicTab = 'marksEntry'; render(); }
+let teacherExamView = null; // null | "marksEntry" | "scoreSheet" | "analysis" | "subjectClassPerformance"
+function setTeacherExamView(v){ teacherExamView = v; if(v === 'marksEntry' || v === 'scoreSheet') academicTab = v; render(); }
 function renderTeacherExaminations(){
   if(!teacherExamView){
     return `<div class="exams-hub-cards reg-card-row">
       <button class="reg-card" onclick="setTeacherExamView('marksEntry')"><div class="reg-card-icon"><i class="fa-solid fa-pen-to-square"></i></div><div class="reg-card-label">Enter Marks</div><div class="reg-card-sub">Marksheets for the subjects you teach</div></button>
+      <button class="reg-card" onclick="setTeacherExamView('scoreSheet')"><div class="reg-card-icon"><i class="fa-solid fa-table-list"></i></div><div class="reg-card-label">SBA SCORE SHEET</div><div class="reg-card-sub">Class score sheet for your subjects</div></button>
       <button class="reg-card" onclick="setTeacherExamView('analysis')"><div class="reg-card-icon"><i class="fa-solid fa-chart-line"></i></div><div class="reg-card-label">Analysis Reports</div><div class="reg-card-sub">View only</div></button>
       <button class="reg-card" onclick="setTeacherExamView('subjectClassPerformance')"><div class="reg-card-icon"><i class="fa-solid fa-ranking-star"></i></div><div class="reg-card-label">Subject Class Performance</div><div class="reg-card-sub">Class averages for the subjects you teach</div></button>
+      <button class="reg-card" onclick="setTeacherExamView('quizzes')"><div class="reg-card-icon"><i class="fa-solid fa-circle-question"></i></div><div class="reg-card-label">Online Quizzes</div><div class="reg-card-sub">Create quizzes &amp; auto-post marks</div></button>
     </div>`;
   }
   const back = `<button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;margin-bottom:16px;" onclick="teacherExamView=null;academicTab=null;render();"><i class="fa-solid fa-arrow-left"></i> Back to Examinations</button>`;
   if(teacherExamView === 'marksEntry'){
     return `${back}${renderMarksEntryTab()}`;
+  }
+  if(teacherExamView === 'quizzes'){
+    return `${back}${renderQuizzesTab()}`;
+  }
+  if(teacherExamView === 'scoreSheet'){
+    return `${back}${renderScoreSheetTab()}`;
   }
   if(teacherExamView === 'subjectClassPerformance'){
     return `${back}${renderTeacherExamAnalysisTab()}`;
@@ -17221,7 +18304,9 @@ const CLASS_TABS = [
   { key:"my", label:"My Classes", icon:"fa-chalkboard-user" },
   { key:"supportive", label:"Supportive Programs", icon:"fa-people-group" },
 ];
-let classTab = "add";
+// "" = landing view on the Classes page: only the 4 cards show. Picking one hides the others
+// and shows just that section; "Back to cards" returns here (same behaviour as Teachers).
+let classTab = "";
 function setClassTab(key){ classTab = key; render(); }
 
 // ---- Classes > Supportive Programs: remedial teaching, games, clubs,
@@ -18321,6 +19406,7 @@ const ACADEMIC_TABS = [
   { key:"scoreSheet", label:"SBA SCORE SHEET", icon:"fa-table-list", sub:"Print class score sheet" },
   { key:"reportsExports", label:"Reports & Exports", icon:"fa-file-export", sub:"Download exam reports" },
   { key:"gradingSystem", label:"Grading System", icon:"fa-ranking-star", sub:"Set grading scales" },
+  { key:"quizzes", label:"Online Quizzes", icon:"fa-circle-question", sub:"Create quizzes & auto-post marks" },
 ];
 let academicTab = null; // null = Exams hub; otherwise the open tab's key
 function setAcademicTab(key){ academicTab = key; render(); }
@@ -23687,7 +24773,7 @@ function deleteStaff(i){
 
 let staffFormData = {
   name:"", role:"", department:"", phone:"",
-  nationalId:"", employeeNumber:"", status:"Active", subjects:[], customSubjectInput:"",
+  nationalId:"", employeeNumber:"", status:"Active", subjects:[], customSubjectInput:"", photo:"",
 };
 
 
@@ -23726,7 +24812,7 @@ function submitStaff(exit){
   }
   staffFormData = {
     name:"", role:"", department:"", phone:"",
-    nationalId:"", employeeNumber:"", status:"Active", subjects:[], customSubjectInput:"",
+    nationalId:"", employeeNumber:"", status:"Active", subjects:[], customSubjectInput:"", photo:"",
   };
   staffTab = exit ? "manage" : "add";
   render();
@@ -24165,6 +25251,9 @@ function teacherCardCss(){
       .tc-line{display:flex;gap:8px;font-size:12.5px;line-height:1.55;}
       .tc-k{flex:0 0 60px;color:#16a34a;white-space:nowrap;}
       .tc-v{flex:1;min-width:0;color:#111;overflow-wrap:anywhere;text-transform:none !important;}
+      .tc-wide .tc-k{flex-basis:84px;}
+      .tc-badge{display:inline-block;padding:1px 8px;font-size:11.5px;font-weight:700;border:1px solid #16a34a;color:#16a34a;}
+      .tc-badge.off{border-color:#b45309;color:#b45309;}
       .tc-roles-h{text-align:center;color:#1d34c8;font-weight:700;font-size:12px;margin:4px 0 2px;}
       .tc-roles{margin:0;padding-left:34px;font-size:12.5px;line-height:1.5;color:#111;min-height:24px;}
       .tc-flags{display:flex;gap:16px;font-size:12px;margin:6px 0 0;}
@@ -26888,37 +27977,70 @@ function renderPromoteStudentsPanel(){
   `;
 }
 
+function pickPersonPhoto(inputEl, which){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  readImageShrunk(file, 300, false, function(out){
+    (which === 'bom' ? bomMemberFormData : staffFormData).photo = out;
+    render();
+  });
+}
+function removePersonPhoto(which){
+  (which === 'bom' ? bomMemberFormData : staffFormData).photo = "";
+  render();
+}
+function personPhotoField(which){
+  const photo = (which === 'bom' ? bomMemberFormData : staffFormData).photo;
+  return `
+    <label class="field">
+      <span>Upload Photo</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        ${photo
+          ? `<img src="${photo}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--border);">`
+          : `<div class="photo-slot" style="width:56px;height:56px;padding:0;justify-content:center;border-radius:50%;"><i class="fa-solid fa-camera"></i></div>`
+        }
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <input type="file" accept="image/*" onchange="pickPersonPhoto(this,'${which}')" style="font-size:12px;">
+          ${photo ? `<button type="button" class="link-btn danger" style="width:fit-content;" onclick="removePersonPhoto('${which}')"><i class="fa-solid fa-trash"></i>&nbsp;Remove</button>` : ''}
+        </div>
+      </div>
+    </label>`;
+}
+
 function renderManageStaffPanel(){
-  const statusClass = { "Active":"status-paid", "On leave":"status-pending" };
-  const rows = staffList.map((s, i) => `
-    <tr>
-      <td style="font-weight:600;">${s.name}</td>
-      <td style="color:var(--muted);">${s.role}</td>
-      <td style="color:var(--muted);">${s.department}</td>
-      <td style="color:var(--muted);">${s.phone}</td>
-      <td style="color:var(--muted);">${s.nationalId}</td>
-      <td style="color:var(--muted);">${s.employeeNumber}</td>
-      <td>${s.subjects && s.subjects.length ? subjectPillList(s.subjects) : '<span style="color:var(--muted);">—</span>'}</td>
-      <td><span class="pill-status ${statusClass[s.status]||''}">${s.status}</span></td>
-      <td><button class="link-btn" onclick="editStaff(${i})"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button></td>
-      <td><button class="link-btn danger" onclick="deleteStaff(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button></td>
-    </tr>
-  `).join('') || `<tr><td colspan="10" class="empty">No staff records yet.</td></tr>`;
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const line = (label, val) => `<div class="tc-line"><span class="tc-k">${label}:</span><span class="tc-v">${val}</span></div>`;
+  const cards = staffList.map((s, i) => {
+    const subj = (s.subjects && s.subjects.length) ? s.subjects.map(x => subjectShortForm(x)).join(', ') : '—';
+    const active = (s.status || 'Active') === 'Active';
+    return `<div class="tc-card tc-wide">
+      <div class="tc-top">
+        <div class="tc-photo">${s.photo ? `<img src="${esc(s.photo)}" alt="">` : 'PHOTO'}</div>
+        <div class="tc-info">
+          ${line('NAME', esc(s.name))}
+          ${line('ROLE', esc(s.role || '—'))}
+          ${line('DEPT', esc(s.department || '—'))}
+          ${line('ID NO', esc(s.nationalId || '—'))}
+          ${line('EMP NO', esc(s.employeeNumber || '—'))}
+          ${line('MOB NO', esc(s.phone || '—'))}
+        </div>
+      </div>
+      <div class="tc-roles-h">${esc(String(s.role || 'STAFF').toUpperCase())}</div>
+      <div style="text-align:center;margin:2px 0 4px;min-height:22px;font-size:12.5px;">
+        ${s.subjects && s.subjects.length ? `<div style="color:#111;margin-bottom:4px;">${esc(subj)}</div>` : ''}
+        <span class="tc-badge ${active ? '' : 'off'}">${esc(s.status || 'Active')}</span>
+      </div>
+      <div class="tc-actions">
+        <button class="link-btn" onclick="editStaff(${i})"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>
+        <button class="link-btn danger" onclick="deleteStaff(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty" style="grid-column:1/-1;">No staff records yet. Add one from the "Add New Staff" tab.</div>`;
 
   return `
-    <div class="panel" style="overflow:hidden;">
-      <div class="panel-header"><h3>Staff (${staffList.length})</h3></div>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>Role</th><th>Department</th><th>Phone</th>
-            <th>National ID</th><th>Employee No.</th><th>Subjects (Gr. 10–12)</th><th>Status</th>
-            <th>Edit</th><th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+    ${teacherCardCss()}
+    <div class="panel-header" style="padding:16px 4px;"><h3>Staff (${staffList.length})</h3></div>
+    <div class="tc-grid">${cards}</div>
   `;
 }
 
@@ -26928,6 +28050,7 @@ function renderAddStaffForm(){
       <form onsubmit="event.preventDefault();" style="padding:24px;">
         <div class="form-grid-2">
           ${staffField("Full Name","name",true,"Full Name")}
+          ${personPhotoField('staff')}
           ${staffSelect("Role","role",STAFF_ROLES,false)}
           ${staffSelect("Department","department",departments,false)}
           ${staffField("Phone Number","phone",false,"0712345678")}
@@ -27351,15 +28474,28 @@ function renderAddClassTab(){
 }
 
 function renderClassesPage(){
+  let content = "";
+  if(!classTab){
+    content = `<div class="teacher-tab-cards">${renderTabCards(CLASS_TABS, "", 'setClassTab')}</div>`;
+  } else {
+    switch(classTab){
+      case "manage": content = renderManageClassesTab(); break;
+      case "add": content = renderAddClassTab(); break;
+      case "supportive": content = renderSupportiveProgramsTab(); break;
+      default: content = renderMyClassesTab();
+    }
+  }
+  const backAction = classTab ? `setClassTab('')` : `go('dashboard')`;
+  const backLabel = classTab ? 'Back to cards' : 'Back';
   return `
-    ${renderClassesPanel()}
+    ${content}
     <div class="reg-nav-row">
-      <button class="back-cell" onclick="go('dashboard')">
-        <i class="fa-solid fa-arrow-left"></i> Back
+      <button class="back-cell" onclick="${backAction}">
+        <i class="fa-solid fa-arrow-left"></i> ${backLabel}
       </button>
-      <button class="next-cell" onclick="go('academics')">
+      ${classTab ? '' : `<button class="next-cell" onclick="go('academics')">
         Next <i class="fa-solid fa-arrow-right"></i>
-      </button>
+      </button>`}
     </div>
   `;
 }
@@ -40224,7 +41360,7 @@ let BOM_COMMITTEES = ["Finance", "Academic", "Infrastructure & Procurement", "Di
 let bomMembers = [];
 
 let bomMemberEditIndex = null;
-let bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active" };
+let bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active", photo:"" };
 
 function bomField(label, id, required, placeholder=""){
   return `
@@ -40259,7 +41395,7 @@ function deleteBomMember(i){
 }
 
 function clearBomMemberForm(){
-  bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active" };
+  bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active", photo:"" };
   bomMemberEditIndex = null;
   render();
 }
@@ -40275,7 +41411,7 @@ function submitBomMember(exit){
   } else {
     bomMembers.push({ ...bomMemberFormData });
   }
-  bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active" };
+  bomMemberFormData = { name:"", position:"", phone:"", email:"", committee:"", qualification:"", status:"Active", photo:"" };
   bomTab = exit ? "profile" : "add";
   render();
 }
@@ -40287,6 +41423,7 @@ function renderAddBomMemberForm(){
       <form onsubmit="event.preventDefault();" style="padding:24px;">
         <div class="form-grid-2">
           ${bomField("Full Name","name",true,"Full Name")}
+          ${personPhotoField('bom')}
           ${bomSelect("Position","position",BOM_POSITIONS,false)}
           ${bomSelect("Highest Qualification","qualification",BOM_QUALIFICATIONS,false)}
           ${bomField("Phone Number","phone",false,"0712345678")}
@@ -40307,33 +41444,37 @@ function renderAddBomMemberForm(){
 }
 
 function renderBomProfilesPanel(){
-  const statusClass = { "Active":"status-paid", "Inactive":"status-pending" };
-  const rows = bomMembers.map((m, i) => `
-    <tr>
-      <td style="font-weight:600;">${m.name}</td>
-      <td style="color:var(--muted);">${m.position || '—'}</td>
-      <td style="color:var(--muted);">${m.phone || '—'}</td>
-      <td style="color:var(--muted);">${m.email || '—'}</td>
-      <td style="color:var(--muted);">${m.committee || '—'}</td>
-      <td style="color:var(--muted);">${m.qualification || '—'}</td>
-      <td><span class="pill-status ${statusClass[m.status]||''}">${m.status||'Active'}</span></td>
-      <td><button class="link-btn" onclick="editBomMember(${i})"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button></td>
-      <td><button class="link-btn danger" onclick="deleteBomMember(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button></td>
-    </tr>
-  `).join('') || `<tr><td colspan="9" class="empty">No BOM members yet. Add one from the "Add Member" tab.</td></tr>`;
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const line = (label, val) => `<div class="tc-line"><span class="tc-k">${label}:</span><span class="tc-v">${val}</span></div>`;
+  const cards = bomMembers.map((m, i) => {
+    const active = (m.status || 'Active') === 'Active';
+    return `<div class="tc-card tc-wide">
+      <div class="tc-top">
+        <div class="tc-photo">${m.photo ? `<img src="${esc(m.photo)}" alt="">` : 'PHOTO'}</div>
+        <div class="tc-info">
+          ${line('NAME', esc(m.name))}
+          ${line('POSITION', esc(m.position || '—'))}
+          ${line('MOB NO', esc(m.phone || '—'))}
+          ${line('EMAIL', esc(m.email || '—'))}
+          ${line('COMMITTEE', esc(m.committee || '—'))}
+          ${line('QUALIF', esc(m.qualification || '—'))}
+        </div>
+      </div>
+      <div class="tc-roles-h">${esc(String(m.position || 'BOM MEMBER').toUpperCase())}</div>
+      <div style="text-align:center;margin:2px 0 4px;min-height:22px;">
+        <span class="tc-badge ${active ? '' : 'off'}">${esc(m.status || 'Active')}</span>
+      </div>
+      <div class="tc-actions">
+        <button class="link-btn" onclick="editBomMember(${i})"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>
+        <button class="link-btn danger" onclick="deleteBomMember(${i})"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty" style="grid-column:1/-1;">No BOM members yet. Add one from the "Add Member" tab.</div>`;
 
   return `
-    <div class="panel" style="overflow:hidden;">
-      <div class="panel-header"><h3>BOM Members (${bomMembers.length})</h3></div>
-      <div class="streams-scroll">
-        <table style="min-width:860px;">
-          <thead>
-            <tr><th>Name</th><th>Position</th><th>Phone</th><th>Email</th><th>Committee</th><th>Highest Qualification</th><th>Status</th><th>Edit</th><th>Delete</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>
+    ${teacherCardCss()}
+    <div class="panel-header" style="padding:16px 4px;"><h3>BOM Members (${bomMembers.length})</h3></div>
+    <div class="tc-grid">${cards}</div>
   `;
 }
 
@@ -46361,6 +47502,7 @@ function renderAcademics(){
     case "reportsExports": body = renderExamsReportsTab(); break;
     case "scoreSheet": body = renderScoreSheetTab(); break;
     case "gradingSystem": body = renderGradingSystemsTab(); break;
+    case "quizzes": body = renderQuizzesTab(); break;
     case "analysis": {
       const sub = currentAcademicSubTab("analysis");
       if(sub === "subjectAnalysis") body = renderSubjectAnalysisTab();
@@ -46397,6 +47539,42 @@ function scoreSheetEnsure(){
   while(scoreSheet.tasks.length < SCORE_SHEET_MAX_TASKS){
     scoreSheet.tasks.push({ topic:"", strand:"", subs:[], picked:[], qmarks:{}, max:"", saved:null });
   }
+}
+// A Teacher login only sees the subjects, grades and streams it teaches (Settings > Teachers > Subjects and the class
+// subject-teacher assignments). Every other role sees everything, as before.
+function scoreSheetTeacherScope(){
+  if(currentUserRole !== 'Teacher') return null;
+  const rec = currentTeacherRecord();
+  const subjects = new Set(rec && Array.isArray(rec.subjects) ? rec.subjects : []);
+  const grades = new Set(), streams = {};
+  const byClass = teacherSubjectClassSubjects();
+  Object.keys(byClass).forEach(i => {
+    const c = classesList[i]; byClass[i].forEach(sb => subjects.add(sb));
+    if(c){ grades.add(c.grade); (streams[c.grade] = streams[c.grade] || new Set()).add(c.stream || ''); }
+  });
+  return { subjects, grades: grades.size ? grades : null, streams };
+}
+function scoreSheetPathways(){
+  const sc = scoreSheetTeacherScope();
+  return sc ? CBC_SS_PATHWAYS.filter(p => p.subjects.some(x => sc.subjects.has(x))) : CBC_SS_PATHWAYS;
+}
+function scoreSheetSubjectList(pw){
+  const sc = scoreSheetTeacherScope();
+  return pw ? (sc ? pw.subjects.filter(x => sc.subjects.has(x)) : pw.subjects) : [];
+}
+function scoreSheetGradeList(){
+  const sc = scoreSheetTeacherScope();
+  const l = sc && sc.grades ? CURRICULUM_GRADES.filter(g => sc.grades.has(g)) : CURRICULUM_GRADES;
+  return l.length ? l : CURRICULUM_GRADES;
+}
+// drop a pathway/subject/grade left over from another login on this device that this teacher may not use
+function scoreSheetClampToTeacher(){
+  const sc = scoreSheetTeacherScope(); if(!sc) return sc;
+  if(scoreSheet.pathway && !scoreSheetPathways().some(p => p.key === scoreSheet.pathway)){ scoreSheet.pathway = ""; scoreSheet.subject = ""; scoreSheet.task = ""; }
+  if(scoreSheet.subject && !sc.subjects.has(scoreSheet.subject)){ scoreSheet.subject = ""; scoreSheet.task = ""; }
+  const gl = scoreSheetGradeList();
+  if(!gl.includes(scoreSheet.entryGrade)){ scoreSheet.entryGrade = gl[0]; scoreSheet.entryStream = ""; }
+  return sc;
 }
 function scoreSheetTopicKey(){ return scoreSheet.pathway + "||" + scoreSheet.subject; }
 function scoreSheetTopicList(){
@@ -46587,7 +47765,12 @@ function scoreSheetEntrySave(){
   render();
   alert(msg);
 }
-function scoreSheetEntryList(){ return studentsForGrade(scoreSheet.entryGrade, scoreSheet.entryStream); }
+// learners on the sheet; a Teacher login only gets the streams it teaches in this grade
+function scoreSheetTeacherFilter(l){
+  const sc = scoreSheetTeacherScope(), ok = sc && sc.streams[scoreSheet.entryGrade];
+  return ok && !ok.has('') ? l.filter(st => ok.has(st.stream)) : l;
+}
+function scoreSheetEntryList(){ return scoreSheetTeacherFilter(studentsForGrade(scoreSheet.entryGrade, scoreSheet.entryStream)); }
 function scoreSheetEntryAOA(){
   const savedIdx = scoreSheet.tasks.map((t, i) => t.saved ? i : -1).filter(i => i !== -1);
   const nT = savedIdx.length, width = 5 + nT;
@@ -46682,7 +47865,7 @@ function scoreSheetUploadFile(input){
         const m = String(c).match(/task\s*(\d+)/i); if(m){ taskCol[Number(m[1]) - 1] = ci; lastHead = Math.max(lastHead, ri); }
       }));
       if(!Object.keys(taskCol).length){ alert('Could not find any "Task 1, Task 2…" columns in the file.'); return; }
-      const byAdm = {}; studentsForGrade(scoreSheet.entryGrade, "").forEach(s => { byAdm[String(s.admissionNumber).trim()] = s; });
+      const byAdm = {}; scoreSheetTeacherFilter(studentsForGrade(scoreSheet.entryGrade, "")).forEach(s => { byAdm[String(s.admissionNumber).trim()] = s; });
       let matched = 0, skipped = 0;
       rows.slice(lastHead + 1).forEach(r => {
         const adm = String(r[colAdm] === undefined ? "" : r[colAdm]).trim(); if(!adm) return;
@@ -46728,10 +47911,10 @@ function renderScoreSheetEntry(){
   if(!savedIdx.length){
     return `<div class="panel" style="padding:24px;margin-top:20px;">${head}<div class="empty" style="padding:24px;">Save at least one task above (strand, sub-strand, questions and max. marks) and it will appear here as a column to enter marks. The form is then posted to the subject teachers' dashboards for marks entry.</div></div>`;
   }
-  const gradeOpts = CURRICULUM_GRADES.map(g => `<option value="${esc(g)}" ${scoreSheet.entryGrade===g?'selected':''}>${esc(g)}</option>`).join('');
-  const streamList = Array.from(new Set(studentsForGrade(scoreSheet.entryGrade, "").map(s => s.stream))).sort();
+  const gradeOpts = scoreSheetGradeList().map(g => `<option value="${esc(g)}" ${scoreSheet.entryGrade===g?'selected':''}>${esc(g)}</option>`).join('');
+  const streamList = Array.from(new Set(studentsForGrade(scoreSheet.entryGrade, "").map(s => s.stream))).filter(x => { const sc = scoreSheetTeacherScope(), ok = sc && sc.streams[scoreSheet.entryGrade]; return !ok || ok.has('') || ok.has(x); }).sort();
   const streamOpts = streamList.map(x => `<option value="${esc(x)}" ${scoreSheet.entryStream===x?'selected':''}>${esc(x)}</option>`).join('');
-  const list = studentsForGrade(scoreSheet.entryGrade, scoreSheet.entryStream);
+  const list = scoreSheetEntryList();
   const locked = scoreSheetEntryLocked();
   const title = `${scoreSheet.subject} ${scoreSheet.entryGrade}${scoreSheet.exam ? ' ' + scoreSheet.exam : ''} School Based Assessment Score Sheet`.toUpperCase();
   const nCols = 5 + savedIdx.length;
@@ -46825,10 +48008,12 @@ function renderScoreSheetEntry(){
 }
 function renderScoreSheetTab(){
   scoreSheetEnsure();
+  { const sc = scoreSheetClampToTeacher();
+    if(sc && !sc.subjects.size) return `<div class=\"panel\" style=\"padding:24px;\"><h3 style=\"margin:0 0 12px;font-size:15.5px;\">SBA SCORE SHEET</h3><div class=\"empty\" style=\"padding:24px;\">You haven't been assigned any subjects yet, so there is no score sheet for you. Ask the administrator to assign your subjects.</div></div>`; }
   const esc = x => String(x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  const pw = CBC_SS_PATHWAYS.find(p => p.key === scoreSheet.pathway);
-  const subjects = pw ? pw.subjects : [];
-  const pathwayOpts = CBC_SS_PATHWAYS.map(p => `<option value="${p.key}" ${scoreSheet.pathway===p.key?'selected':''}>${esc(p.label)}</option>`).join('');
+  const pw = scoreSheetPathways().find(p => p.key === scoreSheet.pathway);
+  const subjects = scoreSheetSubjectList(pw);
+  const pathwayOpts = scoreSheetPathways().map(p => `<option value="${p.key}" ${scoreSheet.pathway===p.key?'selected':''}>${esc(p.label)}</option>`).join('');
   const subjectOpts = subjects.map(sb => `<option value="${esc(sb)}" ${scoreSheet.subject===sb?'selected':''}>${esc(sb)}</option>`).join('');
   // Only exams created in Manage Exams can be picked.
   const examNames = Array.from(new Set(examTerms.flatMap(t => t.groups.map(g => g.exam))));
@@ -46898,7 +48083,7 @@ function renderScoreSheetTab(){
           <select onchange="scoreSheetSetExam(this.value)"><option value="">${examNames.length ? 'Select an exam' : 'No exams created yet'}</option>${examNames.map(x => `<option value="${esc(x)}" ${scoreSheet.exam===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
         </label>
         <label class="field" style="margin:0;"><span>Grade</span>
-          <select onchange="scoreSheetSetEntryGrade(this.value)">${CURRICULUM_GRADES.map(g => `<option value="${esc(g)}" ${scoreSheet.entryGrade===g?'selected':''}>${esc(g)}</option>`).join('')}</select>
+          <select onchange="scoreSheetSetEntryGrade(this.value)">${scoreSheetGradeList().map(g => `<option value="${esc(g)}" ${scoreSheet.entryGrade===g?'selected':''}>${esc(g)}</option>`).join('')}</select>
         </label>
         <label class="field" style="margin:0;"><span>Pathway</span>
           <select onchange="scoreSheetSetPathway(this.value)"><option value="">Select a pathway</option>${pathwayOpts}</select>

@@ -20,7 +20,7 @@
   }
   function clear(){ lastWritten=''; lastStamp=0; var s=ss(), l=ls(); if(s) try{ s.removeItem(KEY); }catch(e){} if(l) try{ l.removeItem(LKEY); }catch(e){} }
   function save(){
-    if(!armed) return;
+    if(!armed||window.MASMS_NO_PERSIST) return;
     var s=ss(); if(!s) return;
     try{
       if(!isLoggedIn||pwChangePending) return;

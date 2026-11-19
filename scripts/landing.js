@@ -1,4 +1,4 @@
-// Landing page shown inside the app before login.
+// Landing page shown in the web browser before login (NOT in the Android app: see native() in RUNTIME and NATIVE_APP in build.js).
 // injectLanding(html) puts pwa/landing.html (embedded as an iframe srcdoc, so it also works offline, in the APK and as a
 // single file) at the start of <body>. Its "Log in" button hides it and reveals the app's own login page.
 // It is skipped when someone is already signed in (saved session), when the address ends in #app, and for the rest of the
@@ -7,6 +7,22 @@ const fs = require('fs'), path = require('path');
 
 const RUNTIME = `(function(){
   var f=document.getElementById('masms-landing');
+  // Android app (Capacitor): no landing page at all, the app opens straight on the login screen.
+  // window.MASMS_LANDING is left undefined, so the login page also hides its "Home" back button.
+  function native(){try{var C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform())}catch(e){return false}}
+  if(native()){
+    if(f&&f.parentNode)f.parentNode.removeChild(f);
+    try{var NA=window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
+      if(NA&&NA.addListener)NA.addListener('backButton',function(){
+        try{
+          if(typeof isLoggedIn!=='undefined'&&!isLoggedIn){NA.exitApp();return}
+          if(window.history.length>1){window.history.back();return}
+          NA.exitApp();
+        }catch(e){try{NA.exitApp()}catch(x){}}
+      });
+    }catch(e){}
+    return;
+  }
   if(!f) return;
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}

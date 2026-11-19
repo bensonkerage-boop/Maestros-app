@@ -146,7 +146,7 @@ router.post('/mpesa/stkpush', auth, limiter, wrap(async (req, res) => {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || j.ResponseCode !== '0') return res.status(502).json({ error: j.errorMessage || j.ResponseDescription || 'M-Pesa rejected the request' });
-  await (await getStore()).saveTx(j.CheckoutRequestID, { checkoutId: j.CheckoutRequestID, status: 'pending', phone: msisdn, amount: amt, reference: reference || '', purpose: purpose || '', meta: meta || null, by: req.user.username, createdAt: new Date().toISOString() });
+  await (await getStore()).saveTx(j.CheckoutRequestID, { checkoutId: j.CheckoutRequestID, status: 'pending', phone: msisdn, amount: amt, reference: reference || '', purpose: purpose || '', meta: meta || null, by: req.user.username, tenant: req.user.tenant || 'default', createdAt: new Date().toISOString() });
   res.status(202).json({ checkoutId: j.CheckoutRequestID, message: j.CustomerMessage || 'Prompt sent' });
 }));
 
@@ -168,14 +168,14 @@ router.post('/mpesa/callback/:secret', wrap(async (req, res) => {
 
 router.get('/mpesa/status/:id', auth, wrap(async (req, res) => {
   const t = await (await getStore()).getTx(req.params.id);
-  if (!t) return res.status(404).json({ error: 'Unknown transaction' });
+  if (!t || (t.tenant || 'default') !== (req.user.tenant || 'default')) return res.status(404).json({ error: 'Unknown transaction' });   // one school cannot see another's payments
   res.set('Cache-Control', 'no-store');
   res.json({ status: t.status, receipt: t.receipt || '', amount: t.paidAmount || t.amount, phone: t.paidPhone || t.phone, reason: t.reason || '', reference: t.reference, purpose: t.purpose, meta: t.meta });
 }));
 
 // Paid M-Pesa prompts raised from this app (newest first) so finance can receipt any the browser missed.
 router.get('/mpesa/recent', auth, wrap(async (req, res) => {
-  const list = (await (await getStore()).listTx(200)).filter(t => t.status === 'paid')
+  const list = (await (await getStore()).listTx(500)).filter(t => t.status === 'paid' && (t.tenant || 'default') === (req.user.tenant || 'default'))
     .map(t => ({ checkoutId: t.checkoutId, receipt: t.receipt, amount: t.paidAmount || t.amount, phone: t.paidPhone || t.phone, purpose: t.purpose, reference: t.reference, meta: t.meta, paidAt: t.paidAt, by: t.by }));
   res.set('Cache-Control', 'no-store');
   res.json({ payments: list });

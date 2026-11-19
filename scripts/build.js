@@ -72,6 +72,8 @@ if (require.main !== module) return;
   const v = (src, dst) => cp(nm(src), path.join(pub, 'vendor', dst));
   v('xlsx/dist/xlsx.full.min.js', 'xlsx.full.min.js');
   v('exceljs/dist/exceljs.min.js', 'exceljs.min.js');
+  v('pdfjs-dist/build/pdf.min.js', 'pdf.min.js');
+  v('pdfjs-dist/build/pdf.worker.min.js', 'pdf.worker.min.js');
   // (jspdf, jspdf-autotable and html2canvas are inlined in the page; nothing references separate copies, so none are shipped)
   const fa = nm('@fortawesome/fontawesome-free');
   cp(path.join(fa, 'css/all.min.css'), path.join(pub, 'vendor/fa/css/all.min.css'));
@@ -95,12 +97,15 @@ if (require.main !== module) return;
   fs.writeFileSync(path.join(pub, 'vendor/fa/all.min.css'), fs.readFileSync(path.join(pub, 'vendor/fa/all.min.css'), 'utf8').replace(/\.\.\/webfonts\//g, 'webfonts/'));
 
   html = injectDark(html);
-  html = injectLanding(html, root);   // landing page first; its Log in button reveals the app login
+  // Landing page is for the web browser only. The Android build (NATIVE_APP=1) opens straight on the login screen.
+  const androidBuild = process.env.NATIVE_APP === '1';
+  if (!androidBuild) html = injectLanding(html, root);   // landing page first; its Log in button reveals the app login
   // PWA: manifest, icons, service worker; optional API base for the Android app (API_BASE=https://your-site)
   fs.cpSync(path.join(root, 'pwa', 'icons'), path.join(pub, 'icons'), { recursive: true });
   cp(path.join(root, 'pwa', 'manifest.webmanifest'), path.join(pub, 'manifest.webmanifest'));
   cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
-  fs.writeFileSync(path.join(pub, 'landing.html'), landingHtml(root));   // landing page; its Log in link goes to /#app
+  if (!androidBuild) fs.writeFileSync(path.join(pub, 'landing.html'), landingHtml(root));   // landing page; its Log in link goes to /#app
+  else fs.rmSync(path.join(pub, 'landing.html'), { force: true });
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
   // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.

@@ -4,8 +4,48 @@ Express + MongoDB API (JWT auth) that hosts the MASMS page and saves its data in
 
 ## Where data is kept
 - **On the device (always on):** `scripts/local-store.js` saves the full dataset to IndexedDB every 5s, when the app is hidden/closed, and reloads it on start. No internet or server needed. It keeps one earlier copy (Settings > Backup & Restore > *Restore earlier copy on this device*). Phone storage is lost if the app is uninstalled or the phone reset, so keep downloading backups.
-- **Cloud (optional):** the cloud button syncs the same data across devices. If this device holds changes the cloud never received, you are asked which copy to keep.
+- **Cloud (optional):** the cloud button syncs the same data across devices. Every signed-in device uploads its changes within ~10s and checks for other devices' changes every 15s (also when the app is reopened/refocused or the connection returns); newer data from another device is loaded automatically (not while someone is typing). If both devices changed something, you are asked which copy to keep. If this device holds changes the cloud never received, you are asked which copy to keep.
 - **Manual backup:** Settings > Backup & Restore exports/imports a JSON file (in the APK it opens the Android share sheet).
+
+## Several schools on one server (multi-school)
+One deployment can host many schools. Each school has its **own private data and its own users**; the server decides which school a request belongs to from the signed login token, never from anything the browser sends.
+
+| Role | Can do |
+|---|---|
+| **Platform owner** (the very first account created on a new server) | add / suspend / restore schools, create a school's first admin, reset any password, edit the public web page |
+| **School admin** | add, remove and reset users of their own school only |
+| **Staff** | sign in and use their school's data |
+
+How to run it:
+1. Deploy once (see *Deploy to Vercel*). Open the site, click the cloud button, and create the **platform owner** account. It also becomes the first school ("default").
+2. Click the cloud button > **All schools** > *Add a school*: school name + the school admin's username and password. Give those details to the school.
+3. The school admin signs in with the cloud button, opens **Users of this school** and adds their staff. Everyone then signs in on any browser or phone and sees the same school data.
+4. Removing a user or suspending a school takes effect within ~15 seconds, even for people already signed in. Suspended schools keep their data.
+
+Things to know:
+- **Isolation** is enforced on the server (data, users, M-Pesa payment records). Tested in `test/api.test.js` (*several schools on one server*).
+- A phone or computer shared by two schools is safe: when a different school signs in, the earlier school's copy on that device is wiped first and never uploaded.
+- Usernames are unique across the whole server (pick e.g. `jane.kamau`, not just `admin`).
+- Accounts made before multi-school existed keep working: they belong to the "default" school and the old admin stays the platform owner. Existing data is kept (it still lives under `SNAPSHOT_KEY`).
+- **SMS, email and M-Pesa settings are server-wide** (one Africa's Talking / SMTP / Daraja account for the whole server). Schools share that account; per-school keys would be a further change.
+- The server protects each school's data **as a whole**. Inside a school, the app's own roles (teacher, bursar, ...) are enforced by the app on the device, not by the server, so give the cloud login only to people you trust with that school's data.
+- Back up the database (MongoDB Atlas > Backup). One school's data is one MongoDB document (16MB max, 4MB per upload), so keep photos small.
+
+## Learners and online quizzes on their own phones
+A learner's phone holds none of the school's data, so the portal sign-in now goes through the server:
+1. A teacher publishes a quiz (Exams > Online Quizzes). **The teacher's device must be signed in to the cloud** (cloud button, bottom-left); the app says so on the Publish message if it is not, and uploads at once when it is.
+2. The learner opens the site on their own phone and signs in as before (admission number + `welcome`, or guardian phone + admission number). The server finds the learner in the school's data and returns only that learner's record, the quizzes published to the learner's class, and the learner's own attempts. If two schools share an admission number, type it as `4501@schoolcode`.
+3. Attempts are saved to the server when the quiz is started and finished (saved answers are sent every ~20s). **The server marks the score** from the teacher's answers; a finished attempt is final. Teachers' devices receive attempts through the normal 15-second cloud check.
+4. This learner session is never written to the phone's own storage (`window.MASMS_NO_PERSIST`), so it can never be uploaded later as school data. Refreshing the page resumes it; Logout ends it.
+5. If a teacher saves while learners were submitting, the server keeps both (`merged: true` on `PUT /api/data`) instead of asking the teacher to choose. A real conflict between two staff devices still asks, as before.
+
+Limits: learners see only the quiz portal on their own phone (fees, results and attendance stay on staff-signed-in devices). The quiz's correct answers travel to the learner's phone because the page scores and reviews on the phone; the server re-marks every submission. Learner sign-in is rate-limited per address (`PORTAL_RATE_LIMIT`, default 300 per 15 min, so a whole class on one school Wi-Fi can sign in).
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/portal/login` | `{username, password}` → learner token (12h) + record, class quizzes, own attempts |
+| GET | `/api/portal/quizzes` | learner token: refresh quizzes/attempts |
+| PUT | `/api/portal/attempt` | learner token: `{attempt}` saved and marked on the server |
 
 ## Layout
 - `source/MAESTRO_MASMS_FINAL.html` – the app (edit this, then rebuild)
@@ -20,8 +60,16 @@ Express + MongoDB API (JWT auth) that hosts the MASMS page and saves its data in
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/auth/status` | `{needsSetup}` |
-| POST | `/api/auth/register` | first account becomes admin; afterwards an admin token is required |
-| POST | `/api/auth/login` | rate-limited, returns a 12h JWT |
+| POST | `/api/auth/register` | first account becomes the platform owner; afterwards an admin adds users to their own school (`role`: staff/admin; the platform owner may pass `tenant`) |
+| POST | `/api/auth/login` | rate-limited, returns a 12h JWT (carries the school) |
+| GET | `/api/auth/me` | username, role, school, platform flag |
+| POST | `/api/auth/password` | `{current, password}` change your own password |
+| GET | `/api/users` | admin: users of your school (platform owner: `?tenant=code`) |
+| DELETE | `/api/users/:username` | admin: remove a user (never the last admin of a school) |
+| PUT | `/api/users/:username/password` | admin: reset a password |
+| GET/POST | `/api/schools` | platform owner: list schools / add a school with its first admin |
+| PATCH | `/api/schools/:code` | platform owner: `{active}` suspend or restore, `{name}` rename |
+| GET | `/api/data/version` | `{version, updatedAt, updatedBy}` only; devices poll this and download the data when it moved |
 | GET/PUT | `/api/data` | whole backup JSON; `baseVersion` stops stale saves overwriting newer data (409) |
 | GET | `/api/health` | |
 
