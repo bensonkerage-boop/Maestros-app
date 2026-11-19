@@ -456,8 +456,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     });
   }
   function saveAndShare(blob, name){
-    var FS = plug('Filesystem'), SH = plug('Share');
-    if(!FS || !SH){ alert('Saving files is not available in this version of the app.'); return; }
     name = String(name || ('MASMS-file-' + Date.now())).replace(/[^\w.\- ]+/g, '_');
     if(!/\.[A-Za-z0-9]{2,5}$/.test(name)) name += extFor(blob.type);
     var DL = C.registerPlugin ? C.registerPlugin('Downloads') : plug('Downloads');
@@ -487,6 +485,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   }
   function shareFromCache(blob, name){
     var FS = plug('Filesystem'), SH = plug('Share');
+    if(!FS || !SH){ alert('Saving files is not available in this version of the app. Please update the app.'); return; }
     toBase64(blob).then(function(b64){
       return FS.writeFile({ path: name, data: b64, directory: 'CACHE' });
     }).then(function(r){
@@ -523,7 +522,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   window.open = function(url){
     if(isFileUrl(url)){
       var u = String(url).split('#')[0];
-      fetchBlob(u).then(function(b){ saveAndShare(b, 'MASMS-document' + (extFor(b.type) || '.pdf')); });
+      fetchBlob(u).then(function(b){ saveAndShare(b, 'MASMS-document-' + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '') + (extFor(b.type) || '.pdf')); });
       return { closed:false, focus:function(){}, close:function(){}, document:{ write:function(){}, close:function(){} } };
     }
     return origOpen.apply(window, arguments);
@@ -5070,6 +5069,10 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
   html.is-mobile #mChromeRoot{display:block;}
   html.is-mobile .sidebar{display:none !important;}
   html.is-mobile .topbar{display:none !important;}
+  /* Parent/Student Portal: its header carries the Log out button, so it stays visible on phones and in the Android app */
+  html.is-mobile .portal-topbar{display:flex !important;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:400;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px !important;}
+  html.is-mobile .portal-topbar .topbar-school{font-size:12.5px;min-width:0;}
+  html.is-mobile .portal-topbar .btn-primary{padding:8px 14px !important;font-size:13px;white-space:nowrap;}
   html.is-mobile .main{padding-top:var(--mh-h) !important;padding-bottom:calc(var(--mb-h) + 10px + env(safe-area-inset-bottom,0px)) !important;}
   html.is-mobile .subbar{top:var(--mh-h) !important;}
 
@@ -8246,7 +8249,7 @@ function renderPortalApp(){
 
   root.innerHTML = `
     <div style="min-height:100vh;background:var(--shell-bg);">
-      <header class="topbar" style="padding:16px 32px;">
+      <header class="topbar portal-topbar" style="padding:16px 32px;">
         <div class="topbar-school"><i class="fa-solid fa-people-arrows"></i>&nbsp; <span>${currentSchool} · Parent/Student Portal</span></div>
         <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; Log out</button>
       </header>
@@ -10287,7 +10290,7 @@ function prTick(){
   }).catch(() => {});
 }
 function prEnd(){
-  const done = () => { try{ sessionStorage.removeItem('masmsPortalTok'); }catch(_e){} location.reload(); };
+  const done = () => { try{ sessionStorage.removeItem('masmsPortalTok'); sessionStorage.setItem('masms_landing_seen', '1'); }catch(_e){} location.reload(); };   // landing "seen" flag: the reload opens the login page
   Promise.race([prFlush(), new Promise(r => setTimeout(r, 2500))]).then(done, done);
 }
 // after a page refresh, resume the same learner session
@@ -10532,7 +10535,7 @@ function renderPortalQuizPage(student){
   const back = portalQuiz.mode === 'list' ? `qzPortalHome()` : `portalQuiz={mode:'list'};qzStopTimer();renderPortalApp();`;
   return `
     <div style="min-height:100vh;background:var(--shell-bg);">
-      <header class="topbar" style="padding:16px 32px;">
+      <header class="topbar portal-topbar" style="padding:16px 32px;">
         <div class="topbar-school"><i class="fa-solid fa-people-arrows"></i>&nbsp; <span>${qzEsc(currentSchool)} · Parent/Student Portal</span></div>
         <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; Log out</button>
       </header>
