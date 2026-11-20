@@ -60,7 +60,9 @@ jobs:
         run: |
           cd android && chmod +x gradlew
           TASK=assembleDebug; [ "${{ steps.key.outputs.signed }}" = 1 ] && TASK=assembleRelease
-          for i in 1 2 3 4 5; do ./gradlew $TASK && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
+          # Gradle remembers a "not found" answer for 24h, so a plain retry cannot recover from a one-off 404: --refresh-dependencies on retries
+          EXTRA=""
+          for i in 1 2 3 4 5; do ./gradlew $TASK $EXTRA && exit 0; echo "Attempt $i failed, retrying in 30s"; EXTRA="--refresh-dependencies"; sleep 30; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: ${{ vars.APP_VERSION_NAME || '1.1' }}

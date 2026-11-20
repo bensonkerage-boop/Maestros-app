@@ -5,6 +5,10 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        // Fallback mirrors, used only when Google/Maven Central answer "not found" (seen on CI as "Could not find net.sf.jopt-simple...")
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
@@ -21,6 +25,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Fallback mirrors, used only when Google/Maven Central answer "not found" (seen on CI as "Could not find net.sf.jopt-simple...")
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 }
 

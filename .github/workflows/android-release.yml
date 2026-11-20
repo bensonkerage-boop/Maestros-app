@@ -39,7 +39,8 @@ jobs:
       - name: Build signed bundle
         run: |
           cd android && chmod +x gradlew
-          for i in 1 2 3 4 5; do ./gradlew bundleRelease && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
+          EXTRA=""
+          for i in 1 2 3 4 5; do ./gradlew bundleRelease $EXTRA && exit 0; echo "Attempt $i failed, retrying in 30s"; EXTRA="--refresh-dependencies"; sleep 30; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: ${{ vars.APP_VERSION_NAME || '1.1' }}
