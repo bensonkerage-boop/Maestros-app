@@ -86,6 +86,27 @@ describe('data', () => {
   });
 });
 
+describe('Download Android app link', () => {
+  const get = async () => { base = `http://127.0.0.1:${srv.address().port}`; return fetch(base + '/api/android-apk', { redirect: 'manual' }); };
+  afterEach(() => { delete process.env.APK_URL; delete process.env.GITHUB_REPOSITORY; });
+  test('404 with a plain message until it is configured', async () => { expect((await get()).status).toBe(404); });
+  test('GITHUB_REPOSITORY redirects to the stable android-latest APK', async () => {
+    process.env.GITHUB_REPOSITORY = 'maestro/masms';
+    const r = await get();
+    expect(r.status).toBe(302);
+    expect(r.headers.get('location')).toBe('https://github.com/maestro/masms/releases/download/android-latest/MASMS.apk');
+  });
+  test('APK_URL wins, and an odd repository value is ignored', async () => {
+    process.env.GITHUB_REPOSITORY = 'bad value;x'; expect((await get()).status).toBe(404);
+    process.env.APK_URL = 'https://example.test/a.apk';
+    expect((await get()).headers.get('location')).toBe('https://example.test/a.apk');
+  });
+  test('the update feed offers the same link to sideloaded installs', async () => {
+    process.env.GITHUB_REPOSITORY = 'maestro/masms';
+    expect((await call('GET', '/api/app-version')).j.downloadUrl).toMatch(/releases\/download\/android-latest\/MASMS\.apk$/);
+  });
+});
+
 describe('app update version feed', () => {
   test('is public and returns the numbers the Android app compares', async () => {
     process.env.APP_LATEST_VERSION_CODE = '7'; process.env.APP_MIN_VERSION_CODE = 'abc';

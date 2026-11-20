@@ -2,7 +2,8 @@
    Android app, installed from Google Play:  Play "in-app update" (downloads in the background, then one tap to restart;
                                               an urgent release is forced with the full-screen Play update flow).
    Android app, installed from an APK file:   asks GET /api/app-version and shows an "Update available" banner that opens the download link.
-   Website / installed web app / live-URL app: the service worker is re-checked, and a "Reload" banner appears when a new build was loaded.
+   Website / installed web app / live-URL app: the service worker is re-checked; when a new build has loaded the app saves and
+                                              reloads into it by itself as soon as nobody is typing (no banner).
    When it checks: shortly after start, every time the app comes back to the foreground (at most once an hour), and every 6 hours while open.
    Failures (offline, server down) are silent and retried on the next trigger. "Later" hides a banner for 24 hours; a release
    below the server's minimum version cannot be dismissed. Data is saved to the device first, so nothing is lost by updating. */
@@ -29,6 +30,7 @@
   function show(opts) {
     hide();
     if (!document.body) return;
+    if (!opts.force) return;   // the blue card at the bottom is gone: updates are applied silently; only a required update still blocks the screen
     var wrap;
     if (opts.force) {
       wrap = el('div', 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,20,45,.88);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,system-ui,sans-serif');
@@ -130,17 +132,46 @@
   }
 
   // ---- Website / installed web app / live-URL app ----
+  // A new build is applied by itself: once it has been loaded, the app saves to the device and reloads into it, but only
+  // when nobody is typing (a focused field edited in the last TYPING_MS keeps it waiting). At most one automatic reload
+  // per RELOAD_GAP, so a misbehaving server can never cause a reload loop; if that guard trips the new version loads on the next open.
+  var TYPING_MS = 20000, RELOAD_GAP = 120000, RKEY = 'masmsAutoReload', lastInput = 0, pending = false, pollT = null, inputArmed = false;
+  function armInput() {
+    if (inputArmed) return; inputArmed = true;
+    try { document.addEventListener('input', function () { lastInput = now(); }, true); document.addEventListener('keydown', function () { lastInput = now(); }, true); } catch (e) {}
+  }
+  function editableFocused() {
+    try {
+      var a = document.activeElement; if (!a) return false;
+      var t = String(a.tagName || '').toUpperCase();
+      return t === 'TEXTAREA' || t === 'SELECT' || a.isContentEditable === true ||
+        (t === 'INPUT' && !/^(button|submit|reset|checkbox|radio|range|file|image|color)$/i.test(a.type || 'text'));
+    } catch (e) { return false; }
+  }
+  function busyTyping() { return editableFocused() && now() - lastInput < TYPING_MS; }
+  function recentlyReloaded() {
+    try { var t = parseInt(sessionStorage.getItem(RKEY) || '0', 10); return !!t && now() - t < RELOAD_GAP; } catch (e) { return false; }
+  }
+  function reloadNow() {
+    try { sessionStorage.setItem(RKEY, String(now())); } catch (e) {}
+    return saveFirst().then(function () { location.reload(); });
+  }
+  function applyWhenIdle() {
+    if (pending) return; pending = true;
+    if (recentlyReloaded()) { pending = false; return; }   // loop guard: the new version simply loads on the next open
+    (function tryIt() {
+      if (document.hidden || busyTyping()) { pollT = setTimeout(tryIt, 5000); return; }   // wait; a hidden app reloads once it is shown and idle
+      pending = false; reloadNow();
+    })();
+  }
   var swArmed = false;
   function armSW() {
     if (swArmed || !('serviceWorker' in navigator)) return;
-    swArmed = true;
+    swArmed = true; armInput();
     var had = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (!had) { had = true; return; }   // first install is not an update
-      show({
-        title: 'New version ready', text: 'MASMS was updated. Reload to start using it. Your data is saved first.',
-        action: { label: 'Reload', fn: function () { saveFirst().then(function () { location.reload(); }); } }, later: function () {}
-      });
+      applyWhenIdle();
     });
   }
   function checkWeb() {

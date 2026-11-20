@@ -31,8 +31,7 @@ test('Play install: offers a flexible update, and urgent updates run the immedia
   const AU = { getAppUpdateInfo: async () => ({ updateAvailability: 2, flexibleUpdateAllowed: true, immediateUpdateAllowed: true, availableVersionCode: '9', updatePriority: 0 }), startFlexibleUpdate: async () => ({ code: 0 }), performImmediateUpdate: async () => { immediate++; }, addListener() {} };
   let t = boot({ plugins: { AppUpdate: AU } });
   await t.win.MASMS_UPDATE.check();
-  expect(texts(t.body)).toContain('Update available');
-  expect(texts(t.body)).toContain('Update now');
+  expect(t.body.children.length).toBe(0);   // no bottom card any more
   AU.getAppUpdateInfo = async () => ({ updateAvailability: 2, flexibleUpdateAllowed: true, immediateUpdateAllowed: true, availableVersionCode: '9', updatePriority: 5 });
   t = boot({ plugins: { AppUpdate: AU } });
   await t.win.MASMS_UPDATE.check(); await new Promise(r => setTimeout(r, 10));
@@ -54,7 +53,7 @@ test('APK install (Play check fails): compares build number with /api/app-versio
   expect(texts(t.body)).not.toContain('Later');
   t = boot({ plugins: { AppUpdate: AU, App }, server: { latestVersionCode: 5, minVersionCode: 0, downloadUrl: 'https://x.test/a.apk' } });
   await t.win.MASMS_UPDATE.check();
-  expect(texts(t.body)).toContain('Later');
+  expect(t.body.children.length).toBe(0);   // optional update: no bottom card
   t = boot({ plugins: { AppUpdate: AU, App: { getInfo: async () => ({ build: '5' }) } }, server: { latestVersionCode: 5 } });
   await t.win.MASMS_UPDATE.check(); expect(t.body.children.length).toBe(0);
 });
@@ -68,4 +67,69 @@ test('server not configured (latest 0) or unreachable: silent', async () => {
 test('the build injects the module into index.html', () => {
   const out = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
   expect(out).toContain('window.MASMS_UPDATE');
+});
+
+// ---- website / live-URL app: reload by itself when nobody is typing ----
+function bootWeb({ focus = null, controller = {} } = {}) {
+  const docL = {}, swL = {}, calls = [], timers = [], ss = {};
+  let t = 1e6;
+  const body = { appendChild(e) { shown.push(e); } }, shown = [];
+  const mkEl = () => ({ style: {}, childNodes: [], appendChild(c) { this.childNodes.push(c); }, setAttribute() {}, set textContent(v) { this.t = v; }, get textContent() { return this.t; }, parentNode: null });
+  const ctx = {
+    window: { addEventListener() {}, MASMS_LOCAL: { saveNow: () => { calls.push('saved'); return Promise.resolve(); } } },
+    document: { body, hidden: false, activeElement: focus, createElement: mkEl,
+      addEventListener: (n, f) => { (docL[n] = docL[n] || []).push(f); } },
+    navigator: { onLine: true, serviceWorker: { controller, addEventListener: (n, f) => { swL[n] = f; }, getRegistration: () => Promise.resolve(null) } },
+    sessionStorage: { getItem: k => ss[k] || null, setItem: (k, v) => { ss[k] = v; } },
+    localStorage: { getItem: () => null, setItem() {} },
+    location: { reload: () => calls.push('reload') },
+    setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {}, setInterval() {},
+    Date: { now: () => t }, Promise, parseInt, JSON, AbortController
+  };
+  vm.createContext(ctx); vm.runInContext(code, ctx);
+  const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+  return { ctx, shown, calls, ss, docL, swL, timers, flush, advance: ms => { t += ms; }, type: () => docL.input.forEach(f => f()), newVersion: () => swL.controllerchange() };
+}
+const runPoll = async w => { const x = w.timers.filter(q => q.ms === 5000); w.timers.length = 0; x.forEach(q => q.fn()); await w.flush(); };
+
+test('new version while idle: saves, then reloads by itself (no banner click)', async () => {
+  const w = bootWeb(); w.newVersion(); await w.flush();
+  expect(w.calls).toEqual(['saved', 'reload']);
+});
+
+test('new version while typing: waits, then reloads once typing stops', async () => {
+  const w = bootWeb({ focus: { tagName: 'INPUT', type: 'text' } });
+  w.type(); w.newVersion(); await w.flush();
+  expect(w.calls).toEqual([]);                     // field focused and just edited: do not touch
+  w.advance(5000); await runPoll(w); expect(w.calls).toEqual([]);
+  w.advance(20000); await runPoll(w);              // 25 s since last keystroke
+  expect(w.calls).toEqual(['saved', 'reload']);
+});
+
+test('a focused field that is not being edited does not block the reload', async () => {
+  const w = bootWeb({ focus: { tagName: 'TEXTAREA' } }); w.newVersion(); await w.flush();
+  expect(w.calls).toEqual(['saved', 'reload']);
+});
+
+test('buttons and checkboxes never count as typing', async () => {
+  const w = bootWeb({ focus: { tagName: 'INPUT', type: 'checkbox' } }); w.type(); w.newVersion(); await w.flush();
+  expect(w.calls).toEqual(['saved', 'reload']);
+});
+
+test('reload-loop guard: a second update right after an automatic reload is not applied automatically', async () => {
+  const w = bootWeb(); w.ss.masmsAutoReload = String(1e6 - 1000);
+  w.newVersion(); await w.flush();
+  expect(w.calls).toEqual([]);
+  expect(w.shown.length).toBe(0);   // and no banner
+});
+
+test('the first service-worker install is not treated as an update', async () => {
+  const w = bootWeb({ controller: null });
+  w.newVersion(); await w.flush(); expect(w.calls).toEqual([]);
+});
+
+test('the website landing page has the Download Android app button wired to the stable link', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'pwa', 'landing.html'), 'utf8');
+  expect(html).toMatch(/id="dlApk"[^>]*href="\/api\/android-apk"/);
+  expect(html).toContain('Download Android app');
 });

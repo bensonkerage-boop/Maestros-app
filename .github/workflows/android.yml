@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+permissions:
+  contents: write   # needed to publish the APK as a release
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
 jobs:
   apk:
     runs-on: ubuntu-24.04   # pinned: ubuntu-latest is moving to Ubuntu 26
@@ -18,8 +23,9 @@ jobs:
       - run: npm run build:android
         env:
           API_BASE: ${{ vars.API_BASE }}
-          # Optional: set repository variable LIVE_UPDATES=1 to make the app load from your Vercel site (updates without Play Store releases)
-          LIVE_URL: ${{ vars.LIVE_UPDATES == '1' && vars.API_BASE || '' }}
+          # The APK always loads the live MASMS site (API_BASE), so it is identical to the website and updates with every deploy.
+          # Set repository variable LIVE_UPDATES=0 only if you want a self-contained offline APK instead.
+          LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}
       - name: Pre-download Gradle (tries gradle.org, then mirrors)
         run: |
           V=8.14.3
@@ -36,16 +42,57 @@ jobs:
           else
             echo "Could not pre-download Gradle; the wrapper will try on its own"
           fi
+      - name: Restore signing key (if the secrets are set)
+        id: key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          # A stable key lets a newer APK install over an older one. Without it every build gets a different debug key
+          # and phones refuse to update in place (they must uninstall first).
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/masms-upload.jks"
+            echo "signed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::KEYSTORE_BASE64 secret not set: building a debug-signed APK. Run 'Create Play Store signing key' once and add the secrets so APK updates install over each other."
+            echo "signed=0" >> "$GITHUB_OUTPUT"
+          fi
       - name: Gradle build (retries if the Gradle download times out)
         run: |
           cd android && chmod +x gradlew
-          for i in 1 2 3 4 5; do ./gradlew assembleDebug && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
+          TASK=assembleDebug; [ "${{ steps.key.outputs.signed }}" = 1 ] && TASK=assembleRelease
+          for i in 1 2 3 4 5; do ./gradlew $TASK && exit 0; echo "Attempt $i failed, retrying in 30s"; sleep 30; done; exit 1
         env:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: ${{ vars.APP_VERSION_NAME || '1.1' }}
+          KEYSTORE_FILE: ${{ steps.key.outputs.signed == '1' && format('{0}/masms-upload.jks', runner.temp) || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Name the APK
+        run: |
+          mkdir -p dist-apk
+          if [ "${{ steps.key.outputs.signed }}" = 1 ]; then cp android/app/build/outputs/apk/release/app-release.apk dist-apk/MASMS.apk
+          else cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/MASMS.apk; fi
+          ls -l dist-apk
+      - name: Publish as the newest APK (stable download link)
+        # Always the same address, so the website button never needs changing:
+        #   https://github.com/<owner>/<repo>/releases/download/android-latest/MASMS.apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          gh release create android-latest dist-apk/MASMS.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "MASMS Android app (build ${{ github.run_number }})" \
+            --notes "Newest MASMS Android app, versionCode ${{ github.run_number }}. The app loads the live MASMS site, so it stays identical to the website. This link always points to the latest build."
       - name: Show the version number to publish
-        run: echo "### Built versionCode ${{ github.run_number }} - set APP_LATEST_VERSION_CODE to this in Vercel when you share this APK" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          {
+            echo "### Built versionCode ${{ github.run_number }}"
+            echo "Download link (always the newest): https://github.com/$GITHUB_REPOSITORY/releases/download/android-latest/MASMS.apk"
+            echo ""
+            echo "One-time: in Vercel set GITHUB_REPOSITORY=$GITHUB_REPOSITORY (or APK_URL) so the website's *Download Android app* button works. Optionally set APP_LATEST_VERSION_CODE=${{ github.run_number }} to prompt older sideloaded installs."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
-          name: MASMS-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: MASMS-apk
+          path: dist-apk/MASMS.apk

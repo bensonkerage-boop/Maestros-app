@@ -1259,21 +1259,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .dash2-fee-val.outstanding{color:var(--rose);}
   .dash2-fee-note{font-size:10.5px;color:var(--muted);margin-top:2px;}
 
-  .dash2-features-strip{
-    display:flex;flex-wrap:wrap;background:#0073CF;border-radius:0;
-    margin-top:11.7px;padding:13px 15.6px;gap:14.3px;
-  }
-  .dash2-feature-item{
-    display:flex;align-items:center;gap:7.8px;flex:1 1 auto;min-width:0;color:#fff;white-space:nowrap;
-  }
-  .dash2-feature-icon{
-    width:22px;height:22px;flex-shrink:0;border-radius:0;background:rgba(255,255,255,.16);
-    display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;
-  }
-  .dash2-feature-title{font-size:8.5px;font-weight:700;color:#fff;white-space:nowrap;}
-  .dash2-feature-sub{font-size:7.5px;color:rgba(255,255,255,.82);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  @media(max-width:900px){ .dash2-features-strip{flex-wrap:nowrap;overflow-x:auto;} .dash2-feature-item{flex:0 0 auto;} }
-
   .dash2-admin-tools{
     display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
     gap:16px;margin-top:22px;
@@ -5308,6 +5293,112 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
   return { init: init, extract: extract, eligible: eligible, scan: scan, titleFor: titleFor, exportPdf: exportPdf };
 });
 </script>
+<style id="homeRedesignCss">
+/* ===== Home redesign: dark navy shell, rounded light content, pill nav, stat cards, charts, recent table, footer ===== */
+html:not(.is-mobile) .app-wrap{background:#070c24;padding:18px;}
+html:not(.is-mobile) .app{max-width:1500px;background:linear-gradient(180deg,#0b2377 0%,#071650 100%);border:2px solid #e3e9ff;border-radius:24px;box-shadow:0 0 0 1px rgba(110,140,255,.28),0 30px 80px rgba(0,0,0,.55);}
+html:not(.is-mobile) .sidebar{width:248px;background:linear-gradient(180deg,#0b2377 0%,#071650 100%);padding:6px 8px 6px 12px;transition:width .2s ease;}
+html:not(.is-mobile) .brand{padding:20px 10px 14px;gap:12px;}
+html:not(.is-mobile) .brand-icon{width:52px;height:52px;border-radius:14px;}
+html:not(.is-mobile) .brand-name{font-size:21px;letter-spacing:.3px;}
+html:not(.is-mobile) .nav{gap:6px;padding:10px 0;margin-top:6px;overflow-y:auto;scrollbar-width:none;}
+html:not(.is-mobile) .nav::-webkit-scrollbar{display:none;}
+html:not(.is-mobile) .nav-item{padding:11px 14px;border-radius:12px;font-size:14.5px;font-weight:500;gap:14px;color:#dfe8ff;}
+html:not(.is-mobile) .nav-item i{width:22px;font-size:17px;}
+html:not(.is-mobile) .nav-item:hover{background:rgba(255,255,255,.09);}
+html:not(.is-mobile) .nav-item.active{background:#1a58f2;color:#fff;font-weight:600;box-shadow:0 8px 20px rgba(26,88,242,.5);}
+html:not(.is-mobile) .nav-item .chev{display:none;}
+html:not(.is-mobile) .sidebar-footer{padding:12px 10px 16px;color:rgba(223,232,255,.55);}
+html:not(.is-mobile) .app.nav-collapsed .sidebar{width:84px;}
+html:not(.is-mobile) .app.nav-collapsed .brand-name,html:not(.is-mobile) .app.nav-collapsed .sidebar-footer{display:none;}
+html:not(.is-mobile) .app.nav-collapsed .brand{justify-content:center;padding-left:0;padding-right:0;}
+html:not(.is-mobile) .app.nav-collapsed .nav-item{font-size:0;justify-content:center;padding:12px 0;gap:0;}
+html:not(.is-mobile) .app.nav-collapsed .nav-item i{font-size:18px;}
+html:not(.is-mobile) .app.nav-collapsed .nav-item span{display:none;}
+
+html:not(.is-mobile) .main{margin:10px 10px 10px 0;padding:12px;gap:12px;background:#e3e9fa;border-radius:18px;}
+html:not(.is-mobile) .topbar{background:#d3e1fc;border:2px solid #2a6cf0;border-radius:14px;padding:9px 16px;gap:16px;}
+html:not(.is-mobile) .topbar-school{color:#0d1633;gap:14px;overflow:visible;}
+.tb-burger i{color:#0d1633 !important;font-size:19px;}
+.tb-burger{background:none;border:0;color:#0d1633;font-size:19px;cursor:pointer;padding:4px 2px;line-height:1;}
+.tb-title{font-size:18px;font-weight:800;color:#0d1633;font-family:var(--font-heading);}
+.tb-school{font-size:12.5px;font-weight:600;color:#4a5b82;margin-left:2px;overflow:hidden;text-overflow:ellipsis;}
+html:not(.is-mobile) .topbar-right{gap:14px;}
+html:not(.is-mobile) .topbar-cell{background:transparent;border:0;padding:0;gap:6px;}
+html:not(.is-mobile) .topbar-cell i{color:#27407a;}
+html:not(.is-mobile) .lang-cell select{color:#0d1633;font-size:13px;}
+html:not(.is-mobile) .search-cell.tb-search{background:#f2f6ff;border:1px solid #c3d2f3;border-radius:999px;padding:8px 16px;}
+html:not(.is-mobile) .search-cell input{color:#0d1633;width:170px;font-size:14px;}
+html:not(.is-mobile) .search-cell input::placeholder{color:#3b4d78;}
+html:not(.is-mobile) .search-cell i{color:#0d1633;}
+html:not(.is-mobile) .quick-link{color:#27407a;}
+html:not(.is-mobile) .quick-link i{color:#27407a;font-size:16px;}
+html:not(.is-mobile) .quick-link span{display:none;}
+html:not(.is-mobile) .quick-cell{gap:12px;}
+.tb-bell{position:relative;background:none;border:0;cursor:pointer;color:#0d1633;font-size:19px;padding:6px;line-height:1;}
+.tb-bell .dot{position:absolute;top:3px;right:4px;width:9px;height:9px;border-radius:50%;background:#ef2b2b;border:2px solid #d3e1fc;}
+html:not(.is-mobile) .topbar-cell.tb-avatar{width:42px;height:42px;border-radius:50%;background:#1a58f2;border:2px solid #fff;box-shadow:0 0 0 2px #1a58f2;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;}
+html:not(.is-mobile) .topbar-cell.tb-avatar i{color:#fff;font-size:18px;margin:0;}
+html:not(.is-mobile) .subbar{display:none;}
+html:not(.is-mobile) .subbar.has-tabs{display:flex;background:#d3e1fc;border:0;border-radius:14px;}
+html:not(.is-mobile) .content{background:transparent;padding:2px;}
+html:not(.is-mobile) .panel{border-radius:14px;}
+html:not(.is-mobile) .panel > .panel-header:first-child{border-radius:14px 14px 0 0;}
+.app-footer{background:#d9d0fc;border:2px solid #b79dfa;border-radius:14px;padding:13px 20px;font-size:14px;color:#1b1540;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.app-footer a{color:#4a2fc7;font-weight:600;cursor:pointer;text-decoration:none;margin-left:14px;}
+.app-footer a:hover{text-decoration:underline;}
+html.is-mobile .app-footer{display:none;}
+
+/* ---- home dashboard ---- */
+.hm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px;}
+.hm-stat{background:linear-gradient(180deg,#f4f7ff,#e8eefc);border:1px solid #c9d6f3;border-radius:18px;padding:16px 14px;display:flex;gap:12px;align-items:center;min-width:0;box-shadow:0 2px 10px rgba(20,40,110,.06);}
+.hm-ico{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.hm-ico.blue{background:#b9dcff;color:#1b6fe0;} .hm-ico.purple{background:#d8cffb;color:#6a3fe0;} .hm-ico.orange{background:#fcdcb0;color:#e8800a;} .hm-ico.green{background:#c0efd0;color:#16974a;}
+.hm-stat-body{min-width:0;}
+.hm-label{font-size:14.5px;color:#26365c;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-val{font-size:25px;font-weight:800;color:#0b1330;line-height:1.15;font-family:var(--font-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-delta{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;border-radius:999px;background:#c6f1d5;color:#14733a;font-size:12.5px;font-weight:700;white-space:nowrap;}
+.hm-delta.down{background:#fcd3d9;color:#a4122c;} .hm-delta.flat{background:#dde3f1;color:#4d5b7a;}
+.hm-charts{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+.hm-card{background:linear-gradient(180deg,#f4f7ff,#eaeffd);border:1px solid #c9d6f3;border-radius:18px;padding:18px 20px;min-width:0;margin-bottom:0;}
+.hm-card h3{margin:0 0 12px;font-size:18px;font-weight:800;color:#0b1330;}
+.hm-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;}
+.hm-card-head h3{margin:0;}
+.hm-link{background:none;border:0;color:#1646c9;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+.hm-link:hover{text-decoration:underline;}
+.hm-area svg{width:100%;height:auto;display:block;}
+.hm-donut{display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;padding:6px 0;}
+.hm-donut-wrap{position:relative;flex-shrink:0;}
+.hm-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.hm-donut-center .num{font-size:25px;font-weight:800;color:#0b1330;line-height:1.1;font-family:var(--font-heading);}
+.hm-donut-center .lbl{font-size:13.5px;font-weight:600;color:#26365c;}
+.hm-legend{display:flex;flex-direction:column;gap:14px;flex:1;min-width:150px;max-width:260px;}
+.hm-legend-row{display:flex;align-items:center;gap:10px;font-size:14px;color:#0b1330;}
+.hm-legend-row .dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;}
+.hm-legend-row .nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hm-legend-row .pc{margin-left:auto;font-weight:700;}
+.hm-table-wrap{overflow-x:auto;border-radius:12px;}
+.hm-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;min-width:560px;}
+.hm-table th,.hm-table td{border-left:0 !important;border-right:0 !important;text-transform:none;letter-spacing:0;}
+.hm-table th{background:#d6e0f8;color:#0b1330;font-weight:700;text-align:left;padding:11px 16px;font-size:14px;white-space:nowrap;}
+.hm-table th:first-child{border-radius:12px 0 0 0;} .hm-table th:last-child{border-radius:0 12px 0 0;}
+.hm-table td{padding:11px 16px;color:#0b1330;font-weight:500;border-top:1px solid #dbe4f7;background:#f3f6fe;white-space:nowrap;}
+.hm-table tr:nth-child(even) td{background:#ecf1fc;}
+.hm-pill{display:inline-block;padding:3px 16px;border-radius:999px;font-size:13px;font-weight:700;}
+.hm-pill.ok{background:#bdf0cd;color:#0e5c2c;} .hm-pill.info{background:#b9d8ff;color:#0b3a8f;} .hm-pill.warn{background:#fde29a;color:#7a4b00;}
+.hm-empty{padding:18px;text-align:center;color:#4a5b82;font-size:14px;}
+.hm-more{margin-top:0;margin-bottom:14px;}
+.hm-more .panel{border-radius:18px !important;background:linear-gradient(180deg,#f4f7ff,#eaeffd);border-color:#c9d6f3;}
+.hm-more > *{grid-area:auto !important;align-self:stretch !important;}
+@media(max-width:1000px){html:not(.is-mobile) .tb-school,html:not(.is-mobile) .lang-cell{display:none;} html:not(.is-mobile) .search-cell input{width:90px;} html:not(.is-mobile) .topbar{padding:8px 12px;gap:8px;} html:not(.is-mobile) .topbar-right{gap:8px;}}
+@media(max-width:1180px){.hm-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:900px){.hm-charts{grid-template-columns:1fr;}}
+@media(max-width:520px){.hm-stats{grid-template-columns:1fr;} .hm-val{font-size:24px;}}
+/* dark mode: the page is colour-inverted, so the dark frame is pre-inverted to stay navy */
+html[data-theme="dark"]:not(.is-mobile) .app-wrap{background:#f7f9ff;}
+html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
+</style>
+
 </head>
 <body>
 <!-- ===== ANDROID APP START-UP SPLASH (native app only): wheel + transition reveal of the system name ===== -->
@@ -5392,11 +5483,12 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
     <!-- Main -->
     <div class="main">
       <header class="topbar">
-        <div class="topbar-school"><i class="fa-solid fa-school"></i> <span id="topbarSchool"></span></div>
+        <div class="topbar-school"><button type="button" class="tb-burger" onclick="toggleNavCollapse()" aria-label="Collapse or expand the menu" title="Menu"><i class="fa-solid fa-bars"></i></button><span class="tb-title" id="topbarTitle">Dashboard</span><span class="tb-school" id="topbarSchool"></span></div>
         <div class="topbar-right" id="topbarRight"></div>
       </header>
       <div class="subbar" id="subbar"></div>
       <main class="content" id="content"></main>
+      <footer class="app-footer" id="appFooter"></footer>
     </div>
   </div>
   <div id="mChromeRoot"></div>
@@ -5427,6 +5519,7 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
 <script>
 const NAV_ITEMS = [
   { key:"dashboard", label:"Dashboard", icon:"fa-table-cells-large", note:"Overview of your school today" },
+  { key:"myprofile", label:"My Profile", icon:"fa-id-card", note:"Fill in your own details" },
   { key:"students", label:"Student Management", icon:"fa-user-graduate", note:"Enroll & manage students" },
   { key:"teachers", label:"Teacher & Non-Teaching Staff", icon:"fa-chalkboard-user", note:"Manage teachers, non-teaching staff & BOM" },
   { key:"classes", label:"Classes", icon:"fa-chalkboard", note:"Manage classes & streams" },
@@ -5489,7 +5582,7 @@ const ROLE_MODULE_ACCESS = {
 // "sysdev" is deliberately excluded from this default set: it must only be
 // reachable by the "System Developer" role, not by every other role that
 // isn't explicitly restricted — schools see every tab except that one.
-const ALL_MODULE_KEYS = [...NAV_ITEMS.filter(n => n.key !== "sysdev").map(n => n.key), "registration", "subjects", "staff", "bom"];
+const ALL_MODULE_KEYS = [...NAV_ITEMS.filter(n => n.key !== "sysdev" && n.key !== "myprofile").map(n => n.key), "registration", "subjects", "staff", "bom"];
 // System Developer is a platform-level account — it sees everything: every
 // school module plus the System Developer console itself.
 ROLE_MODULE_ACCESS["System Developer"] = [...ALL_MODULE_KEYS, "sysdev"];
@@ -5549,6 +5642,7 @@ function attSubjectsForPicker(classIdx){
 }
 function teacherModuleKeys(){
   const keys = ["dashboard", "timetable", "examinations", "announcements"];
+  if(teacherProfileApplies()) keys.push("myprofile");
   if(teacherAttendanceClassIdx().length) keys.push("attendance");
   if(teacherIsCocurricularInCharge()) keys.push("stores");
   if(teacherIsBoardingMaster()) keys.push("boarding");
@@ -5566,6 +5660,7 @@ function schoolHasBoarding(){
   try{ return (getSchoolProfile(currentSchool).boardingStatus || "Day") !== "Day"; }catch(_e){ return true; }
 }
 function canAccessModule(key){
+  if(key === "myprofile") return teacherProfileApplies();   // only a teacher whose own profile the administrator asked them to fill in
   const moduleKey = MODULE_ROLLUP[key] || key;
   if(moduleKey === "boarding" && !schoolHasBoarding()) return false;
   // Optional modules a System Developer switched off for this school
@@ -6104,6 +6199,9 @@ function completeStaffLogin(u){
   currentAgentId = u.role === "Sales Agent" ? u.agentId : null;
   loginError = "";
   pwChangePending = false;
+  myProfileLoaded = null; myProfileMsg = "";
+  // A teacher whose profile is not finished lands on it first
+  try{ if(u.role === "Teacher" && teacherProfileNeedsWork()) active = "myprofile"; }catch(_e){}
   try{ const k = loginPhoneKey(staffPhoneForUser(u) || u.phone); if(k) myPhoneKey = k; else if(!myPhoneKey && window.__loginPhoneKeyTyped) myPhoneKey = window.__loginPhoneKeyTyped; }catch(_e){}
   if(u.role === "System Developer" || u.role === "Sales Agent") myPhoneKey = "";
   document.getElementById('portalAppRoot').style.display = "none";
@@ -9541,7 +9639,7 @@ function qzExamsFor(grade){
   examTerms.forEach(t => t.groups.forEach(g => { if(g.rows.some(r => r.class === grade)) out.push({ term:t.term, exam:g.exam }); }));
   return out;
 }
-function qzBlankQuestion(){ return { id:qzUid(), text:"", options:["","","",""], answer:0, image:"", accepted:[""], modelAnswer:"", marks:1 }; }
+function qzBlankQuestion(){ return { id:qzUid(), text:"", options:["","","",""], answer:0, image:"", accepted:[""], modelAnswer:"", explanation:"", points:[], marks:1 }; }
 function qzBlankQuiz(){
   return { id:qzUid(), title:"", grade:"", stream:"", subject:"", term:"", exam:"", createdBy:currentUserName, createdOn:todayDDMMYYYY(),
     type:"mcq", dueISO:"", startTime:"", endTime:"", minutes:30, shuffle:true, allowRetake:false, published:false, questions:[qzBlankQuestion()], postedOn:"" };
@@ -9569,6 +9667,81 @@ function qzNorm(s){ return String(s == null ? '' : s).toLowerCase().replace(/\s+
 function qzQMarks(q, x){ if(qzType(q) !== 'structured') return 1; const m = Math.floor(Number(x.marks)); return m > 0 ? m : 1; }
 function qzTotal(q){ return q.questions.reduce((t, x) => t + qzQMarks(q, x), 0); }
 function qzShortOk(x, v){ const n = qzNorm(v); return !!n && (Array.isArray(x.accepted) ? x.accepted : []).some(t => qzNorm(t) === n); }
+// <qz-scheme>
+// Marking scheme for structured answers. Each question has marking points (the worked answer, step by step), each worth some marks.
+// A learner's answer is compared with every point's wording and its accepted alternatives: a full match earns the point's marks, a
+// partial match earns proportional marks, no match earns none. Numbers must match exactly. The server runs this same code.
+const QZ_STOP = new Set('a an the of to in on at is are was were be been being it its this that these those and or but for with as by from into than then so such which who whom what when where there their they them he she his her we you your i me my our us not no can could will would should may might do does did has have had if also very'.split(' '));
+function qzStem(w){
+  if(/^\d/.test(w) || w.length < 5) return w;
+  if(/ies$/.test(w)) return w.slice(0, -3) + 'y';
+  if(/ing$/.test(w) && w.length > 5) return w.slice(0, -3);
+  if(/(ed|es)$/.test(w)) return w.slice(0, -2);
+  if(/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+  return w;
+}
+function qzWords(s){ return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
+function qzMath(s){ return String(s == null ? '' : s).toLowerCase().replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-').replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/\s+/g, ' ').trim(); }
+function qzLev(a, b){
+  if(Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length:b.length + 1 }, (_, j) => j);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for(let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function qzTokEq(p, r){
+  const pn = /^\d/.test(p), rn = /^\d/.test(r);
+  if(pn || rn) return pn && rn && Number(p) === Number(r);
+  if(p === r) return true;
+  const sp = qzStem(p), sr = qzStem(r);
+  if(sp === sr) return true;
+  const n = Math.min(sp.length, sr.length);
+  return n >= 5 && qzLev(sp, sr) <= (n >= 9 ? 2 : 1);
+}
+// how much of this phrase the response contains: 0 to 1 (a wrong number makes it 0)
+function qzPhraseCov(phrase, rw, rm){
+  const pw = qzWords(phrase).filter(w => /^\d/.test(w) || !QZ_STOP.has(w));
+  if(!pw.length) return 0;
+  if(/[=+\-*\/^%×÷]/.test(phrase)){
+    const pm = qzMath(phrase);
+    if(pm.length >= 3 && new RegExp('(^|[^0-9a-z.])' + pm.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&') + '($|[^0-9a-z])').test(rm)) return 1;
+  }
+  let hit = 0, numMiss = false;
+  for(const w of pw){ if(rw.some(r => qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
+  return numMiss ? 0 : hit / pw.length;
+}
+// the question's marking points, scaled so they add up to the question's marks; null when there is no scheme (the teacher marks it)
+function qzPoints(x, max){
+  let pts = (Array.isArray(x && x.points) ? x.points : []).map(p => ({
+    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0)
+  })).filter(p => (p.text || p.alt.length) && p.marks > 0);
+  if(!pts.length){ const m = String(x && x.modelAnswer || '').trim(); if(m) pts = [{ text:m, alt:[], marks:max }]; }
+  if(!pts.length) return null;
+  const sum = pts.reduce((t, p) => t + p.marks, 0);
+  return sum === max ? pts : pts.map(p => ({ ...p, marks:p.marks * max / sum }));
+}
+// { marks, max, points:[{ text, max, got }] } for one typed answer, or null when the question has no marking scheme
+function qzMarkTyped(x, resp, max){
+  const pts = qzPoints(x, max); if(!pts) return null;
+  const rw = qzWords(resp), rm = qzMath(resp);
+  const points = pts.map(p => {
+    let cov = 0;
+    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm));
+    const f = cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
+    return { text:p.text || p.alt[0], max:Math.round(p.marks * 100) / 100, got:Math.round(p.marks * f * 100) / 100 };
+  });
+  return { marks:Math.min(max, Math.round(points.reduce((t, p) => t + p.got, 0) * 2) / 2), max, points };
+}
+// </qz-scheme>
+// marks for every question of a submitted structured attempt, worked out from the marking schemes; null unless EVERY question has a scheme
+function qzAutoMarks(q, a){
+  const marks = {};
+  for(const x of q.questions){ const r = qzMarkTyped(x, a.answers && a.answers[x.id], qzQMarks(q, x)); if(!r) return null; marks[x.id] = r.marks; }
+  return marks;
+}
 function qzScoreAttempt(q, a){
   const t = qzType(q);
   if(t === 'structured') return q.questions.reduce((sum, x) => sum + Math.max(0, Math.min(qzQMarks(q, x), Number(a.marks && a.marks[x.id]) || 0)), 0);
@@ -9687,6 +9860,16 @@ function qzSetType(v){ quizDraft.type = (v === 'short' || v === 'structured') ? 
 function qzSetAccepted(i, v){ quizDraft.questions[i].accepted = String(v).split('\n'); }
 function qzSetModel(i, v){ quizDraft.questions[i].modelAnswer = v; }
 function qzSetMarks(i, v){ quizDraft.questions[i].marks = v; }
+function qzSetExplain(i, v){ quizDraft.questions[i].explanation = v; }
+// marking points of a structured question (the marking scheme): wording expected, accepted alternatives, marks
+function qzPts(i){ const x = quizDraft.questions[i]; if(!Array.isArray(x.points)) x.points = []; return x.points; }
+function qzPtSum(x){ return (Array.isArray(x.points) ? x.points : []).reduce((t, p) => t + (Math.floor(Number(p.marks)) > 0 ? Math.floor(Number(p.marks)) : 0), 0); }
+function qzPtSync(i){ const x = quizDraft.questions[i], n = qzPtSum(x); if(n > 0) x.marks = n; const a = document.getElementById('qzMk_' + i), b = document.getElementById('qzMkSum_' + i); if(a && n > 0) a.value = n; if(b) b.textContent = n; }
+function qzAddPt(i){ qzPts(i).push({ text:"", alt:[], marks:1 }); qzPtSync(i); render(); }
+function qzDelPt(i, k){ qzPts(i).splice(k, 1); qzPtSync(i); render(); }
+function qzSetPtText(i, k, v){ qzPts(i)[k].text = v; }
+function qzSetPtAlt(i, k, v){ qzPts(i)[k].alt = String(v).split('\n'); }
+function qzSetPtMarks(i, k, v){ qzPts(i)[k].marks = v; qzPtSync(i); }
 function qzAddQ(){ quizDraft.questions.push(qzBlankQuestion()); render(); }
 function qzDelQ(i){ if(quizDraft.questions.length > 1) quizDraft.questions.splice(i, 1); render(); }
 function qzAddOpt(i){ /* quizzes use exactly 4 options (A-D) */ }
@@ -9746,7 +9929,10 @@ function qzSave(publish){
       x.text = String(x.text || '').trim();
       x.accepted = (Array.isArray(x.accepted) ? x.accepted : []).map(t => String(t || '').trim()).filter(Boolean);
       x.modelAnswer = String(x.modelAnswer || '').trim();
+      x.explanation = String(x.explanation || '').trim();
+      x.points = (Array.isArray(x.points) ? x.points : []).map(p => ({ text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.floor(Number(p && p.marks)) > 0 ? Math.floor(Number(p.marks)) : 1 })).filter(p => p.text || p.alt.length);
       x.marks = Math.floor(Number(x.marks)) > 0 ? Math.floor(Number(x.marks)) : 1;
+      if(q.type === 'structured' && x.points.length) x.marks = qzPtSum(x);   // the question's marks are the marking points added up
       x.image = (typeof x.image === 'string' && /^data:image\//.test(x.image)) ? x.image : "";
     });
     const bad = (publish || q.published) ? qzValidate(q) : (!q.title ? "Give the quiz a title." : "");
@@ -9980,10 +10166,27 @@ function renderQuizEditor(){
       <div style="margin-top:8px;">
         <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">Accepted answers — one per line (capital letters, extra spaces and a full stop at the end are ignored)</div>
         <textarea rows="2" placeholder="e.g. photosynthesis" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;" oninput="qzSetAccepted(${i},this.value)">${qzEsc((Array.isArray(x.accepted) ? x.accepted : []).join('\n'))}</textarea>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 4px;">Worked answer / explanation (optional, only teachers see it)</div>
+        <textarea rows="2" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;" oninput="qzSetModel(${i},this.value)">${qzEsc(x.modelAnswer || '')}</textarea>
       </div>` : `
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;align-items:flex-start;">
-        <label style="font-size:12px;font-weight:700;color:var(--muted);">Marks<br><input type="number" min="1" max="100" value="${qzEsc(x.marks == null ? 1 : x.marks)}" style="width:80px;padding:6px 8px;" oninput="qzSetMarks(${i},this.value)"></label>
-        <label style="flex:1;min-width:220px;font-size:12px;font-weight:700;color:var(--muted);">Marking guide / model answer (optional, only teachers see it)<br><textarea rows="2" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetModel(${i},this.value)">${qzEsc(x.modelAnswer || '')}</textarea></label>
+      <div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--blue-tint, #f4f8ff);">
+        <div style="font-weight:700;font-size:13px;margin-bottom:2px;"><i class="fa-solid fa-list-check" style="color:var(--blue);"></i>&nbsp;Marking scheme <span style="font-weight:400;color:var(--muted);font-size:12px;">(only teachers see it)</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Write the worked answer, then list each point that earns marks. A learner's answer is compared with every point and earns its marks in full, in part (in proportion to how much of the point is there) or not at all. Numbers must match exactly. Questions with no points are marked by you.</div>
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);">Worked / model answer<br><textarea rows="3" placeholder="e.g. 2 x 5 + 3 = 13. The answer is 13." style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetModel(${i},this.value)">${qzEsc(x.modelAnswer || '')}</textarea></label>
+        ${(Array.isArray(x.points) ? x.points : []).map((pt, k) => `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+          <span style="font-weight:700;color:var(--muted);width:22px;padding-top:7px;">${k+1}.</span>
+          <label style="flex:2;min-width:200px;font-size:11.5px;font-weight:700;color:var(--muted);">Point / step that earns marks<br><input type="text" value="${qzEsc(pt.text || '')}" placeholder="e.g. Substitutes correctly: 2 x 5 + 3" style="width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetPtText(${i},${k},this.value)"></label>
+          <label style="flex:2;min-width:180px;font-size:11.5px;font-weight:700;color:var(--muted);">Other accepted wording / values (one per line, optional)<br><textarea rows="2" placeholder="e.g. 2(5)+3" style="width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetPtAlt(${i},${k},this.value)">${qzEsc((Array.isArray(pt.alt) ? pt.alt : []).join('\n'))}</textarea></label>
+          <label style="font-size:11.5px;font-weight:700;color:var(--muted);">Marks<br><input type="number" min="1" max="100" step="1" value="${qzEsc(pt.marks == null ? 1 : pt.marks)}" style="width:70px;padding:6px 8px;" oninput="qzSetPtMarks(${i},${k},this.value)"></label>
+          <button type="button" class="link-btn danger" style="margin-top:20px;" onclick="qzDelPt(${i},${k})" title="Remove this point"><i class="fa-solid fa-xmark"></i></button>
+        </div>`).join('')}
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+          <button type="button" class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12.5px;" onclick="qzAddPt(${i})"><i class="fa-solid fa-plus"></i>&nbsp;Add marking point</button>
+          <label style="font-size:12px;font-weight:700;color:var(--muted);">Question marks <input id="qzMk_${i}" type="number" min="1" max="100" value="${qzEsc(x.marks == null ? 1 : x.marks)}" ${qzPtSum(x) > 0 ? 'disabled title="Worked out from the marking points"' : ''} style="width:70px;padding:6px 8px;margin-left:4px;" oninput="qzSetMarks(${i},this.value)"></label>
+          <span style="font-size:12px;color:var(--muted);">${qzPtSum(x) > 0 ? `= marking points added up (<strong id="qzMkSum_${i}">${qzPtSum(x)}</strong>)` : `<span id="qzMkSum_${i}" style="display:none;"></span>No points yet: the worked answer above is used as one point worth all the marks.`}</span>
+        </div>
+      </div>
       </div>`;
   const qs = q.questions.map((x, i) => `
     <div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;background:#fff;">
@@ -10002,7 +10205,9 @@ function renderQuizEditor(){
       <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:11.5px;color:var(--muted);">4 options (A–D)</span>
         <span style="font-size:11.5px;color:var(--muted);">Tick the circle beside the correct answer</span>
-      </div>`}
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 4px;">Worked answer / explanation (optional — learners see it with the correct answer after the quiz closes)</div>
+      <textarea rows="2" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;" oninput="qzSetExplain(${i},this.value)">${qzEsc(x.explanation || '')}</textarea>`}
     </div>`).join('');
   return `
     <div class="panel">
@@ -10121,14 +10326,14 @@ function renderQuizResults(){
     const fin = !!(a && a.submittedAt), wait = qzAwaiting(q, a), isStruct = qzType(q) === 'structured';
     const k = marksDataKey(q.exam, q.grade, q.subject, s.admissionNumber);
     const posted = q.exam && fin && !wait && marksData[k] === qzMarkFor(q, a);
-    const status = !fin ? '<span style="color:var(--muted);">Not attempted</span>' : wait ? '<span class="pill-status status-pending">Needs marking</span>' : `<span class="pill-status ${posted?'status-paid':'status-pending'}">${posted ? 'Posted' : 'Not posted'}</span>`;
+    const status = !fin ? '<span style="color:var(--muted);">Not attempted</span>' : wait ? '<span class="pill-status status-pending">Needs marking</span>' : `<span class="pill-status ${posted?'status-paid':'status-pending'}">${posted ? 'Posted' : 'Not posted'}</span>` + (a.autoMarked ? ' <span style="font-size:11px;color:var(--muted);">auto-marked</span>' : '');
     return `<tr>
       <td>${qzEsc(s.admissionNumber)}</td><td style="font-weight:600;">${qzEsc(fullName(s))}</td>
       <td style="text-align:center;">${fin ? (wait ? '—' : `${a.score}/${a.total}`) : (a ? 'In progress' : '—')}</td>
       <td style="text-align:center;">${fin && !wait && a.total ? Math.round(a.score/a.total*100) + '%' : '—'}</td>
       <td style="text-align:center;font-weight:700;">${fin && !wait ? qzMarkFor(q, a) : '—'}</td>
       <td>${status}</td>
-      <td style="white-space:nowrap;">${fin ? `<button class="link-btn" onclick="qzOpenMarking('${q.id}','${qzEsc(s.admissionNumber)}')"><i class="fa-solid ${isStruct ? 'fa-pen-to-square' : 'fa-eye'}"></i>&nbsp;${isStruct ? (a.marked ? 'Edit marks' : 'Mark') : 'View answers'}</button> ` : ''}${a ? `<button class="link-btn" onclick="qzAllowRetake('${q.id}','${qzEsc(s.admissionNumber)}')" title="Clear this attempt so the student can do it again"><i class="fa-solid fa-rotate-left"></i>&nbsp;Allow retake</button>` : ''}</td>
+      <td style="white-space:nowrap;">${fin ? `<button class="link-btn" onclick="qzOpenMarking('${q.id}','${qzEsc(s.admissionNumber)}')"><i class="fa-solid ${isStruct ? 'fa-pen-to-square' : 'fa-eye'}"></i>&nbsp;${isStruct ? (a.marked ? (a.autoMarked ? 'Review marks' : 'Edit marks') : 'Mark') : 'View answers'}</button> ` : ''}${a ? `<button class="link-btn" onclick="qzAllowRetake('${q.id}','${qzEsc(s.admissionNumber)}')" title="Clear this attempt so the student can do it again"><i class="fa-solid fa-rotate-left"></i>&nbsp;Allow retake</button>` : ''}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="7" class="empty">No students in ${qzEsc(q.grade)}.</td></tr>`;
   const exams = qzExamsFor(q.grade);
@@ -10146,12 +10351,28 @@ function renderQuizResults(){
         <label class="field" style="margin:0;min-width:260px;"><span>Post marks to exam (scaled to ${max})</span>
           <select onchange="qzSetResultsExam(this.value)"><option value="">— choose exam —</option>${exams.map(e => `<option value="${qzEsc(e.term+'||'+e.exam)}" ${e.term===q.term&&e.exam===q.exam?'selected':''}>${qzEsc(e.exam)} (${qzEsc(e.term)})</option>`).join('')}</select></label>
         <button class="btn-primary auto" onclick="qzPostMarks()" ${(!qzCanManage())?'disabled':''}><i class="fa-solid fa-check-double"></i>&nbsp;Approve &amp; post marks</button>
+        ${qzType(q) === 'structured' ? `<button class="btn-ghost" style="width:auto;" onclick="qzAutoMarkAll()" title="Compare every unreviewed answer with the marking scheme and award proportional marks"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Auto-mark with scheme</button>` : ''}
         <button class="btn-ghost" style="width:auto;" onclick="qzDownloadResults()"><i class="fa-solid fa-download"></i>&nbsp;Download CSV</button>
       </div>
       <div class="streams-scroll"><table style="min-width:760px;">
         <thead><tr><th>Adm No</th><th>Name</th><th>Score</th><th>%</th><th>Mark (/${max})</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>
     </div>`;
+}
+// Mark every submitted structured attempt that the teacher has not reviewed by hand, by comparing the answers with the marking scheme
+function qzAutoMarkAll(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || qzType(q) !== 'structured') return;
+  let n = 0, skipped = 0;
+  qzSubmitted(q.id).forEach(a => {
+    if(a.marked && !a.autoMarked) return;   // a teacher's own marks are kept
+    const m = qzAutoMarks(q, a); if(!m){ skipped++; return; }
+    a.marks = m; a.marked = true; a.autoMarked = true; a.markedBy = 'Marking scheme'; a.markedOn = todayDDMMYYYY();
+    a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); n++;
+  });
+  quizMsg = n ? { type:'ok', text:`${n} attempt${n===1?'':'s'} marked against the marking scheme. Open each one with Review marks to check it, then approve and post.` + (skipped ? ` ${skipped} could not be auto-marked because some questions have no marking scheme.` : '') }
+              : { type:'error', text: skipped ? 'Nothing was auto-marked: some questions have no marking scheme (worked answer or marking points). Add them in Edit, or mark by hand.' : 'No attempts need auto-marking.' };
+  if(n) qzCloudNow();
+  render();
 }
 // ---------- Teacher: one learner's answers (structured: mark them) ----------
 function qzOpenMarking(id, adm){ quizResultsId = id; quizMarking = { adm, draft:null }; quizView = "mark"; quizMsg = null; render(); }
@@ -10166,7 +10387,7 @@ function qzSaveMarking(){
     if(!isFinite(v) || v < 0 || v > max){ quizMsg = { type:'error', text:`Question ${n+1}: marks must be between 0 and ${max}.` }; render(); return; }
     marks[x.id] = Math.round(v * 2) / 2;   // half marks allowed
   }
-  a.marks = marks; a.marked = true; a.markedBy = currentUserName; a.markedOn = todayDDMMYYYY();
+  a.marks = marks; a.marked = true; a.autoMarked = false; a.markedBy = currentUserName; a.markedOn = todayDDMMYYYY();
   a.score = qzScoreAttempt(q, a); a.total = qzTotal(q);
   quizMsg = { type:'ok', text:`Marks saved: ${a.score}/${a.total}.` };
   quizMarking = null; quizView = "results";
@@ -10182,15 +10403,17 @@ function renderQuizMarking(){
     let mineHtml, keyHtml = '', markHtml = '';
     if(t === 'mcq'){
       mineHtml = mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine]) + (mine === x.answer ? ' ✔' : ' ✘');
-      keyHtml = mine === x.answer ? '' : `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Correct: <strong>${qzEsc(x.options[x.answer])}</strong></div>`;
+      keyHtml = (mine === x.answer ? '' : `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Correct: <strong>${qzEsc(x.options[x.answer])}</strong></div>`) + (x.explanation ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.explanation)}</div>` : '');
     } else if(t === 'short'){
       mineHtml = (has ? qzEsc(mine) : '<em>none</em>') + (qzShortOk(x, mine) ? ' ✔' : ' ✘');
-      keyHtml = `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Accepted: ${(x.accepted || []).map(z => `<strong>${qzEsc(z)}</strong>`).join(', ') || '—'}</div>`;
+      keyHtml = `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Accepted: ${(x.accepted || []).map(z => `<strong>${qzEsc(z)}</strong>`).join(', ') || '—'}</div>` + (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '');
     } else {
       mineHtml = has ? qzEsc(mine) : '<em>none</em>';
-      keyHtml = x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;">Marking guide: ${qzEsc(x.modelAnswer)}</div>` : '';
-      const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : '');
-      markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)"></label>`;
+      const auto = qzMarkTyped(x, mine, max);   // the answer compared with the marking scheme
+      keyHtml = (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '') + (auto ? `
+        <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
+      const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : (auto ? auto.marks : ''));
+      markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)">${auto ? `<span style="font-weight:400;color:var(--muted);margin-left:8px;">suggested from the scheme: ${auto.marks}</span>` : ''}</label>`;
     }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${isStruct ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${max} mark${max===1?'':'s'}]</span>` : ''}</div>
@@ -10205,6 +10428,7 @@ function renderQuizMarking(){
       </div>
       <div style="padding:14px 24px;">
         ${quizMsg ? `<div style="margin-bottom:10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
+        ${isStruct ? `<div style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">${a.autoMarked ? '<strong style="color:var(--green);">Marked automatically</strong> against the marking scheme. Check each answer, change any marks you disagree with, then press <strong>Save marks</strong> to confirm.' : 'Each answer is compared with its marking scheme; the marks box is filled with the suggestion. Adjust where needed, then press <strong>Save marks</strong>.'}</div>` : ''}
         ${rows}
         ${isStruct ? `<button class="btn-primary auto" onclick="qzSaveMarking()"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save marks</button>${a.marked ? `<span style="margin-left:10px;font-size:12px;color:var(--muted);">Last marked ${qzEsc(a.markedOn || '')}${a.markedBy ? ' by ' + qzEsc(a.markedBy) : ''}</span>` : ''}` : ''}
       </div>
@@ -10255,7 +10479,7 @@ function prPush(a){
     if(r.ok && r.data && r.data.attempt){
       delete MASMS_PR.unsynced[a.id];
       const srv = r.data.attempt;
-      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
+      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; a.autoMarked = !!srv.autoMarked; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
     } else if(r.status === 401){ prSessionLost(); }
     else if(r.status === 404){ delete MASMS_PR.unsynced[a.id]; }   // quiz withdrawn or retake granted: nothing to save
     else { MASMS_PR.unsynced[a.id] = a; }
@@ -10401,7 +10625,7 @@ function qzFinish(quizId, auto){
     if(!confirm(left ? `You have ${left} unanswered question${left===1?'':'s'}. Submit anyway?` : 'Submit your answers now? You cannot change them afterwards.')) return;
   }
   a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); a.submittedAt = Date.now(); a.auto = !!auto;
-  if(qzType(q) === 'short') a._scoring = true;   // the server marks typed answers (it holds the accepted answers); the score appears when it replies
+  if(qzType(q) === 'short' || (qzType(q) === 'structured' && q.autoMark)) a._scoring = true;   // the server marks typed answers (it holds the answer keys and marking schemes); the score appears when it replies
   try{ prPush(a); }catch(_e){}
   qzStopTimer();
   portalQuiz = { mode:'review', quizId };
@@ -10500,13 +10724,14 @@ function renderPortalQuizBody(st){
     const mine = a.answers[x.id], ok = mine === x.answer;
     return `<div style="border:1px solid var(--border);border-left:4px solid ${ok?'var(--green)':'var(--rose)'};border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}</div>
-      <div style="font-size:13px;margin-top:4px;">Your answer: ${mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine])}${ok ? ' ✔' : ` ✘ — correct: <strong>${qzEsc(x.options[x.answer])}</strong>`}</div></div>`;
+      <div style="font-size:13px;margin-top:4px;">Your answer: ${mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine])}${ok ? ' ✔' : ` ✘ — correct: <strong>${qzEsc(x.options[x.answer])}</strong>`}</div>${x.explanation ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.explanation)}</div>` : ''}</div>`;
   }).join('') : `<div style="color:var(--muted);font-size:13px;margin-top:10px;">Correct answers will be shown after the due date${q.dueISO ? ' (' + qzEsc(q.dueISO.split('-').reverse().join('/')) + ')' : ''}.</div>`;
   return `<div class="panel" style="padding:24px;text-align:center;margin-bottom:16px;">
       <div style="font-size:13px;color:var(--muted);">${qzEsc(q.title)} · ${qzEsc(q.subject)}</div>
       ${waiting ? `<div style="font-size:20px;font-weight:800;margin:12px 0;">${a._scoring ? 'Submitted — marking your answers…' : 'Submitted — waiting for your teacher to mark it'}</div>` : `<div style="font-size:42px;font-weight:800;color:${pct>=50?'var(--green)':'var(--rose)'};">${a.score}/${a.total}</div>
       <div style="font-size:16px;font-weight:700;">${pct}%</div>`}
       ${a.auto ? '<div style="font-size:12px;color:var(--muted);margin-top:6px;">Submitted automatically when time ran out.</div>' : ''}
+      ${a.autoMarked && !waiting ? '<div style="font-size:12px;color:var(--muted);margin-top:6px;">Marked automatically against the marking scheme. Your teacher may review and adjust these marks.</div>' : ''}
       ${q.allowRetake ? `<button class="btn-ghost" style="width:auto;margin-top:12px;" onclick="qzRetake('${q.id}')"><i class="fa-solid fa-rotate-left"></i>&nbsp;Retake</button>` : ''}
       <div style="font-size:12px;color:var(--muted);margin-top:8px;">Your teacher will approve this score before it is added to your exam marks.</div>
     </div>${review}`;
@@ -15198,7 +15423,7 @@ function renderSchoolSelect(){
   `;
 }
 
-function go(key){ if(!canAccessModule(key)) return; if(key==='teachers' && typeof teachersHubTab!=='undefined') teachersHubTab = ""; if(key==='classes' && typeof classTab!=='undefined') classTab = ""; active = key; render(); }
+function go(key){ if(!canAccessModule(key)) return; if(key==='teachers' && typeof teachersHubTab!=='undefined') teachersHubTab = ""; if(key==='classes' && typeof classTab!=='undefined') classTab = ""; if(key==='myprofile'){ myProfileLoaded = null; myProfileMsg = ""; } active = key; render(); }
 
 // ---- Top-bar quick links: dark/light mode + cloud sign-in (mobile: in the three-dots menu) ----
 function quickIsDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -15229,22 +15454,22 @@ function renderTopbarRight(){
   const el = document.getElementById('topbarRight');
   if(!el) return;
   el.innerHTML = `
+    <div class="topbar-cell search-cell tb-search">
+      <i class="fa-solid fa-magnifying-glass" style="cursor:pointer;" onclick="globalSearch()"></i>
+      <input id="topbarSearchInput" type="text" placeholder="${t('searchPlaceholder')}" onkeydown="if(event.key==='Enter') globalSearch(event)">
+    </div>
     <div class="topbar-cell lang-cell">
       <i class="fa-solid fa-globe"></i>
-      <select id="langSelect" onchange="setLang(this.value)">
+      <select id="langSelect" onchange="setLang(this.value)" title="Language">
         <option value="en" ${currentLang==='en'?'selected':''}>English</option>
         <option value="sw" ${currentLang==='sw'?'selected':''}>Kiswahili</option>
         <option value="fr" ${currentLang==='fr'?'selected':''}>Français</option>
       </select>
     </div>
-    <div class="topbar-cell search-cell">
-      <i class="fa-solid fa-magnifying-glass" style="cursor:pointer;" onclick="globalSearch()"></i>
-      <input id="topbarSearchInput" type="text" placeholder="${t('searchPlaceholder')}" onkeydown="if(event.key==='Enter') globalSearch(event)">
-    </div>
     <div class="topbar-cell quick-cell" id="quickLinksCell">${quickLinksHtml()}</div>
-    <button class="topbar-cell login-cell" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false" title="${currentUserName}">
-      <i class="fa-solid fa-circle-user"></i> ${currentUserName}
-      <i class="fa-solid fa-chevron-down" style="margin-left:4px;font-size:11px;"></i>
+    <button type="button" class="tb-bell" onclick="go('announcements')" title="Announcements" aria-label="Announcements"><i class="fa-regular fa-bell"></i>${(typeof announcementsList !== 'undefined' && announcementsList.length) ? '<span class="dot"></span>' : ''}</button>
+    <button class="topbar-cell login-cell tb-avatar" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false" title="${dpEsc(currentUserName)}" aria-label="Account menu">
+      <i class="fa-solid fa-user"></i>
     </button>
   `;
 }
@@ -15282,7 +15507,7 @@ function toggleUserMenu(e){
   document.addEventListener('keydown', userMenuKey, true);
 }
 
-function navLabel(key){ return (key === "sysdev" && currentUserRole === "Sales Agent") ? "My Schools" : t(key); }
+function navLabel(key){ if(key === "myprofile") return "My Profile"; return (key === "sysdev" && currentUserRole === "Sales Agent") ? "My Schools" : t(key); }
 function renderNav(){
   const nav = document.getElementById('navList');
   // "subjects" is the same page as the "Academics" nav item (just reached
@@ -15290,11 +15515,12 @@ function renderNav(){
   // keep Academics highlighted while on it. "registration" is likewise kept
   // reachable internally without its own nav item — nothing to highlight.
   const navActive = active === "subjects" ? "academics" : active;
-  const visibleNavItems = NAV_ITEMS.filter(item => canAccessModule(item.key));
+  // Maestro Legal is not in the sidebar: it opens from the "Terms & Privacy" link in the footer (renderAppFooter).
+  const visibleNavItems = NAV_ITEMS.filter(item => item.key !== 'legal' && canAccessModule(item.key));
   nav.innerHTML = visibleNavItems.map(item => `
     <button class="nav-item ${navActive===item.key?'active':''}" onclick="go('${item.key}')">
       <i class="fa-solid ${item.icon}"></i>
-      ${navLabel(item.key)}
+      <span>${navLabel(item.key)}</span>
       ${item.key==='medicalalerts' && medAlertNavCount() ? `<span style="margin-left:auto;background:var(--rose);color:#fff;font-size:11px;font-weight:700;min-width:18px;padding:1px 6px;text-align:center;">${medAlertNavCount()}</span>` : ''}
       ${navActive===item.key ? '<i class="fa-solid fa-chevron-right chev"></i>' : ''}
     </button>
@@ -15315,11 +15541,13 @@ function renderNav(){
         </div>
       `;
       subbar.style.display = '';
+      subbar.classList.add('has-tabs');
     } else {
+      subbar.classList.remove('has-tabs');
       // On Finance and Registration the tab/link row right below already gives
       // full context (icons + section names), so the generic subbar would just
       // duplicate it — skip it there and let the tabs sit right under the topbar.
-      const hideSubbar = navActive === 'finance' || navActive === 'registration';
+      const hideSubbar = true;   // the page title now lives in the header bar
       subbar.innerHTML = hideSubbar ? '' : `
         <div class="subbar-icon"><i class="fa-solid ${activeItem.icon}"></i></div>
         <span class="subbar-title">${navLabel(activeItem.key)}</span>
@@ -15329,7 +15557,23 @@ function renderNav(){
   }
   const schoolLabel = document.getElementById('topbarSchool');
   if(schoolLabel) schoolLabel.textContent = isSalesAgentRole() ? 'MASMS Sales' : currentSchool;
+  const titleEl = document.getElementById('topbarTitle');
+  if(titleEl && activeItem) titleEl.textContent = navLabel(activeItem.key);
+  renderAppFooter();
 }
+// footer bar under every page
+function renderAppFooter(){
+  const f = document.getElementById('appFooter'); if(!f) return;
+  const school = isSalesAgentRole() ? 'MASMS Sales' : (currentSchool || 'MASMS');
+  f.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${dpEsc(school)}. All rights reserved.</span><span>${canAccessModule('legal') ? `<a onclick="go('legal')">Terms &amp; Privacy</a>` : ''}<a onclick="window.open('privacy.html','_blank')">Privacy</a><span style="margin-left:14px;opacity:.7;">MASMS v1.0</span></span>`;
+}
+// hamburger: icons-only sidebar, remembered on this device
+function toggleNavCollapse(){
+  const a = document.querySelector('.app'); if(!a) return;
+  const on = a.classList.toggle('nav-collapsed');
+  try{ localStorage.setItem('masmsNavCollapsed', on ? '1' : '0'); }catch(_e){}
+}
+(function(){ try{ if(localStorage.getItem('masmsNavCollapsed') === '1'){ const a = document.querySelector('.app'); if(a) a.classList.add('nav-collapsed'); } }catch(_e){} })();
 
 function pageHeader(title, subtitle){
   return `<div class="page-header"><h1>${title}</h1><p>${subtitle}</p></div>`;
@@ -15542,7 +15786,6 @@ function renderTeacherHomeDashboard(){
       </div>
       ${renderTeacherExamAnalysisTab()}
 
-      ${renderDashFeatureStrip()}
     `;
   }
 
@@ -16191,6 +16434,34 @@ function enrollmentTrendSeries(){
   return { labels, points };
 }
 
+// ---- Home page (dashboard) building blocks ----
+const HM_DONUT_COLORS = ["#1a58f2","#7c3aed","#16a34a","#f97316"];
+function hmStatCard(icon, tone, label, value, deltaText, kind){
+  const arrow = kind === 'down' ? 'fa-arrow-down' : kind === 'flat' ? 'fa-minus' : 'fa-arrow-up';
+  return `<div class="hm-stat"><div class="hm-ico ${tone}"><i class="fa-solid ${icon}"></i></div>
+    <div class="hm-stat-body"><div class="hm-label">${label}</div><div class="hm-val" title="${dpEsc(value)}"${String(value).length > 9 ? ' style="font-size:19px;"' : ''}>${dpEsc(value)}</div>
+    <span class="hm-delta ${kind || ''}"><i class="fa-solid ${arrow}" style="font-size:10px;"></i>${dpEsc(deltaText)}</span></div></div>`;
+}
+function hmNiceMax(v){ if(v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+function hmShort(n){ return n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + 'M' : n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0).replace(/\.0$/, '') + 'K' : String(Math.round(n * 10) / 10); }
+// smooth blue area chart with a light grid, y-axis labels and a ringed end point
+function svgHomeAreaChart(values, labels){
+  const W = 640, H = 330, L = 60, R = 22, T = 22, B = 44, pw = W - L - R, ph = H - T - B;
+  const max = hmNiceMax(Math.max.apply(null, values.concat([1])));
+  const X = i => L + (values.length < 2 ? pw / 2 : i * pw / (values.length - 1)), Y = v => T + ph - (v / max) * ph;
+  const pts = values.map((v, i) => [X(i), Y(v)]);
+  let d = 'M' + pts[0][0] + ',' + pts[0][1];
+  for(let i = 0; i < pts.length - 1; i++){
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2, k = 0.18;
+    d += ` C${p1[0] + (p2[0] - p0[0]) * k},${p1[1] + (p2[1] - p0[1]) * k} ${p2[0] - (p3[0] - p1[0]) * k},${p2[1] - (p3[1] - p1[1]) * k} ${p2[0]},${p2[1]}`;
+  }
+  const last = pts[pts.length - 1], base = T + ph;
+  const grid = [0, 1, 2, 3, 4, 5].map(i => { const v = max * i / 5, y = Y(v); return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#cbd8f1" stroke-width="1"/><text x="${L - 10}" y="${y + 4}" text-anchor="end" font-size="17" fill="#2a3a60" font-weight="500">${hmShort(v)}</text>`; }).join('');
+  const xl = labels.map((l, i) => `<text x="${X(i)}" y="${H - 14}" text-anchor="middle" font-size="17" fill="#2a3a60" font-weight="500">${dpEsc(l)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Enrollment over the last six months"><defs><linearGradient id="hmAreaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2f6df6" stop-opacity=".75"/><stop offset="100%" stop-color="#2f6df6" stop-opacity=".08"/></linearGradient></defs>
+    ${grid}<path d="${d} L${last[0]},${base} L${pts[0][0]},${base} Z" fill="url(#hmAreaG)"/><path d="${d}" fill="none" stroke="#1647c9" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="6" fill="#fff" stroke="#1647c9" stroke-width="3"/>${xl}</svg>`;
+}
 const DASH2_DONUT_COLORS = ["#2f5fa8","#10b981","#7c5cf0","#f97316","#f43f5e","#f59e0b"];
 
 function dash2StatCard(icon, bg, label, value, delta, isFlat, cardBg){
@@ -16209,16 +16480,6 @@ function dash2StatCard(icon, bg, label, value, delta, isFlat, cardBg){
   `;
 }
 
-// ---- Dashboard footer feature strip: platform selling points shown as a
-// blue bar under the main dashboard grid. ----
-const DASH2_FEATURE_ITEMS = [
-  { icon:"fa-cloud", title:"Cloud Based", sub:"Access data anytime, anywhere" },
-  { icon:"fa-shield-halved", title:"Secure Platform", sub:"Your data is protected & backed up" },
-  { icon:"fa-mobile-screen", title:"Mobile Friendly", sub:"Works on all devices seamlessly" },
-  { icon:"fa-chart-line", title:"Real-Time Reports", sub:"Make informed decisions faster" },
-  { icon:"fa-headset", title:"Local Support", sub:"Reliable support from our team" },
-];
-
 function renderDashboard(){
   if(currentUserRole === "Teacher"){
     return renderTeacherHomeDashboard();
@@ -16227,19 +16488,6 @@ function renderDashboard(){
   return deptPanels + renderAdminOverviewDashboard();
 }
 
-function renderDashFeatureStrip(){
-  return `<div class="dash2-features-strip">
-      ${DASH2_FEATURE_ITEMS.map(f => `
-        <div class="dash2-feature-item">
-          <div class="dash2-feature-icon"><i class="fa-solid ${f.icon}"></i></div>
-          <div>
-            <div class="dash2-feature-title">${f.title}</div>
-            <div class="dash2-feature-sub">${f.sub}</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>`;
-}
 
 
 // ---- Dashboard: Exam Analysis card (sits under the main dashboard grid) ----
@@ -17064,24 +17312,14 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   if(!dCfg.features) showFeatures = false;
   const dNotice = (dCfg.noticeOn && dCfg.notice.trim()) ? `<div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:10px 14px;margin-bottom:14px;font-size:13.5px;font-weight:600;"><i class="fa-solid fa-bullhorn"></i>&nbsp; ${String(dCfg.notice).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</div>` : "";
 
-  // ---- Stat cards ----
+  // ---- Stat cards (built below, once the fee figures are known) ----
   const newAdmissionsThisTerm = students.filter(s => s.term === termInfo.term && s.admissionType === "New").length;
   const departmentCount = new Set(teachersList.flatMap(t => t.department || [])).size;
   const gradeCount = new Set(classesList.map(c => c.grade)).size;
 
-  const statsHtml = [
-    dash2StatCard("fa-user-graduate", "var(--blue)", "Total Students", students.length, `+${newAdmissionsThisTerm} this term`, newAdmissionsThisTerm === 0, "#2f5fa8"),
-    dash2StatCard("fa-chalkboard-user", "var(--green)", "Total Teachers", teachersList.length, departmentCount ? `Across ${departmentCount} departments` : "No change", !departmentCount, "#10b981"),
-    dash2StatCard("fa-graduation-cap", "var(--purple)", "Total Classes", classesList.length, gradeCount ? `${gradeCount} grades` : "No change", !gradeCount, "#eab308"),
-    dash2StatCard("fa-building-columns", "var(--orange)", "Total Subjects", ALL_SUBJECTS.length, "No change", true, "#f43f5e"),
-  ].join('');
-
   // ---- Student Enrollment Trend (cumulative, last 6 months) ----
   const trend = enrollmentTrendSeries();
-  const enrollmentChart = svgAnalysisLineChart(
-    [{ name:"Students", color:"#2f5fa8", points: trend.points, fill:true, fillColor:"#86efac", fillOpacity:0.45 }],
-    trend.labels, { width:520, height:210, decimals:0 }
-  );
+  const enrollmentChart = svgHomeAreaChart(trend.points.map(p => p.y), trend.labels);
 
   // ---- Students by Class (grouped by grade) ----
   const gradeCounts = {};
@@ -17134,38 +17372,59 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
     { value: 100-collectedPct, color:"#e5e9f0" },
   ], { size:150, strokeWidth:18 });
 
+  // ---- Home page cards ----
+  const trendVals = trend.points.map(p => p.y), tFirst = trendVals[0], tLast = trendVals[trendVals.length - 1];
+  const growthPct = tFirst ? (tLast - tFirst) / tFirst * 100 : (tLast > 0 ? 100 : 0);
+  const growthKind = growthPct > 0 ? '' : growthPct < 0 ? 'down' : 'flat';
+  const fmtPct = v => (v > 0 ? '+' : '') + (Math.round(v * 10) / 10) + '%';
+  const hmCards = [
+    hmStatCard('fa-user-graduate', 'blue', 'Total Students', String(students.length), newAdmissionsThisTerm ? `+${newAdmissionsThisTerm} this term` : 'No change', newAdmissionsThisTerm ? '' : 'flat'),
+    hmStatCard('fa-chalkboard-user', 'purple', 'Total Teachers', String(teachersList.length), departmentCount ? `${departmentCount} department${departmentCount === 1 ? '' : 's'}` : 'No change', departmentCount ? '' : 'flat'),
+    showFee ? hmStatCard('fa-coins', 'orange', 'Fees Collected', 'Ksh ' + Math.round(totalCollected).toLocaleString('en-US'), `${collectedPct}% collected`, collectedPct ? '' : 'flat')
+            : hmStatCard('fa-graduation-cap', 'orange', 'Total Classes', String(classesList.length), gradeCount ? `${gradeCount} grade${gradeCount === 1 ? '' : 's'}` : 'No change', gradeCount ? '' : 'flat'),
+    hmStatCard('fa-chart-simple', 'green', 'Growth', (Math.round(growthPct * 10) / 10) + '%', fmtPct(growthPct), growthKind),
+  ].join('');
+
+  // donut: the three biggest classes + "Others", like the reference design
+  const topG = gradeEntries.slice(0, 3), restN = gradeEntries.slice(3).reduce((t, e) => t + e[1], 0);
+  const hmSeg = topG.map(([g, c]) => ({ name:g, count:c })).concat(restN ? [{ name:'Others', count:restN }] : []);
+  const hmDonut = students.length ? svgDonutChart(hmSeg.map((x, i) => ({ value:x.count, color:HM_DONUT_COLORS[i % 4] })), { size:190, strokeWidth:30 }) : svgDonutChart([{ value:1, color:'#d6e0f8' }], { size:190, strokeWidth:30 });
+  const hmLegend = hmSeg.map((x, i) => `<div class="hm-legend-row"><span class="dot" style="background:${HM_DONUT_COLORS[i % 4]};"></span><span class="nm" title="${dpEsc(x.name)}">${dpEsc(x.name)}</span><span class="pc">${Math.round(x.count / gradeTotal * 100)}%</span></div>`).join('') || '<div class="hm-empty">No students yet.</div>';
+
+  // recent table: fee receipts for finance roles, otherwise the latest admissions
+  const recentPays = showFee ? activePayments().slice(0, 5) : [];
+  let recentTitle, recentHead, recentRows, recentGo;
+  if(recentPays.length){
+    recentTitle = 'Recent Fee Payments'; recentGo = "go('finance')";
+    recentHead = ['Receipt No', 'Learner', 'Fee Type', 'Amount', 'Status'];
+    recentRows = recentPays.map(p => `<tr><td>#${dpEsc(p.receiptNo || '')}</td><td>${dpEsc(p.student || '')}</td><td>${dpEsc(p.feeType || '')}</td><td>${dpEsc(formatKsh(parseAmountKsh(p.amount)))}</td><td><span class="hm-pill ok">Completed</span></td></tr>`).join('');
+  } else {
+    const recentStu = students.slice().sort((a, b) => ((parseDMYDate(b.dateOfAdmission) || 0) - (parseDMYDate(a.dateOfAdmission) || 0))).slice(0, 5);
+    recentTitle = 'Recent Admissions'; recentGo = "go('students')";
+    recentHead = ['Adm No', 'Learner', 'Class', 'Admitted', 'Status'];
+    recentRows = recentStu.map(st => `<tr><td>#${dpEsc(st.admissionNumber || '')}</td><td>${dpEsc(fullName(st))}</td><td>${dpEsc([st.grade, st.stream].filter(Boolean).join(' '))}</td><td>${dpEsc(st.dateOfAdmission || '—')}</td><td><span class="hm-pill ${st.admissionType === 'New' ? 'ok' : 'info'}">${st.admissionType === 'New' ? 'New' : 'Continuing'}</span></td></tr>`).join('');
+  }
+  const recentCard = `<div class="hm-card" style="margin-bottom:14px;"><div class="hm-card-head"><h3>${recentTitle}</h3><button class="hm-link" onclick="${recentGo}">View All &rarr;</button></div>
+    <div class="hm-table-wrap">${recentRows ? `<table class="hm-table" data-pdf-btn="1"><thead><tr>${recentHead.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${recentRows}</tbody></table>` : '<div class="hm-empty">Nothing to show yet.</div>'}</div></div>`;
+
+  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><button type="button" class="hm-link" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>&nbsp;Viewing as ${previewingAsTeacher?'Teacher':'Administrator'}</button></div>` : '';
+  const hasMore = dCfg.events || dCfg.ann || showFee;
+
   return `
-    ${showTopline ? `
-    <div class="dash2-topline">
-      <div>
-        <h1 class="dash2-title">Dashboard</h1>
-        <p class="dash2-sub">Overview of school activities</p>
-      </div>
-      <div class="dash2-topline-right dash2-pair">
-        <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
-        <div class="dash2-date"><i class="fa-regular fa-calendar"></i>${todayLabel}<i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--muted);"></i></div>
-      </div>
-    </div>
-    ` : ''}
-
+    ${roleChip}
     ${dNotice}
-    ${dCfg.stats ? `<div class="dash2-stats">${statsHtml}</div>` : ''}
+    ${dCfg.stats ? `<div class="hm-stats">${hmCards}</div>` : ''}
 
-    <div class="dash2-grid${showFee?'':' no-fee'}">
-      ${dCfg.enroll ? `<div class="panel dash2-panel dash2-cell-enroll">
-        <h3>Student Enrollment Trend</h3>
-        ${enrollmentChart}
-      </div>` : ''}
-      ${dCfg.byclass ? `<div class="panel dash2-panel dash2-cell-byclass">
-        <h3>Students by Class</h3>
-        <div class="dash2-donut-flex">
-          <div class="dash2-donut-wrap">
-            ${svgDonutChart(gradeSegments, { size:150, strokeWidth:22 })}
-            <div class="dash2-donut-center"><div class="num">${students.length}</div><div class="lbl">Total</div></div>
-          </div>
-          <div class="dash2-legend">${gradeLegend}</div>
-        </div>
-      </div>` : ''}
+    ${(dCfg.enroll || dCfg.byclass) ? `<div class="hm-charts">
+      ${dCfg.enroll ? `<div class="hm-card"><h3>Enrollment Overview</h3><div class="hm-area">${enrollmentChart}</div></div>` : '<div></div>'}
+      ${dCfg.byclass ? `<div class="hm-card"><h3>Students by Class</h3>
+        <div class="hm-donut"><div class="hm-donut-wrap">${hmDonut}<div class="hm-donut-center"><div class="num">${students.length}</div><div class="lbl">Students</div></div></div>
+        <div class="hm-legend">${hmLegend}</div></div></div>` : '<div></div>'}
+    </div>` : ''}
+
+    ${recentCard}
+
+    ${hasMore ? `<div class="dash2-grid hm-more${showFee?'':' no-fee'}" style="grid-template-areas:none;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
       ${dCfg.events ? `<div class="panel dash2-panel dash2-cell-events">
         <h3>Upcoming Events</h3>
         <div class="dash2-events">${eventsHtml}</div>
@@ -17204,11 +17463,10 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
         </div>
       </div>
       ` : ''}
-    </div>
+    </div>` : ''}
 
     ${dCfg.analysis ? renderDashExamAnalysis() : ''}
 
-    ${showFeatures ? renderDashFeatureStrip() : ''}
 
   `;
 }
@@ -25195,6 +25453,16 @@ function submitTeacher(exit){
     document.getElementById('tf_firstName')?.focus();
     return;
   }
+  if(teacherEditIndex === null){
+    // New teacher: the administrator gives only the name and phone number. The teacher signs in with them and fills in the rest.
+    if(!teacherFormData.surname){ alert('Enter the surname.'); document.getElementById('tf_surname')?.focus(); return; }
+    const key = loginPhoneKey(teacherFormData.phone);
+    if(!key){ alert('Enter the teacher\'s phone number (at least 9 digits). The teacher signs in with it.'); document.getElementById('tf_phone')?.focus(); return; }
+    if(teachersList.some(t => loginPhoneKey(t.phone) === key)){ alert('Another teacher already has this phone number. Each teacher needs their own so the login finds the right person.'); return; }
+    const nm = teacherFullName(teacherFormData).toLowerCase();
+    if(teachersList.some(t => teacherFullName(t).toLowerCase() === nm)){ alert('A teacher with this name already exists.'); return; }
+    teacherFormData.profileStatus = 'pending';
+  }
   if(teacherEditIndex !== null){
     teachersList[teacherEditIndex] = { ...teacherFormData, department:[...(teacherFormData.department||[])], groups:[...(teacherFormData.groups||[])], subjects:[...(teacherFormData.subjects||[])], subjectHead:[...(teacherFormData.subjectHead||[])] };
     teacherEditIndex = null;
@@ -25324,6 +25592,7 @@ function renderManageTeachersPanel(){
           ${line('GENDER', esc(t.gender || '—'))}
           ${line('MOB NO', esc(t.phone || '—'))}
           ${line('SUBJ', esc(subj))}
+          ${t.profileStatus ? line('PROFILE', teacherProfileStatusLabel(t.profileStatus)) : ''}
         </div>
       </div>
       <div class="tc-roles-h">ROLES &amp; RESPONSIBILITY</div>
@@ -25347,7 +25616,14 @@ function renderManageTeachersPanel(){
 }
 
 function renderAddTeacherForm(){
-  return `
+  if(teacherEditIndex === null) return renderAddTeacherSimpleForm();
+  const ei = teacherEditIndex, st = teachersList[ei] && teachersList[ei].profileStatus;
+  const stBox = !teachersList[ei] ? '' : `<div style="margin:14px 0 0;padding:10px 14px;background:#eef3fb;border:1px solid #c7d6ee;font-size:13px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <span><b>Teacher's own profile:</b> ${teacherProfileStatusLabel(st)}</span>
+      ${st === 'complete' ? `<button type="button" class="link-btn" onclick="setTeacherProfileStatus(${ei},'draft')"><i class="fa-solid fa-lock-open"></i>&nbsp;Unlock so the teacher can edit again</button>`
+        : !st ? `<button type="button" class="link-btn" onclick="setTeacherProfileStatus(${ei},'pending')"><i class="fa-solid fa-user-pen"></i>&nbsp;Ask the teacher to fill in their own profile</button>` : ''}
+    </div>`;
+  return stBox + `
     <div class="panel">
       <form onsubmit="event.preventDefault();" style="padding:24px;">
           <div class="form-grid-3">
@@ -25386,6 +25662,157 @@ function renderAddTeacherForm(){
         </form>
     </div>
   `;
+}
+
+// Add New Teacher: the administrator enters only the name and phone number.
+function renderAddTeacherSimpleForm(){
+  return `
+    <div class="panel">
+      <form onsubmit="event.preventDefault();" style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--muted);">Enter only the <b>name</b> and <b>phone number</b>. The teacher then signs in with the phone number (or first name) and the password <b>welcome</b>, and fills in the rest of the profile personally. The teacher can save and continue later; once the profile is completely filled and saved it is locked. (Responsibility and other administrator settings can be added afterwards with Edit in Manage Teachers.)</p>
+        <div class="form-grid-3">
+          ${teacherField("Surname","surname",true,"Surname")}
+          ${teacherField("First Name","firstName",true,"First Name")}
+          ${teacherField("Other Names","otherNames",false,"Other Names")}
+          ${teacherField("Phone Number","phone",true,"0712345678")}
+        </div>
+        <div class="wizard-nav" style="padding:0;border-top:none;">
+          <button type="button" class="btn-ghost" onclick="teacherFormData={surname:'',firstName:'',otherNames:'',phone:'',department:[],groups:[],subjects:[],subjectHead:[]};render();">Clear</button>
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="btn-primary auto" onclick="submitTeacher(false)">Save</button>
+            <button type="button" class="btn-ghost" style="background:var(--navy-dark);color:#fff;" onclick="submitTeacher(true)">Save and Exit</button>
+          </div>
+        </div>
+      </form>
+    </div>`;
+}
+
+// ---- Teacher fills in their own profile (My Profile) --------------------------------------------
+// profileStatus: "" = not used (older records, administrator-managed) | "pending" = waiting for the teacher |
+// "draft" = teacher saved part of it | "complete" = filled in and saved: locked for the teacher.
+// Name, phone and Responsibility stay with the administrator (Responsibility can grant Super Admin).
+const TEACHER_SELF_FIELDS = ['employer','tscNumber','gender','nationalId','dateOfBirth','address','postalCode','email','countyOfBirth','subCountyOfBirth','photo','signature'];
+let myProfileLoaded = null, myProfileMsg = "";
+function teacherProfileStatusLabel(st){ return st === 'complete' ? '<span style="color:var(--green);font-weight:700;">Complete (locked)</span>' : st === 'draft' ? '<span style="color:var(--orange);font-weight:700;">In progress</span>' : st === 'pending' ? '<span style="color:var(--orange);font-weight:700;">Waiting for the teacher</span>' : '<span style="color:var(--muted);">Managed by the administrator</span>'; }
+function myProfileIndex(){ return currentUserName ? teachersList.findIndex(t => teacherFullName(t).toLowerCase() === String(currentUserName).toLowerCase()) : -1; }
+function teacherProfileApplies(){ if(currentUserRole !== 'Teacher') return false; const i = myProfileIndex(); return i >= 0 && !!teachersList[i].profileStatus; }
+function teacherProfileNeedsWork(){ if(currentUserRole !== 'Teacher') return false; const i = myProfileIndex(); const st = i >= 0 ? teachersList[i].profileStatus : ''; return st === 'pending' || st === 'draft'; }
+function teacherProfileMissing(d){
+  const m = [], has = k => String(d[k] || '').trim() !== '';
+  if(!has('employer')) m.push('Employer');
+  if(d.employer !== 'BOM' && !has('tscNumber')) m.push('TSC Number');
+  if(!has('gender')) m.push('Gender');
+  if(!has('nationalId')) m.push('National ID No.');
+  if(!has('dateOfBirth')) m.push('Date of Birth');
+  if(!has('address')) m.push('Address');
+  if(!has('email')) m.push('Email');
+  if(!has('countyOfBirth')) m.push('Home County');
+  if(!has('subCountyOfBirth')) m.push('Home Sub-County');
+  if(!(d.department || []).length) m.push('Department');
+  if(!(d.subjects || []).length) m.push('Subjects you teach');
+  if(!has('photo')) m.push('Photo');
+  if(!has('signature')) m.push('Signature');
+  return m;
+}
+function myProfileLoad(force){
+  const i = myProfileIndex(); if(i < 0) return;
+  const t = teachersList[i], key = i + '|' + teacherFullName(t);
+  if(!force && myProfileLoaded === key) return;
+  teacherFormData = { ...t, department: Array.isArray(t.department) ? [...t.department] : (t.department ? [t.department] : []), groups:[...(t.groups||[])], subjects:[...(t.subjects||[])], subjectHead:[...(t.subjectHead||[])], pathways:[...(t.pathways || (t.pathway ? [t.pathway] : []))], pathway:"" };
+  teacherEditIndex = null; myProfileLoaded = key;
+}
+function saveMyProfile(exit){
+  const i = myProfileIndex(); if(i < 0) return;
+  const t = teachersList[i];
+  if(currentUserRole !== 'Teacher') return;
+  if(t.profileStatus === 'complete'){ alert('Your profile is already saved and locked. Ask the administrator if something must change.'); render(); return; }
+  const d = teacherFormData, upd = {};
+  TEACHER_SELF_FIELDS.forEach(k => { upd[k] = d[k] || ''; });
+  upd.department = [...(d.department || [])]; upd.subjects = [...(d.subjects || [])]; upd.pathways = [...(d.pathways || [])];
+  if(exit){
+    const missing = teacherProfileMissing({ ...t, ...upd });
+    if(missing.length){ alert('Please fill in everything before you save and exit:\n\n• ' + missing.join('\n• ') + '\n\nUse "Save progress" to keep what you have and finish later.'); return; }
+    if(!confirm('Save and exit? Once saved you will not be able to edit your profile. If something needs changing later, ask the administrator.')) return;
+  }
+  teachersList[i] = { ...t, ...upd, profileStatus: exit ? 'complete' : 'draft', profileUpdatedAt: new Date().toISOString() };
+  try{ window.MASMS_LOCAL && window.MASMS_LOCAL.saveNow && window.MASMS_LOCAL.saveNow(); }catch(_e){}
+  if(exit){ myProfileLoaded = null; myProfileMsg = ""; active = "dashboard"; }
+  else { myProfileLoaded = null; myProfileLoad(true); myProfileMsg = 'Saved. You can carry on now or come back later; your details are kept.'; }
+  render();
+}
+function setTeacherProfileStatus(i, st){
+  const t = teachersList[i]; if(!t) return;
+  const q = st === 'draft' ? 'Unlock this profile so the teacher can edit it again?' : 'Ask this teacher to fill in their own profile? They will see it when they sign in.';
+  if(!confirm(q)) return;
+  t.profileStatus = st; render();
+}
+function teacherProfileBanner(){
+  if(!teacherProfileNeedsWork()) return '';
+  const st = teachersList[myProfileIndex()].profileStatus;
+  return `<div style="margin:0 0 14px;padding:14px 18px;background:#fff7e6;border:1px solid #f0c36a;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <i class="fa-solid fa-id-card" style="font-size:22px;color:#b7791f;"></i>
+    <div style="flex:1;min-width:200px;font-size:14px;"><b>${st === 'draft' ? 'Finish your profile' : 'Complete your profile'}</b><br><span style="color:var(--muted);font-size:13px;">Fill in your own details. You can save and continue later; once everything is filled and saved it is locked.</span></div>
+    <button type="button" class="btn-primary auto" onclick="go('myprofile')">Open My Profile</button>
+  </div>`;
+}
+function renderMyProfile(){
+  const i = myProfileIndex();
+  if(i < 0 || !teachersList[i].profileStatus) return `<div class="panel"><div class="empty">There is nothing for you to fill in here.</div></div>`;
+  const t = teachersList[i], esc = v => dpEsc(v == null ? '' : v);
+  const ro = (label, val) => `<label class="field"><span>${label}</span><input type="text" value="${esc(val)}" disabled></label>`;
+  if(t.profileStatus === 'complete'){
+    const line = (k, v) => `<div class="tc-line"><span class="tc-k">${k}:</span><span class="tc-v">${esc(v || '—')}</span></div>`;
+    return `<div class="panel" style="padding:22px;">
+      <div style="padding:10px 14px;background:#e9f7ef;border:1px solid #a8dcc0;font-size:13.5px;margin-bottom:16px;"><i class="fa-solid fa-lock"></i>&nbsp; Your profile is saved and locked. To change anything, ask the administrator.</div>
+      ${renderTeacherProfileCard(t)}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px 24px;max-width:900px;">
+        ${line('EMPLOYER', t.employer)}${line('DATE OF BIRTH', t.dateOfBirth)}${line('EMAIL', t.email)}${line('ADDRESS', [t.address, t.postalCode].filter(Boolean).join(' - '))}
+        ${line('HOME COUNTY', t.countyOfBirth)}${line('HOME SUB-COUNTY', t.subCountyOfBirth)}
+        ${line('DEPARTMENT', (t.department || []).join(', '))}${line('PATHWAYS', (t.pathways || []).join(', '))}${line('SUBJECTS', (t.subjects || []).join(', '))}
+      </div>
+      ${t.signature ? `<div style="margin-top:12px;font-size:12px;color:var(--muted);">Signature</div><img src="${esc(t.signature)}" style="height:50px;border:1px solid var(--border);padding:3px;background:#fff;">` : ''}
+    </div>`;
+  }
+  myProfileLoad(false);
+  const missing = teacherProfileMissing(teacherFormData);
+  return `
+    <div class="panel">
+      <form onsubmit="event.preventDefault();" style="padding:24px;">
+        <div style="padding:10px 14px;background:#fff7e6;border:1px solid #f0c36a;font-size:13.5px;line-height:1.5;margin-bottom:6px;">
+          Fill in your details. Use <b>Save progress</b> any time to keep what you have and carry on later. When everything is filled in, use <b>Save and Exit</b>: your profile is then locked and you cannot edit it.
+          ${missing.length ? `<div style="margin-top:6px;color:var(--muted);font-size:12.5px;">Still to fill in: ${missing.map(esc).join(', ')}.</div>` : `<div style="margin-top:6px;color:var(--green);font-size:12.5px;"><i class="fa-solid fa-circle-check"></i> Everything is filled in. You can Save and Exit.</div>`}
+        </div>
+        ${myProfileMsg ? `<div style="padding:8px 14px;background:#e9f7ef;border:1px solid #a8dcc0;font-size:13px;margin:8px 0;"><i class="fa-solid fa-circle-check"></i> ${esc(myProfileMsg)}</div>` : ''}
+        <div class="form-grid-3" style="margin-top:14px;">
+          ${ro('Surname', t.surname)}${ro('First Name', t.firstName)}${ro('Other Names', t.otherNames)}
+          ${ro('Phone Number', t.phone)}${t.responsibility ? ro('Responsibility', t.responsibility) : ''}
+          ${teacherSelect("Employer","employer",["TSC","BOM"],true)}
+          ${teacherFormData.employer === 'BOM' ? '' : `<label class="field"><span>TSC Number&nbsp;<span class="req">*</span></span>
+            <input id="tf_tscNumber" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="TSC Number" value="${esc(teacherFormData.tscNumber)}" oninput="this.value=this.value.replace(/[^0-9]/g,'');teacherFormData['tscNumber']=this.value;"></label>`}
+          ${teacherSelect("Gender","gender",["Male","Female","Other"],true)}
+          ${teacherField("National ID No.","nationalId",true,"National ID No.")}
+          ${personDobField("Date of Birth","tf","teacherFormData")}
+          ${teacherField("Address","address",true,"Address")}
+          ${teacherField("Postal Code","postalCode",false,"")}
+          ${teacherField("Email","email",true,"name@school.edu")}
+          ${teacherCountyOfBirthField()}
+          ${teacherSubCountyOfBirthField()}
+          ${teacherPathwaysField()}
+        </div>
+        <div class="form-grid-3" style="margin-top:8px;align-items:start;">
+          ${teacherDepartmentsField()}
+          ${teacherSubjectsField()}
+        </div>
+        <div class="form-grid-3" style="margin-top:8px;align-items:start;">${teacherPhotoField()}${teacherSignatureField()}</div>
+        <div class="wizard-nav" style="padding:0;border-top:none;">
+          <span></span>
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="btn-primary auto" onclick="saveMyProfile(false)">Save progress</button>
+            <button type="button" class="btn-ghost" style="background:var(--navy-dark);color:#fff;" onclick="saveMyProfile(true)">Save and Exit</button>
+          </div>
+        </div>
+      </form>
+    </div>`;
 }
 
 function renderTeacherDepartmentsCard(){
@@ -58575,7 +59002,7 @@ function renderMedicalAlerts(){
 }
 
 function renderPage(){
-  if(active === "dashboard") return renderDashboard();
+  if(active === "dashboard") return teacherProfileBanner() + renderDashboard();
   let body;
   switch(active){
     case "academics": body = renderAcademicsPage(); break;
@@ -58585,6 +59012,7 @@ function renderPage(){
     case "subjects": body = renderSubjectsPage(); break;
     case "students": body = renderStudentsPage(); break;
     case "teachers": body = renderTeachersPage(); break;
+    case "myprofile": body = renderMyProfile(); break;
     case "staff": body = renderStaffPage(); break;
     case "transport": body = renderTransportPage(); break;
     case "bom": body = renderBomPage(); break;

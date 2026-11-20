@@ -276,8 +276,79 @@ function matchPortalStudent(data, userRaw, pass) {
 const qzType = q => (q && (q.type === 'short' || q.type === 'structured')) ? q.type : 'mcq';
 const qzNorm = v => String(v == null ? '' : v).toLowerCase().replace(/\s+/g, ' ').replace(/^[\s.,;:!?'"]+|[\s.,;:!?'"]+$/g, '').trim();
 const qzMarksOf = (quiz, q) => (qzType(quiz) === 'structured' && Math.floor(Number(q.marks)) > 0) ? Math.floor(Number(q.marks)) : 1;
-// accepted answers and marking guides of typed quizzes never leave the server (the server does the marking)
-const forLearner = q => qzType(q) === 'mcq' ? q : { ...q, questions: arr(q.questions).map(({ accepted, modelAnswer, ...rest }) => rest) };
+// <qz-scheme>
+// Marking scheme for structured answers. Each question has marking points (the worked answer, step by step), each worth some marks.
+// A learner's answer is compared with every point's wording and its accepted alternatives: a full match earns the point's marks, a
+// partial match earns proportional marks, no match earns none. Numbers must match exactly. The server runs this same code.
+const QZ_STOP = new Set('a an the of to in on at is are was were be been being it its this that these those and or but for with as by from into than then so such which who whom what when where there their they them he she his her we you your i me my our us not no can could will would should may might do does did has have had if also very'.split(' '));
+function qzStem(w){
+  if(/^\d/.test(w) || w.length < 5) return w;
+  if(/ies$/.test(w)) return w.slice(0, -3) + 'y';
+  if(/ing$/.test(w) && w.length > 5) return w.slice(0, -3);
+  if(/(ed|es)$/.test(w)) return w.slice(0, -2);
+  if(/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+  return w;
+}
+function qzWords(s){ return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
+function qzMath(s){ return String(s == null ? '' : s).toLowerCase().replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-').replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/\s+/g, ' ').trim(); }
+function qzLev(a, b){
+  if(Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length:b.length + 1 }, (_, j) => j);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for(let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function qzTokEq(p, r){
+  const pn = /^\d/.test(p), rn = /^\d/.test(r);
+  if(pn || rn) return pn && rn && Number(p) === Number(r);
+  if(p === r) return true;
+  const sp = qzStem(p), sr = qzStem(r);
+  if(sp === sr) return true;
+  const n = Math.min(sp.length, sr.length);
+  return n >= 5 && qzLev(sp, sr) <= (n >= 9 ? 2 : 1);
+}
+// how much of this phrase the response contains: 0 to 1 (a wrong number makes it 0)
+function qzPhraseCov(phrase, rw, rm){
+  const pw = qzWords(phrase).filter(w => /^\d/.test(w) || !QZ_STOP.has(w));
+  if(!pw.length) return 0;
+  if(/[=+\-*\/^%×÷]/.test(phrase)){
+    const pm = qzMath(phrase);
+    if(pm.length >= 3 && new RegExp('(^|[^0-9a-z.])' + pm.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&') + '($|[^0-9a-z])').test(rm)) return 1;
+  }
+  let hit = 0, numMiss = false;
+  for(const w of pw){ if(rw.some(r => qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
+  return numMiss ? 0 : hit / pw.length;
+}
+// the question's marking points, scaled so they add up to the question's marks; null when there is no scheme (the teacher marks it)
+function qzPoints(x, max){
+  let pts = (Array.isArray(x && x.points) ? x.points : []).map(p => ({
+    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0)
+  })).filter(p => (p.text || p.alt.length) && p.marks > 0);
+  if(!pts.length){ const m = String(x && x.modelAnswer || '').trim(); if(m) pts = [{ text:m, alt:[], marks:max }]; }
+  if(!pts.length) return null;
+  const sum = pts.reduce((t, p) => t + p.marks, 0);
+  return sum === max ? pts : pts.map(p => ({ ...p, marks:p.marks * max / sum }));
+}
+// { marks, max, points:[{ text, max, got }] } for one typed answer, or null when the question has no marking scheme
+function qzMarkTyped(x, resp, max){
+  const pts = qzPoints(x, max); if(!pts) return null;
+  const rw = qzWords(resp), rm = qzMath(resp);
+  const points = pts.map(p => {
+    let cov = 0;
+    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm));
+    const f = cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
+    return { text:p.text || p.alt[0], max:Math.round(p.marks * 100) / 100, got:Math.round(p.marks * f * 100) / 100 };
+  });
+  return { marks:Math.min(max, Math.round(points.reduce((t, p) => t + p.got, 0) * 2) / 2), max, points };
+}
+// </qz-scheme>
+// accepted answers, worked answers and marking schemes of typed quizzes never leave the server (the server does the marking).
+// `autoMark` only tells the learner's phone that the server will mark a structured quiz at once (every question has a scheme).
+const forLearner = q => qzType(q) === 'mcq' ? q : { ...q, ...(qzType(q) === 'structured' ? { autoMark: arr(q.questions).length > 0 && arr(q.questions).every(x => !!qzPoints(x, qzMarksOf(q, x))) } : {}),
+  questions: arr(q.questions).map(({ accepted, modelAnswer, points, explanation, ...rest }) => rest) };
 const quizzesFor = (ds, st) => arr(ds.onlineQuizzes).filter(q => q && q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream));
 function portalPayload(data, school, adm) {
   const ds = (data.schoolData || {})[school] || {};
@@ -364,7 +435,17 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
         att.right = {};
         for (const q of qs) att.right[q.id] = !!qzNorm(answers[q.id]) && arr(q.accepted).some(t => qzNorm(t) === qzNorm(answers[q.id]));
         att.score = Object.values(att.right).filter(Boolean).length;
-      } else { att.score = 0; att.marked = false; }   // structured: the teacher gives the marks
+      } else {
+        // structured: compared with the marking scheme and marked at once when every question has one (the teacher can still review);
+        // otherwise the teacher gives the marks
+        att.score = 0; att.marked = false;
+        const got = {};
+        for (const q of qs) { const r = qzMarkTyped(q, answers[q.id], qzMarksOf(quiz, q)); if (!r) break; got[q.id] = r.marks; }
+        if (qs.length && Object.keys(got).length === qs.length) {
+          att.marks = got; att.score = Object.values(got).reduce((t, m) => t + m, 0); att.marked = true; att.autoMarked = true;
+          att.markedBy = 'Marking scheme'; att.markedOn = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
+        }
+      }
     }
     if (idx >= 0) ds.quizAttempts[idx] = att; else ds.quizAttempts.push(att);
     const r = await s.saveSnapshot(key, snap.data, snap.version, 'portal:' + adm, true);
@@ -385,8 +466,24 @@ app.get('/api/app-version', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({
     latestVersionCode: int(e.APP_LATEST_VERSION_CODE), latestVersionName: e.APP_LATEST_VERSION_NAME || '',
-    minVersionCode: int(e.APP_MIN_VERSION_CODE), downloadUrl: e.APP_DOWNLOAD_URL || playUrl, playUrl, notes: e.APP_UPDATE_NOTES || ''
+    minVersionCode: int(e.APP_MIN_VERSION_CODE), downloadUrl: e.APP_DOWNLOAD_URL || apkUrl() || playUrl, playUrl, notes: e.APP_UPDATE_NOTES || ''
   });
+});
+
+// "Download Android app" button on the website. Always sends the browser to the newest APK, which the "Build Android APK"
+// workflow republishes at the same address on every build. Set APK_URL in Vercel to that address, or just GITHUB_REPOSITORY
+// (owner/repo) and the standard GitHub release address is used.
+function apkUrl() {
+  const e = process.env;
+  if (e.APK_URL) return e.APK_URL;
+  if (/^[\w.-]+\/[\w.-]+$/.test(e.GITHUB_REPOSITORY || '')) return 'https://github.com/' + e.GITHUB_REPOSITORY + '/releases/download/android-latest/MASMS.apk';
+  return '';
+}
+app.get('/api/android-apk', (req, res) => {
+  const u = apkUrl();
+  res.set('Cache-Control', 'no-store');
+  if (!u) return res.status(404).type('text').send('The Android app is not published yet. Ask your administrator.');
+  res.redirect(302, u);
 });
 
 // Landing-page content (text, contacts, gallery photos) edited by the System Developer in the app (Web Page tab).

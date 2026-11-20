@@ -41,6 +41,8 @@ A learner's phone holds none of the school's data, so the portal sign-in now goe
 
 Limits: learners see only the quiz portal on their own phone (fees, results and attendance stay on staff-signed-in devices). The quiz's correct answers travel to the learner's phone because the page scores and reviews on the phone; the server re-marks every submission. Learner sign-in is rate-limited per address (`PORTAL_RATE_LIMIT`, default 300 per 15 min, so a whole class on one school Wi-Fi can sign in).
 
+**Structured quizzes and marking schemes.** In the quiz editor each structured question has a *Marking scheme*: a worked answer plus marking points (the wording expected, other accepted wording/values, and marks). When a learner submits, the server compares the answer with every point and awards full, proportional or no marks (numbers must match exactly; spelling slips and word endings are tolerated; marks never exceed the question's marks). If every question has a scheme the attempt is marked at once (`autoMarked: true`); otherwise it waits for the teacher. Teachers see the point-by-point breakdown under Results > *Review marks*, can change any mark, and *Auto-mark with scheme* marks older submissions. MCQ and short-answer questions also take a worked answer / explanation. Schemes never leave the server (`forLearner`); the marker code between `// <qz-scheme>` markers is identical in `source/MAESTRO_MASMS_FINAL.html` and `src/app.js` (checked by `test/typed-quizzes.test.js`).
+
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/api/portal/login` | `{username, password}` → learner token (12h) + record, class quizzes, own attempts |
@@ -123,6 +125,10 @@ npm test
 1. Push the repo to GitHub, then Settings > Secrets and variables > Actions > Variables > add `API_BASE` = your Vercel URL (e.g. `https://masms.vercel.app`).
 2. Actions tab > *Build Android APK* > Run workflow. Download `MASMS-debug-apk` and install `app-debug.apk` (allow "install unknown apps").
 3. Or locally with Android Studio: `API_BASE=https://your-site npm run build:android`, then open the `android/` folder and Build > Build APK.
+
+**The APK is the live site.** The *Build Android APK* workflow builds the app so it loads your live MASMS address (the `API_BASE` repository variable), so the app is always identical to the website and every Vercel deploy updates installed phones with no new APK. (Set the repository variable `LIVE_UPDATES=0` only if you want a self-contained offline APK.) A new version is applied by itself: the app saves to the device and reloads into it as soon as nobody is typing; if someone is mid-entry it waits until they stop for 20 seconds.
+
+**Download button.** Each run of *Build Android APK* publishes the file as `MASMS.apk` on the GitHub release `android-latest`, always at the same address, so the website's **Download Android app** button always gives the newest APK. One-time setup: in Vercel set `GITHUB_REPOSITORY` to `owner/repo` (or `APK_URL` to a full address) and redeploy. For updates to install over an older APK, run *Create Play Store signing key* once and add its four secrets: with them the workflow signs the APK with that stable key; without them it falls back to a debug key that changes every build (phones then have to uninstall before installing a newer APK).
 4. Play Store needs a signed release build (Build > Generate Signed Bundle) and a $25 developer account.
 
 ### Automatic updates
