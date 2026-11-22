@@ -109,7 +109,36 @@
   if(typeof wrapped==='function') window.logout=function(){ armed=false; clear(); try{ return wrapped.apply(this,arguments); } finally{ armed=true; } };
 
   var _csl=window.completeStaffLogin; if(typeof _csl==='function') window.completeStaffLogin=function(){ loggedOutElsewhere=false; return _csl.apply(this,arguments); };
-  function finish(){ try{ restore(); }catch(e){} unhide(); armed=true; save(); }
+  // Online-only builds (the hosted site and the Android app set window.MASMS_ONLINE_ONLY): a saved session is only picked up
+  // again after the server has been reached, exactly like a fresh sign-in. Offline, or when the server no longer accepts this
+  // device's cloud sign-in, the saved session is dropped and the person lands on the login page and must sign in online.
+  function serverCheck(){
+    var API=(window.MASMS_API_BASE||'')+'/api', tok=null; try{ tok=localStorage.getItem('masmsCloudToken'); }catch(e){}
+    try{ if(!window.MASMS_API_BASE && window.Capacitor && (location.hostname==='localhost'||location.hostname==='127.0.0.1')) return Promise.resolve('offline'); }catch(e){}   // app built with no server address
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve('offline');
+    var ctl=(typeof AbortController!=='undefined')?new AbortController():null, timer=setTimeout(function(){ if(ctl) ctl.abort(); },6000);
+    var o={cache:'no-store',headers:tok?{Authorization:'Bearer '+tok}:{}}; if(ctl) o.signal=ctl.signal;
+    // only a genuine MASMS server answer counts: an HTML page (the app's own files, a Wi-Fi login page) is not the internet
+    return fetch(API+(tok?'/auth/me':'/auth/status'),o).then(function(r){
+      if(r.status===401||r.status===403){ clearTimeout(timer); return 'rejected'; }
+      if(!r.ok){ clearTimeout(timer); return 'offline'; }
+      return r.json().then(function(j){ clearTimeout(timer); return (j&&typeof j==='object'&&(tok?typeof j.username==='string':typeof j.needsSetup==='boolean'))?'ok':'offline'; },function(){ clearTimeout(timer); return 'offline'; });
+    }).catch(function(){ clearTimeout(timer); return 'offline'; });
+  }
+  function finish(){
+    if(window.MASMS_ONLINE_ONLY && read()){
+      serverCheck().then(function(st){
+        if(st==='ok'){ try{ restore(); }catch(e){} }
+        else{
+          clear();
+          try{ loginError = st==='offline' ? 'No internet connection. Connect to the internet to sign in.' : 'Your sign-in is no longer valid. Sign in again.'; renderLoginPage(); }catch(e){}
+        }
+        unhide(); armed=true; save();
+      });
+      return;
+    }
+    try{ restore(); }catch(e){} unhide(); armed=true; save();
+  }
   var L=window.MASMS_LOCAL;
   if(L&&L.ready&&L.ready.then) L.ready.then(finish,finish);
   else if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(finish,0); });
@@ -122,5 +151,5 @@
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); });
   window.addEventListener('pagehide',save);
   window.addEventListener('beforeunload',save);
-  window.MASMS_SESSION={ restore:restore, save:save, clear:clear };
+  window.MASMS_SESSION={ restore:restore, save:save, clear:clear, serverCheck:serverCheck };
 })();

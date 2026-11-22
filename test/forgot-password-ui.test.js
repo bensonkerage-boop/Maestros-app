@@ -12,7 +12,7 @@ const constSrc = name => { const m = src.match(new RegExp('\\nconst ' + name + '
 const flush = async (n = 30) => { for (let i = 0; i < n; i++) await Promise.resolve(); };
 
 const FNS = ['pwSha256Hex', 'pwHashWithSalt', 'pwNewSalt', 'userNeedsPasswordChange', 'userPasswordOk', 'passwordProblems', 'setUserPassword',
-  'loginPhoneKey', 'staffPhoneForUser', 'userFirstName', 'userLastName', 'resetPwSay', 'resetPwApi', 'resetPwFindUser', 'sendResetCode',
+  'loginPhoneKey', 'staffPhoneForUser', 'userFirstName', 'userLastName', 'resetPwSay', 'resetPwApi', 'sendResetCode',
   'submitResetPassword', 'openResetPassword', 'closeResetPassword', 'digitsOnlyInput'];
 const PROGRAM = [
   constSrc('WELCOME_PASSWORD'), constSrc('PW_MIN_LENGTH'), constSrc('PW_HASH_ROUNDS'),
@@ -54,39 +54,48 @@ const $ = id => document.getElementById(id);
 const fill = (o) => Object.entries(o).forEach(([k, v]) => { $('reset_pw_' + k).value = v; });
 const msg = () => $('reset_pw_msg').textContent;
 
+// resetPwApi now calls the public routes with fetch (no cloud sign-in needed)
+let calls;
+function useServer(reply = { ok: true, minutes: 10 }, status = 200) {
+  calls = [];
+  window.fetch = jest.fn((url, o) => { calls.push({ url, body: JSON.parse(o.body) }); return Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(reply) }); });
+}
 describe('Send code', () => {
-  test('asks the server to send a code for the typed phone number and says where it went', async () => {
-    setup(); fill({ phone: '0712 345 678' });
-    api.mockResolvedValueOnce({ ok: true, via: 'sms', to: '••••••678', minutes: 10 });
+  test('asks the server for a code and gives the same neutral message whoever the number belongs to', async () => {
+    setup(); useServer(); fill({ phone: '0712 345 678' });
     window.sendResetCode(); await flush();
-    expect(api).toHaveBeenCalledWith('POST', '/auth/recover/send', { phone: '0712 345 678', via: undefined });
-    expect(msg()).toMatch(/by SMS to ••••••678/); expect(msg()).toMatch(/10 minutes/);
+    expect(calls[0].url).toMatch(/\/api\/auth\/recover\/send$/); expect(calls[0].body.phone).toBe('0712 345 678');
+    expect(msg()).toMatch(/If a staff account has that number/); expect(msg()).toMatch(/10 minutes/);
     expect($('reset_pw_send').disabled).toBe(true);                    // one code a minute
     await jest.advanceTimersByTimeAsync(61000);
     expect($('reset_pw_send').disabled).toBe(false); expect($('reset_pw_send').textContent).toBe('Send code');
   });
+  test('works on a device that is not signed in to the cloud', async () => {
+    setup({ cloud: 'out' }); useServer(); fill({ phone: '0712345678' });
+    window.sendResetCode(); await flush();
+    expect(calls).toHaveLength(1); expect(msg()).toMatch(/If a staff account has that number/);
+  });
   test('"send to my email instead" asks for email delivery', async () => {
-    setup(); fill({ phone: '0712345678' });
-    api.mockResolvedValueOnce({ ok: true, via: 'email', to: 'j•••@x.ke', minutes: 10 });
+    setup(); useServer(); fill({ phone: '0712345678' });
     window.sendResetCode('email'); await flush();
-    expect(api.mock.calls[0][2].via).toBe('email'); expect(msg()).toMatch(/by email to j•••@x\.ke/);
+    expect(calls[0].body.via).toBe('email');
   });
   test('a missing or short phone number is refused without calling the server', () => {
-    setup(); fill({ phone: '07' });
+    setup(); useServer(); fill({ phone: '07' });
     window.sendResetCode();
-    expect(api).not.toHaveBeenCalled(); expect(msg()).toMatch(/phone number/);
+    expect(calls).toHaveLength(0); expect(msg()).toMatch(/phone number/);
   });
   test('a server refusal is shown and the button stays usable', async () => {
-    setup(); fill({ phone: '0712345678' });
-    api.mockRejectedValueOnce(new Error('No staff account has that phone number.'));
+    setup(); useServer({ error: 'Too many attempts, try again later' }, 429); fill({ phone: '0712345678' });
     window.sendResetCode(); await flush();
-    expect(msg()).toMatch(/No staff account/); expect($('reset_pw_send').disabled).toBe(false);
+    expect(msg()).toMatch(/Too many attempts/); expect($('reset_pw_send').disabled).toBe(false);
   });
-  test('a device with no cloud sign-in, or the offline app, is told what to do instead', async () => {
-    setup({ cloud: 'out' }); fill({ phone: '0712345678' });
+  test('no internet, or the single-file offline copy, is told what to do', async () => {
+    setup(); useServer(); fill({ phone: '0712345678' });
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     window.sendResetCode(); await flush();
-    expect(api).not.toHaveBeenCalled(); expect(msg()).toMatch(/Sign in to the cloud first/);
-    setup({ cloud: 'none' }); fill({ phone: '0712345678' });
+    expect(calls).toHaveLength(0); expect(msg()).toMatch(/No internet connection/);
+    setup({ cloud: 'none' }); useServer(); fill({ phone: '0712345678' });
     window.sendResetCode(); await flush();
     expect(msg()).toMatch(/administrator/);
   });
@@ -95,60 +104,34 @@ describe('Send code', () => {
 describe('OK (choose a new password)', () => {
   const good = { phone: '0712 345 678', code: '123456', new: 'Rainy2days', confirm: 'Rainy2days' };
 
-  test('a correct code saves the new password: it works, the welcome password stops working, and it is logged', async () => {
-    setup(); fill(good);
+  test('sends the code and the new password to the server, then closes and returns to the login page', async () => {
+    setup(); useServer(); fill(good);
     window.submitResetPassword(); await flush();
-    expect(api).toHaveBeenCalledWith('POST', '/auth/recover/verify', { phone: '0712 345 678', code: '123456' });
-    const u = window.__t.users[0];
-    expect(u.mustChange).toBe(false); expect(u.pw.h).toBeTruthy();
-    expect(window.userPasswordOk(u, 'Rainy2days')).toBe(true);
-    expect(window.userPasswordOk(u, 'rainy2days')).toBe(false);          // chosen passwords are case-sensitive
-    expect(window.userPasswordOk(u, 'welcome')).toBe(false);
+    expect(calls[0].url).toMatch(/\/api\/auth\/recover\/reset$/);
+    expect(calls[0].body).toEqual({ phone: '0712 345 678', code: '123456', password: 'Rainy2days' });
     expect(alerts.join()).toMatch(/Password changed/);
     expect($('reset_pw_overlay').classList.contains('open')).toBe(false);
     expect($('login_username').value).toBe('0712 345 678');
-    expect(audits).toEqual([expect.objectContaining({ u: '0712 345 678', o: 'reset', x: expect.objectContaining({ name: 'Jane Kamau', portal: false }) })]);
   });
-  test('a wrong code leaves the account untouched and shows the server\'s message', async () => {
-    setup(); fill(good);
-    api.mockRejectedValueOnce(new Error('That code is not correct. 4 tries left.'));
+  test('a wrong code shows the server\'s message and changes nothing', async () => {
+    setup(); useServer({ error: 'That code is not correct. 4 tries left.' }, 400); fill(good);
     window.submitResetPassword(); await flush();
-    expect(msg()).toMatch(/4 tries left/);
-    expect(window.__t.users[0].pw).toBeUndefined(); expect(window.__t.users[0].mustChange).toBe(true);
-    expect(alerts).toHaveLength(0); expect(audits).toHaveLength(0);
+    expect(msg()).toMatch(/4 tries left/); expect(alerts).toHaveLength(0);
+    expect($('reset_pw_overlay').classList.contains('open')).toBe(true);
   });
   test('a weak or mismatched password is refused BEFORE the code is used up', async () => {
-    setup();
+    setup(); useServer();
     for (const [pw, c, re] of [['short1', 'short1', /at least 8/], ['onlyletters', 'onlyletters', /letters and numbers/], ['welcome', 'welcome', /welcome/], ['Rainy2days', 'Rainy3days', /do not match/]]) {
       fill({ ...good, new: pw, confirm: c });
       window.submitResetPassword(); await flush();
       expect(msg().toLowerCase()).toMatch(re);
     }
-    expect(api).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
   });
-  test('empty fields, or a phone number with no staff account on this device, are refused before the server is asked', async () => {
-    setup(); fill({ ...good, code: '' });
+  test('empty fields are refused before the server is asked', async () => {
+    setup(); useServer(); fill({ ...good, code: '' });
     window.submitResetPassword(); await flush();
-    expect(msg()).toMatch(/fill in all fields/);
-    fill({ ...good, phone: '0799 999 999' });
-    window.submitResetPassword(); await flush();
-    expect(msg()).toMatch(/No staff account on this device/); expect(msg()).toMatch(/welcome/);
-    expect(api).not.toHaveBeenCalled();
-  });
-  test('the System Developer, sales agents and inactive people cannot be reset this way', async () => {
-    setup({ users: [
-      { name: 'Dev Eloper', role: 'System Developer', phone: '0712 345 678', status: 'Active' },
-      { name: 'Jane Kamau', role: 'Teacher', status: 'Inactive' }] });
-    fill(good); window.submitResetPassword(); await flush();
-    expect(msg()).toMatch(/No staff account on this device/); expect(api).not.toHaveBeenCalled();
-  });
-  test('a person whose phone belongs to another school is found there and the password is saved in that school', async () => {
-    setup({ users: [{ name: 'Someone Else', role: 'Teacher', status: 'Active' }], teachers: [], other: { key: '711222333',
-      users: [{ name: 'Paul Otieno', role: 'Teacher', status: 'Active', email: 'p@y.ke' }], teachers: [{ firstName: 'Paul', surname: 'Otieno', phone: '0711 222 333' }] } });
-    fill({ ...good, phone: '0711 222 333' });
-    window.submitResetPassword(); await flush();
-    expect(switched).toEqual(['T']); expect(window.__t.school).toBe('T');
-    expect(window.userPasswordOk(window.__t.users[0], 'Rainy2days')).toBe(true);
+    expect(msg()).toMatch(/fill in all fields/); expect(calls).toHaveLength(0);
   });
 });
 

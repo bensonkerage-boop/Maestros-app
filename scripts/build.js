@@ -110,11 +110,12 @@ if (require.main !== module) return;
   else fs.rmSync(path.join(pub, 'landing.html'), { force: true });
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
+  if (process.env.NATIVE_APP === '1' && !apiBase) throw new Error('Android build needs API_BASE (your site address, e.g. https://your-project.vercel.app). Without it the app has no server to sign in to. Set it as a repository variable (Settings > Secrets and variables > Actions > Variables).');
   // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.
   const native = process.env.NATIVE_APP === '1' && !process.env.LIVE_URL;
   const head = '<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/fa/webfonts/fa-solid-900.woff2">\n' +
     '<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#152c58">\n<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">\n' +
-    '<script>window.MASMS_API_BASE=' + JSON.stringify(apiBase) + ';</script>\n' +
+    '<script>window.MASMS_API_BASE=' + JSON.stringify(apiBase) + ';window.MASMS_ONLINE_ONLY=true;</script>\n' +
     (native ? '' : '<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})</script>\n');
   { const i = html.indexOf('</head>'); html = html.slice(0, i) + head + html.slice(i); }
   fs.writeFileSync(path.join(pub, 'index.html'), html);

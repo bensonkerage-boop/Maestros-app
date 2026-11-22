@@ -15,17 +15,31 @@
   function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
   function active(){ return !!window.MASMS_CLOUD; }
 
-  // 'ok' = server reachable (and the cloud sign-in accepted, when one exists); 'offline'; 'rejected' = server says this sign-in is no longer valid
+  // The app is installed with no server address (built without API_BASE): its own built-in web server would answer every
+  // /api request with the app's own page and a 200 "OK", which must never count as the internet.
+  function unlinked(){
+    try{
+      var h = location.hostname;
+      return !window.MASMS_API_BASE && !!window.Capacitor && (h === 'localhost' || h === '127.0.0.1');
+    }catch(e){ return false; }
+  }
+  // 'ok' = the real MASMS server answered (and accepted the cloud sign-in, when one exists); 'offline' = no answer, or an answer
+  // that is not the MASMS server's (an HTML page, a captive portal, the app's own files); 'rejected' = server says this sign-in is no longer valid
   function ping(){
+    if(unlinked()) return Promise.resolve('offline');
     if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve('offline');
     var token = lsGet(TOKEN_KEY), ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, PING_TIMEOUT);
     var opts = { cache: 'no-store', headers: token ? { Authorization: 'Bearer ' + token } : {} };
     if(ctl) opts.signal = ctl.signal;
     return fetch(API + (token ? '/auth/me' : '/auth/status'), opts).then(function(r){
-      clearTimeout(timer);
-      if(r.status === 401 || r.status === 403) return 'rejected';
-      return r.ok ? 'ok' : 'offline';
+      if(r.status === 401 || r.status === 403){ clearTimeout(timer); return 'rejected'; }
+      if(!r.ok){ clearTimeout(timer); return 'offline'; }
+      return r.json().then(function(j){
+        clearTimeout(timer);
+        var real = j && typeof j === 'object' && (token ? typeof j.username === 'string' : typeof j.needsSetup === 'boolean');
+        return real ? 'ok' : 'offline';
+      }, function(){ clearTimeout(timer); return 'offline'; });
     }).catch(function(){ clearTimeout(timer); return 'offline'; });
   }
   function stamp(){ lsSet(STAMP_KEY, String(Date.now())); }
@@ -43,7 +57,10 @@
     var user = u && u.value.trim(), pass = p && p.value.trim();
     if(!user || !pass) return Promise.resolve(false);
     return fetch(API + '/portal/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })
-      .then(function(r){ return r.status === 200 || r.status === 409; }, function(){ return false; });
+      .then(function(r){
+        if(r.status !== 200 && r.status !== 409) return false;
+        return r.json().then(function(j){ return !!j && typeof j === 'object' && (r.status === 200 ? typeof j.token === 'string' : typeof j.error === 'string'); }, function(){ return false; });
+      }, function(){ return false; });
   }
 
   // Run `go` only when the server can be reached and the cloud sign-in is valid; otherwise explain and stay on the login page.
@@ -53,7 +70,7 @@
     if(checking) return;
     checking = true;
     ping().then(function(st){
-      if(st === 'offline'){ checking = false; say('No internet connection. Connect to the internet to sign in.'); return; }
+      if(st === 'offline'){ checking = false; say(unlinked() ? 'This app is not linked to the MASMS server. Install the latest version of the app.' : 'No internet connection. Connect to the internet to sign in.'); return; }
       var c = window.MASMS_CLOUD;
       if(st === 'rejected' || !c.signedIn()){
         var needCloud = function(){

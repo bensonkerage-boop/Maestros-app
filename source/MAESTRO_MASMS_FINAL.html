@@ -6061,29 +6061,20 @@ function toggleResetPwVisibility(id, btn){
 
 // ---- Forgot password: a system-generated code goes to the phone / email kept for the person ----------------------
 // The server (POST /api/auth/recover/send) texts or emails a 6-digit code to the number or address ON FILE, never one typed
-// here. After the code is confirmed (POST /api/auth/recover/verify) the person's new password is saved on their account
-// exactly as at a first login, and syncs like any other change. Needs the internet and this device's cloud sign-in.
+// here. The code and the new password go to POST /api/auth/recover/reset, which saves the new password on their account
+// and every device picks it up on its next cloud check. Needs only the internet: no cloud sign-in on this device.
 function resetPwSay(msg, bad){
   const el = document.getElementById('reset_pw_msg'); if(!el) return;
   el.textContent = msg || ''; el.style.color = bad ? '#b91c1c' : '#15803d';
 }
 function resetPwApi(path, body){
-  const c = window.MASMS_CLOUD;
-  if(!c || typeof c.api !== 'function') return Promise.reject(new Error('A code can only be sent in the online app. Ask your administrator to reset your password (Settings > Users & Roles).'));
-  if(!c.signedIn()) return Promise.reject(new Error('Sign in to the cloud first (cloud button, bottom-left), then ask for the code here.'));
-  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to get a code.'));
-  return c.api('POST', path, body);
-}
-// the staff account that signs in with this phone number, in whichever school holds it (the same people the login accepts)
-function resetPwFindUser(key){
-  const find = () => (systemUsers || []).find(x => x && x.role !== "System Developer" && x.role !== "Sales Agent" && x.status !== "Inactive" && loginPhoneKey(staffPhoneForUser(x)) === key);
-  let u = find();
-  if(u) return u;
-  for(const name of schoolsWithPhone(key).filter(schoolLoginAllowed)){
-    if(name !== currentSchool){ try{ switchToSchool(name); }catch(_e){ continue; } }
-    u = find(); if(u) return u;
-  }
-  return null;
+  // Needs only the internet: the reset routes are public (the code sent to the phone/email on file is the proof of identity),
+  // so the device does not have to be signed in to the cloud. The single-file offline copy has no server to ask.
+  if(!window.MASMS_CLOUD) return Promise.reject(new Error('A code can only be sent in the online app (the website or the Android app). Ask your administrator to reset your password (Settings > Users & Roles).'));
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to reset your password.'));
+  return fetch((window.MASMS_API_BASE || '') + '/api' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+    .then(r => r.json().catch(() => ({})).then(j => { if(!r.ok) throw new Error(j.error || ('The server answered ' + r.status + '. Try again.')); return j; }),
+          () => { throw new Error('No internet connection. Connect to the internet to reset your password.'); });
 }
 let resetPwWaitTimer = null;
 function sendResetCode(via){
@@ -6094,7 +6085,7 @@ function sendResetCode(via){
   resetPwSay('Sending the code…');
   if(btn) btn.disabled = true;
   resetPwApi('/auth/recover/send', { phone: document.getElementById('reset_pw_phone').value.trim(), via: via === 'email' ? 'email' : undefined }).then(r => {
-    resetPwSay('A code was sent ' + (r.via === 'email' ? 'by email to ' : 'by SMS to ') + r.to + '. It is valid for ' + (r.minutes || 10) + ' minutes.');
+    resetPwSay('If a staff account has that number, a code has been sent to the phone or email on file. It is valid for ' + (r.minutes || 10) + ' minutes.');
     const code = document.getElementById('reset_pw_code'); if(code) code.focus();
     let left = 60; clearInterval(resetPwWaitTimer);
     resetPwWaitTimer = setInterval(() => {
@@ -6110,22 +6101,20 @@ function submitResetPassword(){
   const pw1 = document.getElementById('reset_pw_new').value;
   const pw2 = document.getElementById('reset_pw_confirm').value;
   if(!phone || !code || !pw1 || !pw2){ resetPwSay('Please fill in all fields.', true); return; }
-  const key = loginPhoneKey(phone);
-  const user = key ? resetPwFindUser(key) : null;
-  if(!user){ resetPwSay('No staff account on this device has that phone number. If you have never signed in, use your phone number and the password "welcome".', true); return; }
+  if(!loginPhoneKey(phone)){ resetPwSay('Enter the phone number you sign in with.', true); return; }
   // check the new password BEFORE the code is used up, so a weak password does not cost the person their code
-  const bad = passwordProblems(pw1, user);
+  const bad = passwordProblems(pw1, null);
   if(bad.length){ resetPwSay('Password needs: ' + bad.join('; ').toLowerCase() + '.', true); return; }
   if(pw1 !== pw2){ resetPwSay('Passwords do not match.', true); return; }
   resetPwSay('Checking the code…');
-  resetPwApi('/auth/recover/verify', { phone, code }).then(() => {
-    setUserPassword(user, pw1);
-    recordLoginAudit(phone, "reset", { name: user.name, role: user.role, school: currentSchool, portal: false, note: "password reset with a code sent to the phone/email on file" });
+  // The server checks the code and saves the new password on the staff account in the school's saved data.
+  resetPwApi('/auth/recover/reset', { phone, code, password: pw1 }).then(() => {
     closeResetPassword();
+    try{ if(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()) MASMS_CLOUD.syncNow(); }catch(_e){}   // this device picks up the new password now
     const ue = document.getElementById('login_username'), pe = document.getElementById('login_password');
     if(ue) ue.value = phone; if(pe){ pe.value = ''; pe.focus(); }
     alert('Password changed. Log in with your new password.');
-  }).catch(err => resetPwSay(err.message || 'The code could not be checked.', true));
+  }).catch(err => resetPwSay(err.message || 'The password could not be changed.', true));
 }
 
 // Platform-level System Developer account uses a fixed, real password

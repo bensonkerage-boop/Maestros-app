@@ -15,7 +15,9 @@ function setup({ cloudToken } = {}) {
   localStorage.clear(); if (cloudToken) localStorage.setItem('masmsCloudToken', cloudToken);
   window.fetch = jest.fn((url, opt) => {
     const ok = (j, status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(j) });
-    if (/\/portal\/login$/.test(url)) return ok({}, portalStatus(JSON.parse(opt.body)));
+    if (/\/portal\/login$/.test(url)) { const st = portalStatus(JSON.parse(opt.body)); return ok(st === 200 ? { token: 't' } : { error: 'More than one school has this admission number.' }, st); }
+    if (/\/auth\/status$/.test(url)) return ok({ needsSetup: false });
+    if (/\/auth\/me$/.test(url)) return ok({ username: 'jane' });
     if (/\/data\/version$/.test(url)) return ok({ version: 1 });
     if (/\/data$/.test(url)) return ok({ version: 0, data: null });
     return ok({});
@@ -86,4 +88,26 @@ test('a device that IS signed in to the cloud signs in as before, without asking
   await submit();
   expect(entered()).toEqual(['janekamau@school']);
   expect(window.fetch.mock.calls.some(c => /portal\/login/.test(c[0]))).toBe(false);
+});
+
+// An app installed with no server address (built without API_BASE) talks to its own built-in web server, which answers every
+// path with the app's own page and a 200. That is not the internet and must not let anyone sign in.
+test('an HTML page answering with 200 (the app\'s own files, a Wi-Fi login page) is not the server: sign-in is stopped', async () => {
+  setup();
+  window.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError('Unexpected token <')) }));
+  await jest.advanceTimersByTimeAsync(10); await flush();
+  type('4501', 'welcome');
+  await submit();
+  expect(entered()).toEqual([]);
+  expect(error()).toMatch(/No internet connection/);
+});
+
+test('an installed app with no server address says it is not linked, and nobody signs in', async () => {
+  setup();
+  window.Capacitor = {}; window.MASMS_API_BASE = '';
+  type('4501', 'welcome');
+  await submit();
+  expect(entered()).toEqual([]);
+  expect(error()).toMatch(/not linked to the MASMS server/);
+  delete window.Capacitor;
 });
