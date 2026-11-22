@@ -31,6 +31,17 @@ Things to know:
 - The server protects each school's data **as a whole**. Inside a school, the app's own roles (teacher, bursar, ...) are enforced by the app on the device, not by the server, so give the cloud login only to people you trust with that school's data.
 - Back up the database (MongoDB Atlas > Backup). One school's data is one MongoDB document (16MB max, 4MB per upload), so keep photos small.
 
+## Several people working at once (no overwriting)
+The school is saved as one snapshot, so two devices changing it at the same time used to trigger "which copy do you keep?". `scripts/marks-merge.js` now does a three-way merge (last-synced copy, this device, newest cloud copy) of everything in the data:
+- Anything only one device changed is kept. Work done offline is merged when it uploads (the last-synced copy is kept on the device).
+- Marks, attendance, remarks, comments, photos: merged cell by cell; the later save wins on the very same cell (history stays in the marks audit log).
+- Lists of records (learners, receipts, fee adjustments, income, expenses, library, stores, lab, boarding, discipline, medical, payroll, budget, transport, teachers, staff, users, and any list whose records have an `id`): new records from both sides are kept, edits merge field by field, deletions apply.
+- Running totals (copies issued, stock quantity, budget spent) are added together.
+- Receipt (RCPT-), voucher (PV-), store-movement and exeat numbers issued on two devices at the same moment: the later device's document gets the next free number, counters move on, and the person is told. Numbers are never duplicated.
+- Settings (timetable, terms, grading, classes, school profile ...) merge per setting.
+- Only a true clash asks which copy to keep: e.g. a learner deleted on one device and edited on the other, two different learners with one admission number, or one setting changed to two different values.
+The store and boarding id counters are now rebuilt from the records on load (they used to restart after every reload and could reuse ids).
+
 ## Learners and online quizzes on their own phones
 A learner's phone holds none of the school's data, so the portal sign-in now goes through the server:
 1. A teacher publishes a quiz (Exams > Online Quizzes). **The teacher's device must be signed in to the cloud** (cloud button, bottom-left); the app says so on the Publish message if it is not, and uploads at once when it is.
@@ -80,12 +91,21 @@ Limits: learners see only the quiz portal on their own phone (fees, results and 
 | POST | `/api/email/send` | `{to,subject,message}` or `{messages:[{email,subject,message}]}` via SMTP |
 | POST | `/api/mpesa/stkpush` | sends an M-Pesa prompt; Safaricom confirms to `/api/mpesa/callback/<MPESA_CALLBACK_SECRET>` |
 | GET | `/api/mpesa/status/:id`, `/api/mpesa/recent` | prompt status / confirmed payments (for the Reconciliation tab) |
+| POST | `/api/auth/recover/send` | forgot password: `{phone, via?}` texts (or, with `via:"email"` or no SMS set up, emails) a 6-digit code to the phone/email kept for that staff member; needs the device's cloud sign-in |
+| POST | `/api/auth/recover/verify` | `{phone, code}` confirms the code once; the app then saves the new password |
 
 ## Communication & payments setup
 Messages and M-Pesa prompts are sent **by the server**, so provider keys never reach the browser. Staff must be signed in with the cloud button (bottom-left). Set these in `.env` or Vercel's Environment Variables (see `.env.example`); each feature shows a clear "not set up" message until its variables exist:
 - **SMS:** `AT_USERNAME`, `AT_API_KEY`, optional `AT_SENDER_ID` (Africa's Talking; `AT_USERNAME=sandbox` for testing).
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (Gmail: use an App Password).
 - **M-Pesa (Daraja STK push):** `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_SECRET` (any long random string), `PUBLIC_URL` (your deployed https address), `MPESA_ENV=production` when live.
+### Staff sign-in and "Forgot Password"
+- Staff sign in with their **phone number** (any format; the last 9 digits are compared) and the password **`welcome`** the first time. They are then made to choose their own password (8+ characters, letters and numbers). An administrator can send anyone back to `welcome` in Settings > Users & Roles.
+- **Forgot Password** (login page): the person types their phone number and taps *Send code*. The server generates a 6-digit code and sends it **only to the phone number (SMS) or email address kept on that staff record** (Teachers list, Staff list or the account), never to one typed on the form. SMS is used when it is set up; *Send the code to my email instead* (or a server with no SMS) uses email. The person enters the code and a new password; the password is saved exactly like a first-login password and syncs with the rest of the data.
+- A code is valid for 10 minutes, one can be asked for per minute, and five wrong guesses cancel it. Only a keyed hash of the code is stored. The form is also rate-limited per address (`RECOVER_RATE_LIMIT`, default 10 code requests per 15 minutes).
+- It needs the internet, the device's cloud sign-in, and SMS (`AT_*`) and/or email (`SMTP_*`) set up above. Otherwise the form says so and points to the administrator. The System Developer, sales agents and inactive people are not reset this way.
+- Each reset is recorded in the Login Monitor as *Password reset*.
+
 SMS credits in the app are drawn down by what the server actually sent (160-character segments). Buying credits by M-Pesa only adds them after Safaricom confirms; invoice requests add credits when marked paid.
 
 ## Run locally

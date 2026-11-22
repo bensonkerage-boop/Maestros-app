@@ -53,6 +53,11 @@ function mailer() {
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const validEmail = e => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+// One email through the server's SMTP account (also used for password-recovery codes). Throws if the send fails.
+async function sendEmail({ to, subject, text }) {
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;white-space:pre-wrap">${esc(text)}</div>`;
+  await mailer().sendMail({ from: env().SMTP_FROM || env().SMTP_USER, to, subject, text, html });
+}
 
 // ---------- M-Pesa (Daraja) ----------
 const darajaBase = () => (env().MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke');
@@ -114,12 +119,10 @@ router.post('/email/send', auth, limiter, wrap(async (req, res) => {
   if (!entries.length) return res.status(400).json({ error: 'No recipients' });
   if (entries.length > MAX_EMAIL) return res.status(400).json({ error: `Too many recipients (max ${MAX_EMAIL} per send)` });
   if (entries.some(e => typeof e.subject !== 'string' || !e.subject.trim() || typeof e.message !== 'string' || !e.message.trim())) return res.status(400).json({ error: 'Subject and message are required' });
-  const from = env().SMTP_FROM || env().SMTP_USER;
   const results = [];
   for (const e of entries) {
     if (!validEmail(e.email)) { results.push({ to: String(e.email), ok: false, status: 'Invalid email' }); continue; }
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;white-space:pre-wrap">${esc(e.message)}</div>`;
-    try { await mailer().sendMail({ from, to: e.email, subject: e.subject.trim(), text: e.message, html }); results.push({ to: e.email, ok: true }); }
+    try { await sendEmail({ to: e.email, subject: e.subject.trim(), text: e.message }); results.push({ to: e.email, ok: true }); }
     catch (err) { results.push({ to: e.email, ok: false, status: 'Send failed' }); }
   }
   const sent = results.filter(r => r.ok).length;
@@ -181,4 +184,4 @@ router.get('/mpesa/recent', auth, wrap(async (req, res) => {
   res.json({ payments: list });
 }));
 
-module.exports = { router, normalizePhone, smsUnits };
+module.exports = { router, normalizePhone, smsUnits, sendSms, sendEmail, validEmail, configured };

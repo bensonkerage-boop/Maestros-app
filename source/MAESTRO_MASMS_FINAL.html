@@ -5946,12 +5946,13 @@ function renderLoginPage(){
         <div class="reset-pw-row">
           <label for="reset_pw_phone">Enter phone number</label>
           <input id="reset_pw_phone" type="text" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this)">
-          <button type="button" class="reset-pw-send" onclick="alert('Verification code sent.')">Send code</button>
+          <button type="button" class="reset-pw-send" id="reset_pw_send" onclick="sendResetCode()">Send code</button>
         </div>
+        <div style="margin:-8px 0 14px 164px;font-size:12.5px;"><a href="#" id="reset_pw_email_link" onclick="sendResetCode('email');return false;">Send the code to my email instead</a></div>
 
         <div class="reset-pw-row">
           <label for="reset_pw_code">Enter code</label>
-          <input id="reset_pw_code" type="text">
+          <input id="reset_pw_code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" oninput="digitsOnlyInput(this)">
         </div>
 
         <div class="reset-pw-row">
@@ -5966,6 +5967,7 @@ function renderLoginPage(){
           <button type="button" class="reset-pw-eye" onclick="toggleResetPwVisibility('reset_pw_confirm', this)"><i class="fa-solid fa-eye"></i></button>
         </div>
 
+        <div id="reset_pw_msg" role="status" aria-live="polite" style="min-height:20px;margin:0 0 10px;font-size:13px;font-weight:600;"></div>
         <div class="reset-pw-ok-row">
           <button type="button" class="reset-pw-ok" onclick="submitResetPassword()">OK</button>
         </div>
@@ -6035,6 +6037,9 @@ function openResetPassword(){
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
+  try{ clearInterval(resetPwWaitTimer); }catch(_e){}
+  const sendBtn = document.getElementById('reset_pw_send'); if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = 'Send code'; }
+  resetPwSay('');
   setTimeout(() => document.getElementById('reset_pw_phone')?.focus(), 0);
 }
 
@@ -6054,21 +6059,73 @@ function toggleResetPwVisibility(id, btn){
   }
 }
 
+// ---- Forgot password: a system-generated code goes to the phone / email kept for the person ----------------------
+// The server (POST /api/auth/recover/send) texts or emails a 6-digit code to the number or address ON FILE, never one typed
+// here. After the code is confirmed (POST /api/auth/recover/verify) the person's new password is saved on their account
+// exactly as at a first login, and syncs like any other change. Needs the internet and this device's cloud sign-in.
+function resetPwSay(msg, bad){
+  const el = document.getElementById('reset_pw_msg'); if(!el) return;
+  el.textContent = msg || ''; el.style.color = bad ? '#b91c1c' : '#15803d';
+}
+function resetPwApi(path, body){
+  const c = window.MASMS_CLOUD;
+  if(!c || typeof c.api !== 'function') return Promise.reject(new Error('A code can only be sent in the online app. Ask your administrator to reset your password (Settings > Users & Roles).'));
+  if(!c.signedIn()) return Promise.reject(new Error('Sign in to the cloud first (cloud button, bottom-left), then ask for the code here.'));
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to get a code.'));
+  return c.api('POST', path, body);
+}
+// the staff account that signs in with this phone number, in whichever school holds it (the same people the login accepts)
+function resetPwFindUser(key){
+  const find = () => (systemUsers || []).find(x => x && x.role !== "System Developer" && x.role !== "Sales Agent" && x.status !== "Inactive" && loginPhoneKey(staffPhoneForUser(x)) === key);
+  let u = find();
+  if(u) return u;
+  for(const name of schoolsWithPhone(key).filter(schoolLoginAllowed)){
+    if(name !== currentSchool){ try{ switchToSchool(name); }catch(_e){ continue; } }
+    u = find(); if(u) return u;
+  }
+  return null;
+}
+let resetPwWaitTimer = null;
+function sendResetCode(via){
+  const key = loginPhoneKey(document.getElementById('reset_pw_phone').value);
+  if(!key){ resetPwSay('Enter the phone number you sign in with.', true); return; }
+  const btn = document.getElementById('reset_pw_send');
+  if(btn && btn.disabled) return;
+  resetPwSay('Sending the code…');
+  if(btn) btn.disabled = true;
+  resetPwApi('/auth/recover/send', { phone: document.getElementById('reset_pw_phone').value.trim(), via: via === 'email' ? 'email' : undefined }).then(r => {
+    resetPwSay('A code was sent ' + (r.via === 'email' ? 'by email to ' : 'by SMS to ') + r.to + '. It is valid for ' + (r.minutes || 10) + ' minutes.');
+    const code = document.getElementById('reset_pw_code'); if(code) code.focus();
+    let left = 60; clearInterval(resetPwWaitTimer);
+    resetPwWaitTimer = setInterval(() => {
+      const b = document.getElementById('reset_pw_send');
+      if(!b || --left <= 0){ clearInterval(resetPwWaitTimer); if(b){ b.disabled = false; b.textContent = 'Send code'; } return; }
+      b.textContent = 'Resend in ' + left + 's';
+    }, 1000);
+  }).catch(err => { if(btn) btn.disabled = false; resetPwSay(err.message || 'The code could not be sent.', true); });
+}
 function submitResetPassword(){
   const phone = document.getElementById('reset_pw_phone').value.trim();
   const code = document.getElementById('reset_pw_code').value.trim();
   const pw1 = document.getElementById('reset_pw_new').value;
   const pw2 = document.getElementById('reset_pw_confirm').value;
-  if(!phone || !code || !pw1 || !pw2){
-    alert('Please fill in all fields.');
-    return;
-  }
-  if(pw1 !== pw2){
-    alert('Passwords do not match.');
-    return;
-  }
-  alert('Password reset successfully. You can now log in with your new password.');
-  closeResetPassword();
+  if(!phone || !code || !pw1 || !pw2){ resetPwSay('Please fill in all fields.', true); return; }
+  const key = loginPhoneKey(phone);
+  const user = key ? resetPwFindUser(key) : null;
+  if(!user){ resetPwSay('No staff account on this device has that phone number. If you have never signed in, use your phone number and the password "welcome".', true); return; }
+  // check the new password BEFORE the code is used up, so a weak password does not cost the person their code
+  const bad = passwordProblems(pw1, user);
+  if(bad.length){ resetPwSay('Password needs: ' + bad.join('; ').toLowerCase() + '.', true); return; }
+  if(pw1 !== pw2){ resetPwSay('Passwords do not match.', true); return; }
+  resetPwSay('Checking the code…');
+  resetPwApi('/auth/recover/verify', { phone, code }).then(() => {
+    setUserPassword(user, pw1);
+    recordLoginAudit(phone, "reset", { name: user.name, role: user.role, school: currentSchool, portal: false, note: "password reset with a code sent to the phone/email on file" });
+    closeResetPassword();
+    const ue = document.getElementById('login_username'), pe = document.getElementById('login_password');
+    if(ue) ue.value = phone; if(pe){ pe.value = ''; pe.focus(); }
+    alert('Password changed. Log in with your new password.');
+  }).catch(err => resetPwSay(err.message || 'The code could not be checked.', true));
 }
 
 // Platform-level System Developer account uses a fixed, real password
@@ -7423,7 +7480,11 @@ function renderFinanceArrearsTab(){
     </div>
     ${filterBar}
     <div class="panel" style="overflow:hidden;">
-      <div class="panel-header"><h3>Arrears Report</h3></div>
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><h3>Arrears Report</h3>
+        <span style="display:flex;gap:8px;">
+          <button type="button" class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12.5px;" onclick="downloadFinanceReport('arrears')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button type="button" class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12.5px;" onclick="downloadFinanceReportPdf('arrears')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </span></div>
       <div class="streams-scroll">
         <table>
           <thead><tr><th style="text-align:center;">S/No</th><th>Admission</th><th>Student</th><th>Class</th>${schoolHasBoarding() ? '<th>Boarding/Day</th>' : ''}<th>Expected</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead>
@@ -11314,6 +11375,10 @@ function loadSchoolData(name){
   labItems = d.labItems || []; labUsageLog = d.labUsageLog || []; labIncidents = d.labIncidents || []; labRequisitions = d.labRequisitions || []; labFines = d.labFines || [];
   storesActionMsg = ""; storesSearch = ""; storesCategoryFilter = "";
   boardingDorms = d.boardingDorms || []; boardingAllocations = d.boardingAllocations || []; boardingRollCalls = d.boardingRollCalls || {}; boardingExeats = d.boardingExeats || [];
+  // The store / boarding id counters are not saved, so rebuild them from the records; otherwise every reload reuses ids already issued.
+  try{ const _nid = v => parseInt(String(v == null ? '' : v).replace(/\D/g, ''), 10) || 0;
+    storesIdCounter = Math.max(1000, storesIdCounter, ...storeMovements.map(x => _nid(x && x.id)), ...storeRequisitions.map(x => _nid(x && x.id)));
+    boardingIdCounter = Math.max(100, boardingIdCounter, ...boardingDorms.map(x => _nid(x && x.id)), ...boardingExeats.map(x => _nid(x && x.id))); }catch(_e){}
   boardingActionMsg = ""; boardingRollDorm = ""; boardingRollDraft = null;
   assignments = d.assignments; onlineQuizzes = d.onlineQuizzes || []; quizAttempts = d.quizAttempts || []; syllabusCoverageData = d.syllabusCoverageData; syllabusCoverageJustSaved = d.syllabusCoverageJustSaved; syllabusCoverageChecked = d.syllabusCoverageChecked; teacherEvents = d.teacherEvents;
   lessonSharingList = d.lessonSharingList || [];
@@ -13025,7 +13090,7 @@ function renderLoginMonitor(){
   const bySchool = count(ok, e => e.school), byUser = count(ok, e => e.name || e.username).slice(0, 8);
   const mini = (title, arr) => `<div class="panel" style="flex:1;min-width:260px;margin:0;"><div class="panel-header"><h3>${title}</h3></div><div style="padding:6px 16px 12px;">${arr.length ? arr.map(([k, n]) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border,#e2e8f0);font-size:13.5px;"><span>${lmEsc(k)}</span><b>${n}</b></div>`).join("") : `<div style="color:var(--muted);padding:8px 0;">No logins in this period.</div>`}</div></div>`;
   const schoolsSeen = Array.from(new Set(loginAuditLog.map(e => e.school).filter(Boolean))).sort();
-  const outBadge = o => o === "success" ? `<b style="color:#16a34a;">Logged in</b>` : o === "failed" ? `<b style="color:#b91c1c;">Failed</b>` : `<b style="color:#b45309;">Declined notice</b>`;
+  const outBadge = o => o === "success" ? `<b style="color:#16a34a;">Logged in</b>` : o === "failed" ? `<b style="color:#b91c1c;">Failed</b>` : o === "reset" ? `<b style="color:#2563eb;">Password reset</b>` : `<b style="color:#b45309;">Declined notice</b>`;
   const rows = list.slice(0, 500).map((e, i) => {
     const u = (e.username || "").toLowerCase(), alerts = [];
     if(e.outcome === "failed" && flags.failed[u] >= 3) alerts.push(`${flags.failed[u]} failed attempts`);
@@ -13051,7 +13116,7 @@ function renderLoginMonitor(){
       <div style="padding:14px 20px;display:flex;gap:10px;flex-wrap:wrap;">
         <input type="text" data-lmq placeholder="Search user, school, place, IP..." value="${lmEsc(lmSearch)}" oninput="lmSet('q',this.value);setTimeout(function(){var el=document.querySelector('[data-lmq]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},0)" style="flex:1;min-width:220px;${sel}">
         <select onchange="lmSet('school',this.value)" style="${sel}"><option value="">All schools</option>${schoolsSeen.map(n => `<option ${lmSchool===n?"selected":""}>${lmEsc(n)}</option>`).join("")}</select>
-        <select onchange="lmSet('out',this.value)" style="${sel}"><option value="">All outcomes</option><option value="success" ${lmOutcome==="success"?"selected":""}>Logged in</option><option value="failed" ${lmOutcome==="failed"?"selected":""}>Failed</option><option value="declined" ${lmOutcome==="declined"?"selected":""}>Declined notice</option></select>
+        <select onchange="lmSet('out',this.value)" style="${sel}"><option value="">All outcomes</option><option value="success" ${lmOutcome==="success"?"selected":""}>Logged in</option><option value="failed" ${lmOutcome==="failed"?"selected":""}>Failed</option><option value="reset" ${lmOutcome==="reset"?"selected":""}>Password reset</option><option value="declined" ${lmOutcome==="declined"?"selected":""}>Declined notice</option></select>
         <select onchange="lmSet('days',this.value)" style="${sel}">${[["1","Last 24 hours"],["7","Last 7 days"],["30","Last 30 days"],["90","Last 90 days"],["","All time"]].map(([v,l]) => `<option value="${v}" ${lmDays===v?"selected":""}>${l}</option>`).join("")}</select>
       </div>
       ${list.length ? `<div class="bsms-table-card"><div class="bsms-table-scroll"><table class="bsms-table" style="width:100%;">
@@ -15582,7 +15647,54 @@ function pageHeader(title, subtitle){
 // ---- Teacher home dashboard (shown on the Dashboard page instead of the
 // admin overview when the logged-in user's role is "Teacher") ----
 let teacherHomeTab = "dashboard"; // "dashboard" | "mySubjects" | "myClass" | "subjectSharing" | "graduatedClasses" | "reports"
-function setTeacherHomeTab(key){ teacherHomeTab = key; render(); }
+function setTeacherHomeTab(key){ teacherHomeTab = key; myClassStudentView = null; render(); }
+
+// ---- Class teacher: search and view (read-only) the profile of a student in his/her own class or stream ----
+let myClassStudentView = null, myClassStudentQuery = "", myClassStudentClass = "";
+function myClassStudentsList(){
+  const seen = new Set(), out = [];
+  myClassTeacherClasses().forEach(c => studentsForClass(c).forEach(st => { if(!seen.has(st)){ seen.add(st); out.push({ s: st, cls: c }); } }));
+  return out;
+}
+function renderMyClassStudentRows(){
+  const q = myClassStudentQuery.trim().toLowerCase();
+  const rows = myClassStudentsList()
+    .filter(x => !myClassStudentClass || String(x.cls._i) === myClassStudentClass)
+    .filter(x => !q || (fullName(x.s) + ' ' + (x.s.admissionNumber || '') + ' ' + (x.s.upi || '')).toLowerCase().includes(q))
+    .sort((a, b) => fullName(a.s).localeCompare(fullName(b.s)));
+  if(!rows.length) return `<div class="empty" style="padding:22px;text-align:center;color:var(--muted);">${q ? 'No student in your class matches "' + dpEsc(myClassStudentQuery) + '".' : 'No students in your class yet.'}</div>`;
+  return `<div style="font-size:12px;color:var(--muted);padding:8px 24px 0;">${rows.length} student${rows.length === 1 ? '' : 's'}</div>` + rows.map(x => {
+    const i = students.indexOf(x.s), photo = studentPhotos[photoKey(x.s, i)];
+    return `<div class="student-row" style="cursor:pointer;" onclick="openMyClassStudent(${i})">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <span style="width:38px;height:38px;flex:0 0 38px;border-radius:50%;overflow:hidden;background:var(--blue-tint);color:var(--blue);display:flex;align-items:center;justify-content:center;">${photo ? `<img src="${photo}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fa-solid fa-user"></i>'}</span>
+        <div style="min-width:0;"><div class="name">${dpEsc(fullName(x.s))}</div><div class="guardian">Adm. No. ${dpEsc(x.s.admissionNumber || '—')} · ${dpEsc(classDisplayName(x.cls))}</div></div>
+      </div>
+      <button type="button" class="btn-ghost" style="width:auto;padding:6px 14px;font-size:12.5px;"><i class="fa-solid fa-id-card"></i> View profile</button>
+    </div>`;
+  }).join('');
+}
+function setMyClassStudentQuery(v){ myClassStudentQuery = v; const el = document.getElementById('myClassStudentResults'); if(el) el.innerHTML = renderMyClassStudentRows(); }
+function setMyClassStudentClass(v){ myClassStudentClass = v; const el = document.getElementById('myClassStudentResults'); if(el) el.innerHTML = renderMyClassStudentRows(); }
+function openMyClassStudent(i){
+  const st = students[i];
+  if(!st || !myClassStudentsList().some(x => x.s === st)) return;   // only students of the teacher's own class / stream
+  myClassStudentView = st; profileOpenSections = { personal: true }; render();
+}
+function closeMyClassStudent(){ myClassStudentView = null; render(); }
+function renderMyClassStudentSearch(){
+  const mine = myClassTeacherClasses();
+  if(!mine.length) return '';
+  return `<div class="panel" style="margin-bottom:16px;">
+    <div class="panel-header"><h3>Find a student</h3></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:14px 24px 6px;">
+      <div style="position:relative;flex:1;min-width:220px;"><i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;"></i>
+        <input type="search" id="myClassStudentSearch" placeholder="Search by name or admission number" value="${dpEsc(myClassStudentQuery)}" oninput="setMyClassStudentQuery(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px 10px 34px;border:1px solid var(--border);font-family:inherit;font-size:14px;"></div>
+      ${mine.length > 1 ? `<select onchange="setMyClassStudentClass(this.value)" style="padding:10px 12px;border:1px solid var(--border);font-family:inherit;font-size:14px;"><option value="">All my classes</option>${mine.map(c => `<option value="${c._i}" ${myClassStudentClass === String(c._i) ? 'selected' : ''}>${dpEsc(classDisplayName(c))}</option>`).join('')}</select>` : ''}
+    </div>
+    <div id="myClassStudentResults" class="list-scroll" style="max-height:420px;">${renderMyClassStudentRows()}</div>
+  </div>`;
+}
 
 // Sub-tabs shown inside "My Subjects": the subject list itself, plus
 // Syllabus Coverage and Exam Analysis, both scoped to the teacher's subjects.
@@ -15747,6 +15859,7 @@ function renderTeacherHomeDashboard(){
         </table>
       </div>
     `;
+    body = myClassStudentView ? renderStudentProfilePage(true) : renderMyClassStudentSearch() + body;
   } else if(teacherHomeTab === "reports"){
     const hasClass = myClassTeacherClasses().length > 0;
     body = `
@@ -16007,7 +16120,7 @@ function renderDepartmentAndClubPanels(){
 
 function teacherResponsibilityStrip(){
   const rec = currentTeacherRecord();
-  return rec ? renderTeacherProfileCard(rec) : '';
+  return rec ? renderTeacherProfileCard(rec, currentUserRole === 'Teacher') : '';
 }
 
 
@@ -25528,16 +25641,20 @@ function teacherCardCss(){
       .tc-roles-h{text-align:center;color:#1d34c8;font-weight:700;font-size:12px;margin:4px 0 2px;}
       .tc-roles{margin:0;padding-left:34px;font-size:12.5px;line-height:1.5;color:#111;min-height:24px;}
       .tc-flags{display:flex;gap:16px;font-size:12px;margin:6px 0 0;}
+      /* teacher's own profile card: same background, border and corners as the Recent Announcements card */
+      .tc-card.tc-self{background:linear-gradient(180deg,#f4f7ff,#eaeffd);border:1px solid #c9d6f3;border-radius:18px;padding:12px 14px 10px;box-shadow:0 1px 2px rgba(15,23,42,0.03);}
+      .tc-card.tc-self .tc-photo{border-color:#c9d6f3;background:#fff;border-radius:10px;}
+      .tc-card.tc-self .tc-actions{border-top-color:#c9d6f3;}
       .tc-actions{margin-top:auto;padding-top:6px;border-top:1px solid #e5e7eb;display:flex;gap:6px;justify-content:flex-end;white-space:nowrap;}
     </style>`;
 }
 // Read-only profile card (teacher dashboard).
-function renderTeacherProfileCard(t){
+function renderTeacherProfileCard(t, selfEdit){
   const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   const line = (label, val) => `<div class="tc-line"><span class="tc-k">${label}:</span><span class="tc-v">${val}</span></div>`;
   const subj = (t.subjects && t.subjects.length) ? t.subjects.map(x => subjectShortForm(x)).join(', ') : '—';
   const roles = teacherRolesList(t);
-  return `${teacherCardCss()}<div class="tc-card" style="max-width:440px;margin-bottom:16px;">
+  return `${teacherCardCss()}<div class="tc-card tc-self" style="max-width:440px;margin-bottom:16px;">
     <div class="tc-top">
       <div class="tc-photo">${t.photo ? `<img src="${esc(t.photo)}" alt="">` : 'PHOTO'}</div>
       <div class="tc-info">
@@ -25551,7 +25668,18 @@ function renderTeacherProfileCard(t){
     </div>
     <div class="tc-roles-h">ROLES &amp; RESPONSIBILITY</div>
     <ol class="tc-roles">${roles.map(r => `<li>${esc(String(r).toUpperCase())}</li>`).join('')}</ol>
+    ${selfEdit ? `<div class="tc-actions">${t.profileStatus === 'complete'
+      ? `<span style="font-size:12px;color:var(--muted);"><i class="fa-solid fa-lock"></i>&nbsp;Profile saved and locked. Ask the administrator to change it.</span>`
+      : `<button type="button" class="link-btn" onclick="openMyProfileEdit()"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>`}</div>` : ''}
   </div>`;
+}
+// "Edit" on the teacher's own card: opens My Profile, where they fill in and save. A teacher added before this feature
+// (no profileStatus yet) starts self-service here: their current details are pre-filled and Save and Exit locks them.
+function openMyProfileEdit(){
+  if(currentUserRole !== 'Teacher') return;
+  const i = myProfileIndex(); if(i < 0) return;
+  if(!teachersList[i].profileStatus) teachersList[i].profileStatus = 'draft';
+  go('myprofile');
 }
 // Every role a teacher holds, for the "Roles & Responsibility" list on their card.
 function teacherRolesList(t){
@@ -27354,8 +27482,9 @@ function confirmDeleteProfileStudent(){
   closeDeleteStudentModal();
   render();
 }
-function renderStudentProfilePage(){
-  const s = searchProfileStudent;
+function renderStudentProfilePage(readOnly){
+  // readOnly = a class teacher viewing a student of their own class: no editing, no fees, no delete
+  const s = readOnly ? myClassStudentView : searchProfileStudent;
   const i = students.indexOf(s);
   const photo = studentPhotos[photoKey(s, i)];
   const v = x => (x === undefined || x === null || String(x).trim() === '') ? '' : String(x).replace(/</g, '&lt;');
@@ -27370,7 +27499,7 @@ function renderStudentProfilePage(){
           <span>${title}</span><i class="fa-solid fa-chevron-down ${open ? 'open' : ''}"></i>
         </button>
         ${open ? `<div class="sp-body"><div class="sp-grid">${cells.join('')}</div>
-          <button type="button" class="sp-edit" onclick="editProfileSection('${step}')">Edit <i class="fa-solid fa-pen"></i></button></div>` : ''}
+          ${readOnly ? '' : `<button type="button" class="sp-edit" onclick="editProfileSection('${step}')">Edit <i class="fa-solid fa-pen"></i></button>`}</div>` : ''}
       </div>`;
   };
   const gPhones = (s.guardianPhones || []).filter(Boolean);
@@ -27410,7 +27539,7 @@ function renderStudentProfilePage(){
   const additional = [
     cell('Blood Group', s.bloodGroup), cell('Allergies', s.allergies), cell('Chronic Illness', s.chronicIllness),
     cell('Previous Injuries', s.previousInjuries), cell('Surgeries', s.surgeries), cell('Other Medical Information', s.otherMedicalInfo),
-    cell('Medical Recommendation', s.medicalNotes), cell('Fee Balance', studentFeeBalanceDisplay(s)),
+    cell('Medical Recommendation', s.medicalNotes), readOnly ? '' : cell('Fee Balance', studentFeeBalanceDisplay(s)),
     cell('Academic Performance', studentAcademicPerformanceDisplay(s)),
     s.exitDate ? cell('Exit Date', s.exitDate) : '', studentHasLeft(s) ? cell('Status', s.admissionStatus) : '',
   ];
@@ -27418,16 +27547,17 @@ function renderStudentProfilePage(){
   const adm = (s.admissionNumber || '').replace(/'/g, "\\'");
   const admKey = String(s.admissionNumber || '').trim().toLowerCase();
   let tabBody = '';
-  if(studentPageTab === 'analytics'){
+  const pageTab = readOnly ? 'profile' : studentPageTab;
+  if(pageTab === 'analytics'){
     tabBody = `<div id="spInlineAnalytics"></div>`;
     setTimeout(renderStudentAnalyticsModal, 0);
-  } else if(studentPageTab === 'discipline'){
+  } else if(pageTab === 'discipline'){
     const cases = admKey ? (disciplineCases || []).filter(c => String(c.adm || '').trim().toLowerCase() === admKey) : [];
     tabBody = cases.length ? `<div style="overflow-x:auto;"><table style="width:100%;"><thead><tr><th>#</th><th>Case no.</th><th>Date</th><th>Offence</th><th>Category</th><th>Action taken</th><th>Status</th></tr></thead><tbody>${
       cases.map((c, n) => `<tr><td>${n+1}</td><td style="font-weight:700;">${dcEsc(c.caseNo)}</td><td>${dcEsc((c.incidentAt||'').slice(0,10))}</td><td>${dcEsc(c.offence)}</td><td><b style="color:${dcCatColor(c.category)};">${dcEsc(c.category)}</b></td><td>${dcEsc(c.action) || '<span style="color:var(--muted);">—</span>'}</td><td><b style="color:${c.status === 'Closed' ? '#16a34a' : '#b45309'};">${dcEsc(c.status)}</b></td></tr>`).join('')
     }</tbody></table></div><div style="font-size:12px;color:var(--muted);margin-top:10px;">Cases are recorded and followed up in Academics &rsaquo; Disciplinary &rsaquo; Case Register.</div>`
       : `<div class="empty" style="padding:26px 0;text-align:center;color:var(--muted);">No disciplinary cases on record for ${dcEsc(fullName(s))}.</div>`;
-  } else if(studentPageTab === 'cocurricular'){
+  } else if(pageTab === 'cocurricular'){
     const rows = [];
     Object.keys(clubMembers || {}).forEach(club => (clubMembers[club] || []).forEach(m => { if(admKey && String(m.admissionNumber || '').trim().toLowerCase() === admKey) rows.push({ club, m }); }));
     tabBody = rows.length ? `<div style="overflow-x:auto;"><table style="width:100%;"><thead><tr><th>#</th><th>Club / Activity</th><th>Position</th><th>Status</th><th>Date joined</th><th>Date left</th></tr></thead><tbody>${
@@ -27463,14 +27593,15 @@ function renderStudentProfilePage(){
       .sp-actions{display:flex;justify-content:center;gap:10px;margin-top:6px;flex-wrap:wrap;}
       .sp-del{background:#ff5a2c;color:#fff;border:0;border-radius:4px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;}
       .sp-alt{background:none;border:1px solid var(--border);color:var(--text);border-radius:4px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;}
+      .sp-ro .sp-grid{padding-right:0;}
       @media(max-width:760px){.sp-grid{grid-template-columns:1fr 1fr;padding-right:0;}.sp-edit{position:static;margin-top:14px;}}
     </style>
-    <div class="teacher-tab-cards" style="margin-bottom:12px;">${renderTabCards(STUDENT_PAGE_TABS, studentPageTab, 'setStudentPageTab')}</div>
+    ${readOnly ? '' : `<div class="teacher-tab-cards" style="margin-bottom:12px;">${renderTabCards(STUDENT_PAGE_TABS, studentPageTab, 'setStudentPageTab')}</div>`}
     <div class="sp-banner">
       <div class="sp-photo">
         <div class="pic">${photo ? `<img src="${photo}" alt="">` : '<i class="fa-solid fa-user"></i>'}</div>
-        <button type="button" class="sp-badge del" title="Remove photo" onclick="removeProfilePhoto()"><i class="fa-solid fa-trash"></i></button>
-        <label class="sp-badge edit" title="Change photo"><i class="fa-solid fa-pen"></i><input type="file" accept="image/*" style="display:none" onchange="changeProfilePhoto(this)"></label>
+        ${readOnly ? '' : `<button type="button" class="sp-badge del" title="Remove photo" onclick="removeProfilePhoto()"><i class="fa-solid fa-trash"></i></button>
+        <label class="sp-badge edit" title="Change photo"><i class="fa-solid fa-pen"></i><input type="file" accept="image/*" style="display:none" onchange="changeProfilePhoto(this)"></label>`}
       </div>
       <div>
         <div class="sp-name">${v(fullName(s))}</div>
@@ -27478,12 +27609,13 @@ function renderStudentProfilePage(){
         <div class="sp-sub">${v(classLine) || 'Not assigned'}</div>
       </div>
     </div>
-    <div class="sp-wrap panel">
+    <div class="sp-wrap panel${readOnly ? ' sp-ro' : ''}">
       ${tabBody}
       <div class="sp-actions">
+        ${readOnly ? `<button type="button" class="sp-alt" onclick="closeMyClassStudent()"><i class="fa-solid fa-arrow-left"></i> Back to my class</button>` : `
         <button type="button" class="sp-alt" onclick="closeStudentProfilePage()"><i class="fa-solid fa-arrow-left"></i> Back to results</button>
         <button type="button" class="sp-alt" onclick="openParentFeeStatement('${adm}')"><i class="fa-solid fa-file-invoice"></i> Fee Statement</button>
-        <button type="button" class="sp-del" onclick="deleteProfileStudent()"><i class="fa-solid fa-trash"></i> Delete Student</button>
+        <button type="button" class="sp-del" onclick="deleteProfileStudent()"><i class="fa-solid fa-trash"></i> Delete Student</button>`}
       </div>
     </div>`;
 }
@@ -50992,48 +51124,69 @@ function downloadFinanceReportPdf(type){
   doc.save(`${filename}-${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-// Fee Arrears PDF in the plain "report" layout: school name centred in its
-// profile colour, a small ARREARS REPORT title, then a black-ruled Times
-// table (white header, Ksh figures) ending in a centred bold TOTAL row.
-function downloadArrearsPdfPlain(rows, filename){
-  const profile = getSchoolProfile(currentSchool);
-  const { jsPDF } = window.jspdf;
+// ---- Fee Arrears report PDF ----------------------------------------------
+// School name centred in its profile colour, a small ARREARS REPORT title, then a black-ruled Times 9.5 pt table:
+// blank first heading cell, un-bolded headings, plain figures (no "Ksh", 2 decimals) right-aligned, and a centred
+// bold TOTAL row whose label spans every column before the three money columns.
+function arrearsReportParts(rows){
   const keepBoarding = schoolHasBoarding();
   const hasTotal = rows.length > 1 && rows[rows.length - 1][1] === 'TOTAL';
   const pick = r => keepBoarding ? r : r.filter((_, i) => i !== 4);          // drop Boarding/Day for day-only schools
-  const money = v => formatKsh(Number(v) || 0);
-  const head = pick(rows[0]).map(h => String(h).toUpperCase());
+  const money = v => (Number(v) || 0).toLocaleString('en-KE', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const head = pick(rows[0]).map((h, i) => i === 0 ? '' : String(h).toUpperCase());
   const n = head.length;
-  const dataRows = rows.slice(1, hasTotal ? -1 : undefined).map(r => pick(r).map((v, i) => i >= n - 3 ? money(v) : String(v)));
-  const body = dataRows.slice();
-  if(hasTotal){
-    const t = pick(rows[rows.length - 1]);
+  const data = rows.slice(1, hasTotal ? -1 : undefined).map(r => pick(r).map((v, i) => i >= n - 3 ? money(v) : String(v)));
+  let total = null;
+  if(hasTotal){ const t = pick(rows[rows.length - 1]); total = [money(t[n - 3]), money(t[n - 2]), money(t[n - 1])]; }
+  return { head, data, total, n, keepBoarding };
+}
+
+function downloadArrearsPdfPlain(rows, filename){
+  const profile = getSchoolProfile(currentSchool);
+  const { jsPDF } = window.jspdf;
+  const { head, data, total, n, keepBoarding } = arrearsReportParts(rows);
+  const body = data.slice();
+  if(total){
     body.push([
-      { content:'TOTAL', colSpan:n - 3, styles:{ halign:'center', fontStyle:'bold', fontSize:12, cellPadding:{ top:5, bottom:5, left:3, right:3 } } },
-      money(t[n - 3]), money(t[n - 2]), money(t[n - 1]),
+      { content:'TOTAL', colSpan:n - 3, styles:{ halign:'center', fontStyle:'bold', fontSize:15.5, cellPadding:{ top:4.6, bottom:1, left:3, right:5.75 } } },
+      ...total.map(t => ({ content:t, styles:{ halign:'right', fontStyle:'bold' } })),
     ]);
   }
   const doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
-  const pw = doc.internal.pageSize.getWidth(), margin = 36;
+  const pw = doc.internal.pageSize.getWidth(), margin = 36, tableW = pw - 2 * margin;
+  const namePt = Math.round(profile.nameSize * 0.75);
   const [r, g, b] = hexToRgb(profile.nameColor);
+  const nameY = 72 + namePt * 0.9;
   doc.setFont(pdfFontForSchoolName(profile.nameFont), 'bold');
-  doc.setFontSize(Math.round(profile.nameSize * 0.75));
+  doc.setFontSize(namePt);
   doc.setTextColor(r, g, b);
-  doc.text(currentSchool || 'School', pw / 2, 50, { align:'center' });
+  doc.text(currentSchool || 'School', pw / 2, nameY, { align:'center' });
   doc.setFont('times', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-  doc.text('ARREARS REPORT', pw / 2, 68, { align:'center' });
+  doc.text('ARREARS REPORT', pw / 2, nameY + 15, { align:'center' });
+  // Column widths follow the reference layout (No., Admission, Student, Class, [Boarding/Day], Expected, Paid, Balance);
+  // the three money columns grow if a figure needs more room and Student takes whatever is left.
+  const base = keepBoarding ? [30, 56, 0, 80, 54, 66, 44, 66] : [32.9, 65.25, 0, 94.75, 68.7, 44.8, 68.7];
+  doc.setFont('times', 'normal'); doc.setFontSize(9.5);
+  const textW = (t, style) => { doc.setFont('times', style); return doc.getTextWidth(String(t || '')); };
+  // The TOTAL figures are bold (wider), so they set the width of each money column; nothing in that row may wrap.
+  const widest = c => Math.max(textW(head[c], 'normal'), ...data.map(d => textW(d[c], 'normal')), total ? textW(total[c - (n - 3)], 'bold') : 0);
+  for(let c = n - 3; c < n; c++) base[c] = Math.max(base[c], widest(c) + 3 + 5.75 + 3);
+  const fit = c => Math.max(...[head[c], ...data.map(d => d[c])].map(t => textW(t, 'normal'))) + 3 + 5.75 + 3;
+  base[1] = Math.max(base[1], fit(1));                       // Admission
+  if(keepBoarding) base[4] = Math.max(base[4], fit(4));      // Boarding/Day never wraps
+  doc.setFont('times', 'normal');
+  base[2] = Math.max(60, tableW - base.reduce((a, x) => a + x, 0));
   const colStyles = {};
-  colStyles[0] = { cellWidth:36 };
-  colStyles[1] = { cellWidth:62 };
-  for(let c = 3; c < n; c++) if(c >= n - 3 || keepBoarding && c === 4) colStyles[c] = { cellWidth:'wrap' };   // figures and Boarding/Day never wrap
+  base.forEach((w, c) => { colStyles[c] = { cellWidth:w, ...(c >= n - 3 ? { halign:'right' } : {}) }; });
   doc.autoTable({
-    startY:76,
+    startY:nameY + 19,
     margin:{ left:margin, right:margin, bottom:30 },
+    tableWidth:tableW,
     head:[head],
     body,
     theme:'grid',
     columnStyles:colStyles,
-    styles:{ font:'times', fontSize:9.5, cellPadding:3, lineWidth:0.6, lineColor:[0,0,0], textColor:[0,0,0], valign:'middle' },
+    styles:{ font:'times', fontSize:9.5, cellPadding:{ top:4.6, bottom:1, left:3, right:5.75 }, lineWidth:0.6, lineColor:[0,0,0], textColor:[0,0,0], valign:'top', minCellHeight:16.9 },
     headStyles:{ fillColor:[255,255,255], textColor:[0,0,0], fontStyle:'normal', halign:'left', lineWidth:0.6, lineColor:[0,0,0] },
   });
   pdfPageNumbers(doc);

@@ -204,7 +204,10 @@
     // cloud-sync tells us which snapshot hash the server holds, so we can tell if this device has un-uploaded changes
     markSynced:function(h){ try{ localStorage.setItem(SYNCED,h||''); }catch(e){} },
     // true once, right after start-up, if the restored data had changes the cloud never received
-    takeUnsynced:function(){ var v=hadUnsynced; hadUnsynced=false; return v; }
+    takeUnsynced:function(){ var v=hadUnsynced; hadUnsynced=false; return v; },
+    // the data as last synced with the cloud: the starting point for combining marks entered here and on another device
+    saveBase:function(json,version){ return put('syncBase',{ json:json, version:version||0 }).catch(function(){}); },
+    loadBase:function(){ return get('syncBase'); }
   };
 
   document.addEventListener('DOMContentLoaded',init);

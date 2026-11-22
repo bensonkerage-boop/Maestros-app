@@ -76,7 +76,9 @@ const userInfo = async (u, s) => { const code = tenantOf(u), t = await s.getTena
 const slug = n => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
 app.locals.auth = auth;
+app.locals.snapKey = snapKey;
 app.use('/api', require('./comms').router);
+app.use('/api', require('./recover').router);
 
 app.get('/api/health', wrap(async (req, res) => { await getStore(); res.json({ ok: true }); }));
 

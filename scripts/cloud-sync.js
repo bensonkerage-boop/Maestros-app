@@ -5,6 +5,7 @@
   var TOKEN_KEY='masmsCloudToken', TENANT_KEY='masmsCloudTenant', API=(window.MASMS_API_BASE||'')+'/api';
   var me=null, token=null, version=0, lastHash='', ready=false, busy=false, pulling=false, state='off';
   var seenEpoch=-1, seenAt=0;   // MASMS_DIRTY (local-store.js) state at the last full serialization
+  var baseStr=null, lastSnapStr=null;   // baseStr = text of the data as last synced with the cloud (the common starting point for merging marks)
   try{ token=localStorage.getItem(TOKEN_KEY); }catch(e){}
 
   function hash(s){ var h=5381,i=s.length; while(i) h=(h*33)^s.charCodeAt(--i); return String(h>>>0)+':'+s.length; }
@@ -53,7 +54,22 @@
 
   function localReady(){ return (window.MASMS_LOCAL&&MASMS_LOCAL.ready)?MASMS_LOCAL.ready:Promise.resolve(); }
   function markSynced(h){ try{ if(window.MASMS_LOCAL) MASMS_LOCAL.markSynced(h); }catch(e){} }
-  function snapHash(){ return hash(JSON.stringify(collectBackupData(),function(k,v){return k==='exportedAt'?undefined:v;})); }
+  function skipExp(k,v){ return k==='exportedAt'?undefined:v; }
+  function snapHash(){ lastSnapStr=JSON.stringify(collectBackupData(),skipExp); return hash(lastSnapStr); }
+  function setBase(str,ver){ baseStr=str; try{ if(window.MASMS_LOCAL&&MASMS_LOCAL.saveBase) MASMS_LOCAL.saveBase(str,ver); }catch(e){} }
+  // Re-apply this device's marks changes (since the last sync) on top of the cloud copy `r`. Returns the merged data, or null.
+  function mergeOnto(base,r){
+    var M=window.MASMS_MERGE; if(!M||!base||!r||!r.data) return null;
+    try{ return M.apply(JSON.parse(base),JSON.parse(JSON.stringify(collectBackupData(),skipExp)),JSON.parse(JSON.stringify(r.data))); }catch(e){ return null; }
+  }
+  // Load a merged copy: the screen shows everyone's marks and the next save uploads the combined result.
+  function adoptMerged(r,merged){
+    var cloudStr=JSON.stringify(r.data,skipExp);
+    apply(merged); version=r.version||version; lastHash=hash(cloudStr); setBase(cloudStr,version); seenEpoch=-1;
+    setState('ok'); toast('Your changes were combined with changes from another device');
+    var notes=(window.MASMS_MERGE&&MASMS_MERGE.apply.notes)||[]; if(notes.length){ try{ alert(notes.join('\n')); }catch(e){} }
+    setTimeout(save,0);
+  }
 
   // A shared phone or computer may hold another school's data from an earlier sign-in. Never carry it over: wipe it and restart clean.
   function checkSchool(){
@@ -71,11 +87,18 @@
     setState('sync');
     localReady().then(checkSchool).then(function(){ return api('GET','/data'); }).then(function(r){
       version=r.version||0;
-      // data restored from this device that the cloud never received (e.g. entered offline): let the user choose
-      var keepLocal=!!(window.MASMS_LOCAL&&MASMS_LOCAL.takeUnsynced())&&r.data&&
-        confirm('This device has changes that were never uploaded to the cloud.\n\nOK = keep this device\'s data and upload it\nCancel = replace it with the cloud copy');
-      if(r.data&&!keepLocal){ apply(r.data); lastHash=snapHash(); markSynced(lastHash); ready=true; setState('ok'); }
-      else { ready=true; lastHash=''; save(); }
+      // data restored from this device that the cloud never received (e.g. entered offline): combine marks if that is all that
+      // changed, otherwise let the user choose
+      var unsynced=!!(window.MASMS_LOCAL&&MASMS_LOCAL.takeUnsynced())&&r.data;
+      var baseP=(unsynced&&MASMS_LOCAL.loadBase)?MASMS_LOCAL.loadBase().catch(function(){ return null; }):Promise.resolve(null);
+      return baseP.then(function(b){
+        var merged=unsynced&&b&&b.json?mergeOnto(b.json,r):null;
+        if(merged){ ready=true; adoptMerged(r,merged); return; }
+        var keepLocal=unsynced&&
+          confirm('This device has changes that were never uploaded to the cloud.\n\nOK = keep this device\'s data and upload it\nCancel = replace it with the cloud copy');
+        if(r.data&&!keepLocal){ apply(r.data); lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); ready=true; setState('ok'); }
+        else { ready=true; lastHash=''; save(); }
+      });
     }).catch(function(e){ if(e.status===401){ token=null; try{localStorage.removeItem(TOKEN_KEY);}catch(_){} setState('off'); } else if(e.status===403){ setState('err'); alert(e.message); } else setState('err'); });
   }
 
@@ -100,6 +123,19 @@
       var dirty; try{ dirty=snapHash()!==lastHash; }catch(e){ dirty=false; }
       if(!dirty&&!force&&editing()) return;               // don't redraw the screen under someone who is typing; retry next check
       if(dirty&&!force&&/^portal:/.test(m.updatedBy||'')){ seenEpoch=-1; setTimeout(save,0); return; }   // only learners saved quiz attempts: upload ours; the server keeps both
+      var attempt=Promise.resolve(false);
+      if(dirty&&baseStr&&window.MASMS_MERGE){
+        // combine this device's changes with the other device's data instead of asking which copy to keep
+        if(editing()) return;   // not under someone who is typing; the next check retries
+        setState('sync');
+        attempt=api('GET','/data').then(function(r){
+          var merged=mergeOnto(baseStr,r);
+          if(!merged) return false;   // a true clash (e.g. one device deleted what the other edited): ask below
+          adoptMerged(r,merged); return true;
+        });
+      }
+      return attempt.then(function(done){
+      if(done) return;
       if(dirty){
         var who=m.updatedBy?(' ('+m.updatedBy+')'):'';
         var useCloud=confirm('Another device'+who+' saved newer data to the cloud, and this device also has changes that were not uploaded yet.\n\nOK = load the other device\'s data (this device\'s unsaved changes are replaced)\nCancel = keep this device\'s data and overwrite the cloud copy');
@@ -108,8 +144,9 @@
       setState('sync');
       return api('GET','/data').then(function(r){
         if(!r.data) return;
-        apply(r.data); version=r.version||m.version; lastHash=snapHash(); markSynced(lastHash); seenEpoch=-1;
+        apply(r.data); version=r.version||m.version; lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); seenEpoch=-1;
         setState('ok'); toast('Updated from cloud'+(r.updatedBy?' (saved by '+r.updatedBy+')':''));
+      });
       });
     }).catch(function(e){
       if(e.status===401){ token=null; ready=false; try{localStorage.removeItem(TOKEN_KEY);}catch(_){} setState('off'); }
@@ -123,12 +160,12 @@
     var D=window.MASMS_DIRTY;
     if(idle===true&&D&&D.epoch===seenEpoch&&Date.now()-seenAt<D.RECHECK) return;
     var ep=D?D.epoch:-1, snap; try{ snap=collectBackupData(); }catch(e){ return; }
-    var h=hash(JSON.stringify(snap,function(k,v){return k==='exportedAt'?undefined:v;}));
+    var str=JSON.stringify(snap,skipExp), h=hash(str);
     seenEpoch=ep; seenAt=Date.now();
     if(h===lastHash) return;
     busy=true; setState('sync');
     var base=version;
-    api('PUT','/data',{data:snap,baseVersion:version}).then(function(r){ version=r.merged?base:r.version; lastHash=h; markSynced(h); setState('ok'); })   // merged: the server added learners' attempts, so the next check loads them
+    api('PUT','/data',{data:snap,baseVersion:version}).then(function(r){ version=r.merged?base:r.version; lastHash=h; markSynced(h); if(!r.merged) setBase(str,version); setState('ok'); })   // merged: the server added learners' attempts, so the next check loads them
       .catch(function(e){
         seenEpoch=-1;   // upload failed: retry on the next tick even if nothing else changes
         if(e.status===409){ busy=false; pull(true); }   // another device saved first: pull() loads it or lets the user choose

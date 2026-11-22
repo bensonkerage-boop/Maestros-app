@@ -91,8 +91,10 @@ if (require.main !== module) return;
   fs.writeFileSync(path.join(pub, 'vendor/fonts.css'), css);
 
   cp(path.join(__dirname, 'cloud-sync.js'), path.join(pub, 'assets/cloud-sync.js'));
+  cp(path.join(__dirname, 'online-login.js'), path.join(pub, 'assets/online-login.js'));
+  cp(path.join(__dirname, 'marks-merge.js'), path.join(pub, 'assets/marks-merge.js'));
   html = injectLocal(html);   // before cloud sync so MASMS_LOCAL exists when it starts
-  { const i = html.lastIndexOf('</body>'); html = html.slice(0, i) + '<script src="/assets/cloud-sync.js"></script>\n' + LAZY_LIBS + html.slice(i); }
+  { const i = html.lastIndexOf('</body>'); html = html.slice(0, i) + '<script src="/assets/marks-merge.js"></script>\n<script src="/assets/cloud-sync.js"></script>\n<script src="/assets/online-login.js"></script>\n' + LAZY_LIBS + html.slice(i); }
   // flat file name vendor/fa/all.min.css has webfonts at ../webfonts relative to css/ — repoint
   fs.writeFileSync(path.join(pub, 'vendor/fa/all.min.css'), fs.readFileSync(path.join(pub, 'vendor/fa/all.min.css'), 'utf8').replace(/\.\.\/webfonts\//g, 'webfonts/'));
 
