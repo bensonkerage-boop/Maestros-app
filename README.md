@@ -55,7 +55,7 @@ The store and boarding id counters are now rebuilt from the records on load (the
 
 ## Learners and online quizzes on their own phones
 A learner's phone holds none of the school's data, so the portal sign-in now goes through the server:
-1. A teacher publishes a quiz (Exams > Online Quizzes). On the hosted site and the Android app a successful staff login already links the device to the school's cloud (no cloud button needed), so the quiz uploads at once. If the link was lost, the Publish message tells the teacher to log out and in again.
+1. A teacher publishes a quiz (Exams > Online Exams). On the hosted site and the Android app a successful staff login already links the device to the school's cloud (no cloud button needed), so the quiz uploads at once. If the link was lost, the Publish message tells the teacher to log out and in again.
 2. The learner opens the site on their own phone and signs in as before (admission number + `welcome`, or guardian phone + admission number). The server finds the learner in the school's data and returns only that learner's record, the quizzes published to the learner's class, and the learner's own attempts. If two schools share an admission number, type it as `4501@schoolcode`.
 3. Attempts are saved to the server when the quiz is started and finished (saved answers are sent every ~20s). **The server marks the score** from the teacher's answers; a finished attempt is final. Teachers' devices receive attempts through the normal 15-second cloud check.
 4. This learner session is never written to the phone's own storage (`window.MASMS_NO_PERSIST`), so it can never be uploaded later as school data. Refreshing the page resumes it; Logout ends it.

@@ -7898,7 +7898,7 @@ const PORTAL_FEATURE_LIST = [
   { key:"attendance", label:"Attendance", icon:"fa-clipboard-check", note:"View daily attendance records" },
   { key:"announcements", label:"Announcements", icon:"fa-bullhorn", note:"See school announcements & notices" },
   { key:"messaging", label:"Messaging", icon:"fa-comments", note:"Message teachers & school office directly" },
-  { key:"quizzes", label:"Online Quizzes", icon:"fa-circle-question", note:"Take quizzes set by teachers; scores are marked automatically" },
+  { key:"quizzes", label:"Online Exams", icon:"fa-circle-question", note:"Take quizzes set by teachers; scores are marked automatically" },
 ];
 function togglePortalAccess(){ portalEnabled = !portalEnabled; render(); }
 function togglePortalFeature(key){ portalFeatures[key] = !portalFeatures[key]; render(); }
@@ -8394,7 +8394,7 @@ function renderPortalApp(){
   const _qOpen = qzOpenCount(student);
   const quizCard = portalFeatures.quizzes !== false ? `
     <div class="panel dash2-panel portal-card" onclick="qzOpenQuizzes()" role="button" tabindex="0">
-      <h3><i class="fa-solid fa-circle-question" style="color:var(--orange);margin-right:8px;"></i>Online Quizzes</h3>
+      <h3><i class="fa-solid fa-circle-question" style="color:var(--orange);margin-right:8px;"></i>Online Exams</h3>
       <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">${_qOpen ? `<strong style="color:var(--rose);">${_qOpen} quiz${_qOpen===1?'':'zes'} waiting</strong> for ${fullName(student)}.` : 'No quizzes waiting. Past quiz scores appear here.'}</p>
       <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open quizzes</div>
     </div>` : '';
@@ -9666,8 +9666,8 @@ const academicRows = [
 ];
 const clubs = ["Athletics","Football","Volleyball","Basketball","Netball","Rugby","Swimming","Music","Drama","Debate","Journalism","Science & Engineering clubs","Environmental clubs","ICT/Computer clubs","Agriculture clubs","Scouts/Guides","Religious clubs","Other school clubs and societies"];
 
-// ================= Online Quizzes (multiple choice) =================
-// Teachers build a quiz (Exams > Online Quizzes), publish it to a class, students take it in the
+// ================= Online Exams (multiple choice) =================
+// Teachers build a quiz (Exams > Online Exams), publish it to a class, students take it in the
 // Parent/Student Portal, it is marked automatically, and the teacher approves & posts the marks
 // into Marks Entry (marksData) for the chosen exam.
 let onlineQuizzes = [];   // { id, title, grade, stream, subject, term, exam, createdBy, createdOn, dueISO, minutes, shuffle, allowRetake, published, questions:[{id,text,options:[],answer}], postedOn }
@@ -9996,12 +9996,12 @@ function renderQuizList(){
         <button class="link-btn" onclick="qzEdit('${q.id}')"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>
         <button class="link-btn danger" onclick="qzDelete('${q.id}')"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>`}
       </td></tr>`;
-  }).join('') || `<tr><td colspan="10" class="empty">No online quizzes yet. Click "New Quiz" to create one.</td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty">No online exams yet. Click "New Exam" to create one.</td></tr>`;
   return `
     <div class="panel" style="overflow:hidden;">
       <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <h3>Online Quizzes (${mine.length})</h3>
-        ${qzCanManage() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" style="width:auto;" onclick="qzAddExample()"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Add Example Quiz</button><button class="btn-primary auto" onclick="qzNew()"><i class="fa-solid fa-plus"></i>&nbsp;New Quiz</button></div>` : ''}
+        <h3>Online Exams (${mine.length})</h3>
+        ${qzCanManage() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" style="width:auto;" onclick="qzAddExample()"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Add Example Exam</button><button class="btn-primary auto" onclick="qzNew()"><i class="fa-solid fa-plus"></i>&nbsp;New Exam</button></div>` : ''}
       </div>
       ${qzScopeBanner()}
       ${quizMsg ? `<div style="padding:10px 20px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
@@ -10079,7 +10079,7 @@ function qzPublishNote(base){
   return { type:'error', text: base + ' BUT this device has lost its link to the school\'s server, so students cannot see it yet. Log out and log in again with your own username and password while online: the link is restored by itself and the quiz uploads at once.' };
 }
 function qzSave(publish){
-  const q = quizDraft; if(!q){ try{ alert('Nothing to save. Open New Quiz first.'); }catch(_e){} return; }
+  const q = quizDraft; if(!q){ try{ alert('Nothing to save. Open New Exam first.'); }catch(_e){} return; }
   const fail = msg => {
     quizMsg = { type:'error', text:msg };
     try{ alert(msg); }catch(_e){}
@@ -10553,7 +10553,7 @@ function renderQuizEditor(){
     </div>`).join('');
   return `
     <div class="panel">
-      <div class="panel-header"><h3>${onlineQuizzes.some(x => x.id === q.id) ? 'Edit Quiz' : 'New Online Quiz'}</h3></div>
+      <div class="panel-header"><h3>${onlineQuizzes.some(x => x.id === q.id) ? 'Edit Exam' : 'New Online Exam'}</h3></div>
       <div style="padding:20px 24px;">
         ${quizMsg ? `<div style="margin-bottom:12px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
         <div class="form-grid-2">
@@ -11092,13 +11092,13 @@ function renderPortalQuizBody(st){
       return `<tr><td style="font-weight:600;">${qzEsc(q.title)}</td><td>${qzEsc(q.subject)}</td><td style="text-align:center;">${q.questions.length}</td><td style="text-align:center;">${q.minutes} min</td>
         <td>${q.dueISO ? qzEsc(qzWhenLabel(q)) : '—'}</td><td>${state}</td><td>${action}</td></tr>`;
     }).join('') || `<tr><td colspan="7" class="empty">No quizzes have been set for your class yet.</td></tr>`;
-    return `<div class="panel" style="overflow:hidden;"><div class="panel-header"><h3><i class="fa-solid fa-circle-question" style="color:var(--blue);margin-right:8px;"></i>Online Quizzes</h3></div>
+    return `<div class="panel" style="overflow:hidden;"><div class="panel-header"><h3><i class="fa-solid fa-circle-question" style="color:var(--blue);margin-right:8px;"></i>Online Exams</h3></div>
       <div class="streams-scroll"><table style="min-width:640px;"><thead><tr><th>Quiz</th><th>Subject</th><th>Questions</th><th>Time</th><th>Date &amp; time</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
   const q = onlineQuizzes.find(x => x.id === portalQuiz.quizId); const a = q && qzAttempt(q.id, adm);
   if(q && !a && portalQuiz.mode === 'intro'){
     return `<div class="panel" style="padding:28px;max-width:720px;margin:0 auto;">
-      <h2 style="margin:0 0 4px;text-transform:uppercase;">${qzEsc(q.subject)} Online Quiz</h2>
+      <h2 style="margin:0 0 4px;text-transform:uppercase;">${qzEsc(q.subject)} Online Exam</h2>
       <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">${qzEsc(q.title)} · ${qzEsc(fullName(st))}</div>
       <h4 style="margin:0 0 8px;">Instructions</h4>
       <ol style="font-size:14px;line-height:1.7;padding-left:20px;margin:0 0 16px;">
@@ -11125,7 +11125,7 @@ function renderPortalQuizBody(st){
     qzStopTimer(); _qzTimer = setInterval(qzTick, 1000); setTimeout(qzTick, 50);
     return `<div style="position:sticky;top:0;z-index:5;background:var(--shell-bg);padding:8px 0;">
         <div class="panel" style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;gap:12px;flex-wrap:wrap;">
-          <div><strong>${qzEsc(q.subject).toUpperCase()} ONLINE QUIZ</strong><div style="font-size:12px;color:var(--muted);">${qzEsc(q.title)} · <span id="qzCount">${Object.keys(a.saved).length}/${total} saved</span></div></div>
+          <div><strong>${qzEsc(q.subject).toUpperCase()} ONLINE EXAM</strong><div style="font-size:12px;color:var(--muted);">${qzEsc(q.title)} · <span id="qzCount">${Object.keys(a.saved).length}/${total} saved</span></div></div>
           <div style="font-size:22px;font-weight:800;"><i class="fa-regular fa-clock"></i> <span id="qzTimer">--:--</span></div>
         </div></div>
       <div id="qzQuestionBox" style="border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px;background:#fff;max-width:760px;">
@@ -16620,7 +16620,7 @@ function renderTeacherExaminations(){
       <button class="reg-card" onclick="setTeacherExamView('scoreSheet')"><div class="reg-card-icon"><i class="fa-solid fa-table-list"></i></div><div class="reg-card-label">SBA SCORE SHEET</div><div class="reg-card-sub">Class score sheet for your subjects</div></button>
       <button class="reg-card" onclick="setTeacherExamView('analysis')"><div class="reg-card-icon"><i class="fa-solid fa-chart-line"></i></div><div class="reg-card-label">Analysis Reports</div><div class="reg-card-sub">View only</div></button>
       <button class="reg-card" onclick="setTeacherExamView('subjectClassPerformance')"><div class="reg-card-icon"><i class="fa-solid fa-ranking-star"></i></div><div class="reg-card-label">Subject Class Performance</div><div class="reg-card-sub">Class averages for the subjects you teach</div></button>
-      <button class="reg-card" onclick="setTeacherExamView('quizzes')"><div class="reg-card-icon"><i class="fa-solid fa-circle-question"></i></div><div class="reg-card-label">Online Quizzes</div><div class="reg-card-sub">Create quizzes &amp; auto-post marks</div></button>
+      <button class="reg-card" onclick="setTeacherExamView('quizzes')"><div class="reg-card-icon"><i class="fa-solid fa-circle-question"></i></div><div class="reg-card-label">Online Exams</div><div class="reg-card-sub">Create quizzes &amp; auto-post marks</div></button>
     </div>`;
   }
   const back = `<button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;margin-bottom:16px;" onclick="teacherExamView=null;academicTab=null;render();"><i class="fa-solid fa-arrow-left"></i> Back to Examinations</button>`;
@@ -18141,9 +18141,13 @@ const COUNTY_DATA = {
     "Voi": ["Mbololo","Sagalla","Kaloleni","Marungu","Kasigau","Ngolia"],
   },
   "Kisumu": {
-    "Kisumu Central": ["Railways","Market Milimani","Shauri Moyo"],
-    "Kisumu East": ["Kolwa Central","Manyatta B","Nyalenda A"],
-    "Nyando": ["Ahero","East Kano","Kobura"],
+    "Kisumu Central": ["Railways","Market Milimani","Shauri Moyo","Migosi","Kondele"],
+    "Kisumu East": ["Kolwa Central","Manyatta B","Nyalenda A","Kajulu","Kolwa East"],
+    "Nyando": ["Ahero","East Kano","Kobura","Awasi/Onjiko","Kabonyo/Kanyagwal"],
+    "Kisumu West": ["South West Kisumu","Central Kisumu","Kisumu North","West Kisumu","North West Kisumu"],
+    "Seme": ["West Seme","Central Seme","East Seme","North Seme"],
+    "Muhoroni": ["Muhoroni/Koru","Miwani","Ombeyi","Masogo","Chemelil"],
+    "Nyakach": ["South East Nyakach","West Nyakach","North Nyakach","Central Nyakach","South West Nyakach"],
   },
   // ---- Rift Valley region (full detail) ----
   "Turkana": {
@@ -18297,19 +18301,32 @@ const COUNTY_DATA = {
   },
   // ---- Nyanza region ----
   "Siaya": {
-    "Bondo": ["Central Sakwa","South Sakwa","West Sakwa"],
-    "Gem": ["Yala Township","North Gem","East Gem"],
+    "Bondo": ["Central Sakwa","South Sakwa","West Sakwa","North Sakwa","Yimbo East","Yimbo West"],
+    "Gem": ["Yala Township","North Gem","East Gem","Central Gem","South Gem","West Gem"],
     "Ugunja": ["Sidindi","Sigomere","Ugunja"],
+    "Ugenya": ["West Ugenya","Ukwala","North Ugenya","East Ugenya"],
+    "Alego Usonga": ["Usonga","West Alego","Central Alego","Siaya Township","North Alego","South East Alego"],
+    "Rarieda": ["East Asembo","West Asembo","North Uyoma","South Uyoma","West Uyoma"],
   },
   "Homa Bay": {
-    "Homa Bay Town": ["Homa Bay Central","Homa Bay Arujo","Homa Bay West"],
-    "Ndhiwa": ["Kwabwai","Kanyadoto","Kanyamwa Kologi"],
-    "Karachuonyo": ["West Karachuonyo","North Karachuonyo","Kanyaluo"],
+    "Homa Bay Town": ["Homa Bay Central","Homa Bay Arujo","Homa Bay West","Homa Bay East"],
+    "Ndhiwa": ["Kwabwai","Kanyadoto","Kanyamwa Kologi","Kanyikela","Kabuoch North","Kabuoch South/Pala","Kanyamwa Kosewe"],
+    "Karachuonyo": ["West Karachuonyo","North Karachuonyo","Kanyaluo","Central Karachuonyo","Kibiri","Kendu Bay Town","Wang'chieng"],
+    "Kasipul": ["West Kasipul","South Kasipul","Central Kasipul","East Kamagak","West Kamagak"],
+    "Kabondo Kasipul": ["Kabondo East","Kabondo West","Kokwanyo/Kakelo","Kojwach"],
+    "Rangwe": ["West Gem","East Gem","Kagan","Kochia"],
+    "Suba North": ["Mfangano Island","Rusinga Island","Kasgunga","Gembe","Lambwe"],
+    "Suba South": ["Gwassi South","Gwassi North","Kaksingri West","Ruma-Kaksingri East"],
   },
   "Migori": {
-    "Rongo": ["North Kamagambo","South Kamagambo","East Kamagambo"],
-    "Awendo": ["North Sakwa","South Sakwa","Central Sakwa"],
-    "Uriri": ["West Kanyamkago","North Kanyamkago","South Kanyamkago"],
+    "Rongo": ["North Kamagambo","South Kamagambo","East Kamagambo","Central Kamagambo"],
+    "Awendo": ["North Sakwa","South Sakwa","Central Sakwa","West Sakwa"],
+    "Uriri": ["West Kanyamkago","North Kanyamkago","South Kanyamkago","Central Kanyamkago","East Kanyamkago"],
+    "Suna East": ["God Jope","Suna Central","Kakrao","Kwa"],
+    "Suna West": ["Wiga","Wasweta II","Ragana-Oruba","Wasimbete"],
+    "Nyatike": ["Kachien'g","Kanyasa","North Kadem","Macalder/Kanyarwanda","Kaler","Got Kachola","Muhuru"],
+    "Kuria West": ["Bukira East","Bukira Central/Ikerege","Isibania","Makerero","Masaba","Tagare","Nyamosense/Komosoko"],
+    "Kuria East": ["Gokeharaka/Getambwega","Ntimaru West","Ntimaru East","Nyabasi East","Nyabasi West"],
   },
   "Kisii": {
     "Bonchari": ["Bomariba","Bogiakumu","Bomorenda","Riana"],
@@ -20153,7 +20170,7 @@ const ACADEMIC_TABS = [
   { key:"scoreSheet", label:"SBA SCORE SHEET", icon:"fa-table-list", sub:"Print class score sheet" },
   { key:"reportsExports", label:"Reports & Exports", icon:"fa-file-export", sub:"Download exam reports" },
   { key:"gradingSystem", label:"Grading System", icon:"fa-ranking-star", sub:"Set grading scales" },
-  { key:"quizzes", label:"Online Quizzes", icon:"fa-circle-question", sub:"Create quizzes & auto-post marks" },
+  { key:"quizzes", label:"Online Exams", icon:"fa-circle-question", sub:"Create quizzes & auto-post marks" },
 ];
 let academicTab = null; // null = Exams hub; otherwise the open tab's key
 function setAcademicTab(key){ academicTab = key; render(); }
