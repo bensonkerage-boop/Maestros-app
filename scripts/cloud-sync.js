@@ -207,7 +207,8 @@
       .catch(function(e){
         seenEpoch=-1;   // upload failed: retry on the next tick even if nothing else changes
         if(e.status===409){ busy=false; pull(true); }   // another device saved first: pull() loads it or lets the user choose
-        else if(e.status===401){ token=null; setState('off'); } else setState('err');
+        else if(e.status===401){ token=null; setState('off'); }
+        else{ setState('err'); if(e.status===413&&!window.__tooBigShown){ window.__tooBigShown=1; try{ toast('The school data is too big to upload (server limit 4 MB), so learners and staff on other devices cannot sign in. Remove or shrink photos, then it uploads by itself.'); }catch(_){} } }
       }).then(function(){ busy=false; });
   }
 

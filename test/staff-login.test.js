@@ -81,8 +81,11 @@ test('a registered school that never got linked is linked by its first sign-in, 
   expect((await call('POST', '/api/schools/link', { name: 'Gamma Junior School' })).s).toBe(401);
   expect((await call('POST', '/api/schools/link', { name: 'Gamma Junior School', seed: {} }, owner)).j.created).toBe(false);
   // not in the registry (the built-in demo school) or marked inactive: never linked by a sign-in
-  expect((await call('POST', '/api/staff/login', { username: '0701 999 999', password: 'welcome' })).s).toBe(401);
-  expect((await call('POST', '/api/staff/login', { username: '0766 000 111', password: 'welcome' })).s).toBe(401);
+  const demo = await call('POST', '/api/staff/login', { username: '0701 999 999', password: 'welcome' });
+  expect(demo.s).toBe(403); expect(demo.j.code).toBe('school_not_linked'); expect(demo.j.error).toMatch(/not registered/);
+  const dormant = await call('POST', '/api/staff/login', { username: '0766 000 111', password: 'welcome' });
+  expect(dormant.s).toBe(403); expect(dormant.j.error).toMatch(/switched off/);
+  expect((await call('POST', '/api/staff/login', { username: '0701 999 999', password: 'wrong' })).s).toBe(401);   // wrong details learn nothing
   expect((await call('POST', '/api/staff/login', { username: '0755 123 456', password: 'wrong' })).s).toBe(401);
 });
 test('a staff token is renewed like any device token', async () => {

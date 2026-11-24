@@ -248,7 +248,7 @@ app.post('/api/schools/link', auth, platformOnly, wrap(async (req, res) => {
 // someone's staff details match a REGISTERED, ACTIVE school there that has no cloud space yet, the space is made now from that
 // copy, so signing in from any browser works the first time with nothing to connect. Only schools in the registry qualify
 // (never the built-in demo school or a name that is merely present in the data).
-async function linkFromPlatformCopy(s, username, password) {
+async function linkFromPlatformCopy(s, username, password, why) {
   const tenants = await s.listTenants();
   for (const t of tenants.filter(x => x.active !== false)) {
     const snap = await s.getSnapshot(snapKey(t.code));
@@ -265,6 +265,25 @@ async function linkFromPlatformCopy(s, username, password) {
       if (r) return (await s.listTenants()).find(x => x.code === r.code) || null;
     }
   }
+  // Nothing could be linked. If these ARE the details of a staff member in a school that sits in the System Developer's working copy
+  // but cannot be linked (not in the registry, e.g. the built-in demo school, or switched off), say so, because only someone who typed
+  // correct details gets this answer. Wrong details still get the same plain 401 as always.
+  if (why) {
+    for (const t of tenants.filter(x => x.active !== false)) {
+      const snap = await s.getSnapshot(snapKey(t.code));
+      const d = snap && snap.data;
+      if (!d || !d.schoolData || Object.keys(d.schoolData).length < 2) continue;
+      const reg = Array.isArray(d.platform && d.platform.sdSchools) ? d.platform.sdSchools : [];
+      for (const nm of Object.keys(d.schoolData)) {
+        if (tenants.some(x => x.name === nm && x.code !== DEFAULT_TENANT)) continue;
+        const rec = reg.find(r => r && typeof r.name === 'string' && r.name.trim() === nm);
+        const one = { schools: [nm], schoolData: { [nm]: d.schoolData[nm] }, platform: { sdSchools: rec ? [rec] : [] } };
+        if (!findStaffLogin(one, username, password)) continue;
+        why.reason = !rec ? 'not-registered' : 'inactive';
+        return null;
+      }
+    }
+  }
   return null;
 }
 
@@ -279,7 +298,10 @@ app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
     const snap = await s.getSnapshot(snapKey(t.code));
     if (snap && snap.data && findStaffLogin(snap.data, username, password)) found.push(t);
   }
-  if (!found.length) { const t = await linkFromPlatformCopy(s, username, password); if (t && t.active !== false) found.push(t); }
+  const why = {};
+  if (!found.length) { const t = await linkFromPlatformCopy(s, username, password, why); if (t && t.active !== false) found.push(t); }
+  if (!found.length && why.reason === 'not-registered') return res.status(403).json({ code: 'school_not_linked', error: 'Your details were found, but your school is not registered on the MASMS server yet. Ask the System Developer to register the school (Schools list) while online, then try again.' });
+  if (!found.length && why.reason === 'inactive') return res.status(403).json({ code: 'school_not_linked', error: 'Your school is switched off on the MASMS server. Ask the System Developer to switch it on, then try again.' });
   if (!found.length) return res.status(401).json({ error: 'Incorrect username or password.' });
   if (found.length > 1) return res.status(409).json({ error: 'More than one school has this account. Sign in with your user name that ends in @ and your school\'s name.' });
   const t = found[0], uname = 'staff@' + t.code;

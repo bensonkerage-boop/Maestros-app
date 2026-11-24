@@ -82,7 +82,7 @@ test('details no school holds are refused with the usual message, and no cloud s
   type('0700 999 999', 'nope');
   await submit();
   expect(entered()).toEqual([]);
-  expect(error()).toBe('Incorrect username or password.');
+  expect(error()).toMatch(/^Incorrect username or password[.]/);
   expect(localStorage.getItem('masmsCloudToken')).toBeNull();
   expect(document.querySelector('form')).toBeNull();
   window.MASMS_CLOUD.click();                                   // the cloud button does nothing for anyone but the System Developer

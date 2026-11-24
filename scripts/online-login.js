@@ -60,15 +60,17 @@
   // them (POST /api/portal/login) and only ever gives them a token for that one learner. So when this device has no cloud
   // sign-in, let the sign-in through if the server accepts the typed details as a learner or parent. (409 = several schools
   // share the admission number; the login page then shows the server's hint.) Staff details are not accepted there.
+  var lastLearnerStatus = 0;   // what the server answered to the learner/parent check (0 = no answer), shown in the failure message
   function learnerAccepted(){
     var u = document.getElementById('login_username'), p = document.getElementById('login_password');
     var user = u && u.value.trim(), pass = p && p.value.trim();
     if(!user || !pass) return Promise.resolve(false);
     return fetch(API + '/portal/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })
       .then(function(r){
+        lastLearnerStatus = r.status;
         if(r.status !== 200 && r.status !== 409) return false;
         return r.json().then(function(j){ return !!j && typeof j === 'object' && (r.status === 200 ? typeof j.token === 'string' : typeof j.error === 'string'); }, function(){ return false; });
-      }, function(){ return false; });
+      }, function(){ lastLearnerStatus = 0; return false; });
   }
 
   // Ask the server whether the typed details are a staff account in some school. 200 gives this device that school's token.
@@ -127,8 +129,12 @@
             });
           }
           if(r.status === 400) return fail('Enter your username and password. (A fingerprint works once this device has signed in with a password.)');
-          if(r.status === 409 && r.error) return fail(r.error);
-          return learnerAccepted().then(function(ok){ if(ok){ checking = false; go(); } else fail('Incorrect username or password.'); });
+          if((r.status === 409 || r.status === 403) && r.error) return fail(r.error);
+          return learnerAccepted().then(function(ok){
+            if(ok){ checking = false; go(); return; }
+            if(r.status === 429 || lastLearnerStatus === 429) return fail('Too many sign-in attempts from this network. Wait about 15 minutes and try again.');
+            var code = ' [staff ' + (r.status || '?') + ', learner ' + lastLearnerStatus + ']';
+            fail('Incorrect username or password. If your details are right, your school\'s records may not have reached the server yet: ask the school to open MASMS online and wait until the cloud shows "saved".' + code); });
         }, function(){ fail('No internet connection. Connect to the internet to sign in.'); });
         return;
       }
