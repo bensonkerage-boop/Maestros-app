@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const { saveDirectory, getDirectory } = require('./directory');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { findStaffLogin } = require('./staff');
@@ -228,6 +229,7 @@ async function linkSchool(s, nm, seed, by) {
   const data = { _meta: { app: 'MASMS', version: 2 }, schools: [nm], currentSchool: nm, schoolProfiles: obj(sd.schoolProfile) ? { [nm]: sd.schoolProfile } : {},
     schoolData: { [nm]: obj(sd.schoolData) || {} }, platform: { sdSchools: obj(sd.sdRecord) ? [sd.sdRecord] : [] } };
   await s.saveSnapshot(snapKey(c), data, 0, 'linked by ' + by);
+  await saveDirectory(s, c, data).catch(() => {});
   forget();
   return { code: c, created: true };
 }
@@ -294,9 +296,10 @@ app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
   const { username, password } = req.body || {};
   if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password.trim()) return res.status(400).json({ error: 'Enter your username and password.' });
   const s = await getStore(), found = [];
+  const dirOnly = new Set();   // schools that matched only through their sign-in directory (no usable saved data on the server)
   for (const t of (await s.listTenants()).filter(x => x.active !== false)) {
-    const snap = await s.getSnapshot(snapKey(t.code));
-    if (snap && snap.data && findStaffLogin(snap.data, username, password)) found.push(t);
+    const src = await signInSources(s, t), hit = src.find(x => findStaffLogin(x.data, username, password));
+    if (hit) { found.push(t); if (!hit.snap) dirOnly.add(t.code); }
   }
   const why = {};
   if (!found.length) { const t = await linkFromPlatformCopy(s, username, password, why); if (t && t.active !== false) found.push(t); }
@@ -306,7 +309,7 @@ app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
   if (found.length > 1) return res.status(409).json({ error: 'More than one school has this account. Sign in with your user name that ends in @ and your school\'s name.' });
   const t = found[0], uname = 'staff@' + t.code;
   res.json({ token: signClaims({ sub: 'staff:' + t.code, username: uname, role: 'staff', tenant: t.code, platform: false, staff: true }),
-    user: { username: uname, role: 'staff', tenant: t.code, tenantName: t.name, platform: false } });
+    user: { username: uname, role: 'staff', tenant: t.code, tenantName: t.name, platform: false }, dataOnServer: !dirOnly.has(t.code) });
 }));
 app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
   const s = await getStore(), code = String(req.params.code).toLowerCase(), patch = {};
@@ -319,6 +322,24 @@ app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
   forget();
   res.json({ school: t });
 }));
+
+// ---- Sign-in directory (see src/directory.js) ---------------------------------------------------------------------------
+// Sign-in must not depend on the school's big data snapshot, which may be too large to upload or not uploaded yet. A device sends just
+// the sign-in details (small) here; the server also refreshes them itself on every full save and when a school is linked.
+app.put('/api/directory', auth, wrap(async (req, res) => {
+  const { data } = req.body || {};
+  if (!(await saveDirectory(await getStore(), req.user.tenant, data))) return res.status(400).json({ error: 'Body must be { data: { schoolData } }' });
+  res.json({ ok: true });
+}));
+// What to look in when someone signs in: the school's saved data when it has one, otherwise its sign-in directory.
+// Every sign-in tries the snapshot first and the directory second, so a stale directory can never lock out someone the snapshot knows.
+async function signInSources(s, t) {
+  const out = [], snap = await s.getSnapshot(snapKey(t.code));
+  if (snap && snap.data) out.push({ data: snap.data, snap });
+  const dir = await getDirectory(s, t.code).catch(() => null);
+  if (dir) out.push({ data: dir, snap: null });
+  return out;
+}
 
 app.get('/api/data', auth, wrap(async (req, res) => {
   const snap = await (await getStore()).getSnapshot(snapKey(req.user.tenant));
@@ -339,14 +360,14 @@ app.put('/api/data', auth, wrap(async (req, res) => {
     return res.status(400).json({ error: 'Body must be { data: <MASMS backup object>, baseVersion }' });
   const st = await getStore(), key = snapKey(req.user.tenant), base = Number(baseVersion) || 0;
   const r = await st.saveSnapshot(key, data, base, req.user.username);
-  if (r.ok) return res.json({ version: r.version, updatedAt: r.updatedAt });
+  if (r.ok) { await saveDirectory(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r.version, updatedAt: r.updatedAt }); }
   // Learners saving quiz attempts move the version too. If every save since this device last synced came from learners,
   // keep this device's changes AND the learners' attempts instead of making the teacher choose between them.
   const cur = base > 0 ? await st.getSnapshot(key) : null;
   if (cur && typeof cur.staffVersion === 'number' && cur.staffVersion <= base && cur.version > base) {
     mergeAttempts(data, cur.data);
     const r2 = await st.saveSnapshot(key, data, cur.version, req.user.username);
-    if (r2.ok) return res.json({ version: r2.version, updatedAt: r2.updatedAt, merged: true });
+    if (r2.ok) { await saveDirectory(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r2.version, updatedAt: r2.updatedAt, merged: true }); }
   }
   return res.status(409).json({ error: 'Data changed elsewhere — reload before saving' });
 }));
@@ -546,9 +567,10 @@ app.post('/api/portal/login', portalLimiter, wrap(async (req, res) => {
   if (hint) { const m = tenants.filter(t => slug(t.code) === hint || slug(t.name) === hint || slug(t.name).replace(/-?(school|schools)$/, '') === hint); if (m.length) tenants = m; }
   const hits = [];
   for (const t of tenants) {
-    const snap = await s.getSnapshot(snapKey(t.code));
-    const m = snap && snap.data && matchPortalStudent(snap.data, userRaw, pass);
-    if (m) hits.push({ t, snap, m });
+    for (const src of await signInSources(s, t)) {
+      const m = matchPortalStudent(src.data, userRaw, pass);
+      if (m) { hits.push({ t, snap: src.snap || { data: src.data }, m }); break; }   // no saved data: sign in anyway, with no quizzes yet
+    }
   }
   if (!hits.length) return res.status(401).json({ error: 'Incorrect username or password.' });
   if (hits.length > 1) return res.status(409).json({ error: 'More than one school has this admission number. Type it with your school code, e.g. ' + userRaw + '@' + hits[0].t.code });

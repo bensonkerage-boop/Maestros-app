@@ -192,6 +192,17 @@
     }).then(function(){ pulling=false; if(state==='sync') setState('ok'); });
   }
 
+  // Sign-in directory: when the full school data cannot be uploaded (too big, or the connection drops mid-way), still send the small list of
+  // who can sign in, so staff and learners are not locked out. Same fields and limits as src/directory.js on the server.
+  function slimRec(r){ if(!r||typeof r!=='object'||Array.isArray(r)) return null; var o={}; Object.keys(r).forEach(function(k){ var v=r[k];
+    if(k==='pw'&&v&&typeof v==='object'){ if(typeof v.s==='string'&&typeof v.h==='string') o.pw={s:v.s,h:v.h}; return; }
+    if(typeof v==='string'){ if(v.length<=200) o[k]=v; } else if(typeof v==='number'||typeof v==='boolean') o[k]=v;
+    else if(Array.isArray(v)&&v.length<=20&&v.every(function(x){ return (typeof x==='string'&&x.length<=200)||typeof x==='number'; })) o[k]=v; }); return o; }
+  function slimList(l){ return (Array.isArray(l)?l:[]).map(slimRec).filter(Boolean); }
+  function signInDirectory(snap){ var out={ schools:snap.schools||[], schoolData:{}, platform:{ sdSchools:slimList(snap.platform&&snap.platform.sdSchools) } };
+    Object.keys(snap.schoolData||{}).forEach(function(n){ var d=snap.schoolData[n]||{}; out.schoolData[n]={ systemUsers:slimList(d.systemUsers), teachersList:slimList(d.teachersList), staffList:slimList(d.staffList), students:slimList(d.students) }; }); return out; }
+  function sendDirectory(snap){ try{ return api('PUT','/directory',{data:signInDirectory(snap)}).catch(function(){}); }catch(_){ return Promise.resolve(); } }
+
   // idle=true is the timer path: skip the expensive serialize+hash while nothing has changed since the last check.
   function save(idle){
     if(!ready||!token||busy||pulling) return;
@@ -208,7 +219,7 @@
         seenEpoch=-1;   // upload failed: retry on the next tick even if nothing else changes
         if(e.status===409){ busy=false; pull(true); }   // another device saved first: pull() loads it or lets the user choose
         else if(e.status===401){ token=null; setState('off'); }
-        else{ setState('err'); if(e.status===413&&!window.__tooBigShown){ window.__tooBigShown=1; try{ toast('The school data is too big to upload (server limit 4 MB), so learners and staff on other devices cannot sign in. Remove or shrink photos, then it uploads by itself.'); }catch(_){} } }
+        else{ setState('err'); sendDirectory(snap); if(e.status===413&&!window.__tooBigShown){ window.__tooBigShown=1; try{ toast('The school data is too big to upload (server limit 4 MB), so other devices will not get the full records yet. Sign-in still works. Remove or shrink photos, then the data uploads by itself.'); }catch(_){} } }
       }).then(function(){ busy=false; });
   }
 
