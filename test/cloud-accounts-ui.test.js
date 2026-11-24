@@ -1,10 +1,10 @@
 /** @jest-environment jsdom */
-// The cloud button opens an account panel; admins get user management, the platform owner gets the schools list.
+// The cloud button opens an account panel, for the System Developer only; admins get user management, the platform owner gets the schools list.
 const fs = require('fs'), path = require('path');
 const read = f => fs.readFileSync(path.join(__dirname, '..', 'scripts', f), 'utf8');
 const flush = async (n = 40) => { for (let i = 0; i < n; i++) await Promise.resolve(); };
 
-function setup(me) {
+function setup(me, role = 'System Developer') {
   jest.useFakeTimers();
   localStorage.clear(); localStorage.setItem('masmsCloudToken', 't'); localStorage.setItem('masmsCloudTenant', me.tenant);
   window.fetch = jest.fn((url, opt) => {
@@ -17,7 +17,7 @@ function setup(me) {
     return ok({});
   });
   window.eval(`
-    var schools=['A'], schoolProfiles={}, currentSchool='A', schoolData={A:{students:[]}};
+    var schools=['A'], schoolProfiles={}, currentSchool='A', schoolData={A:{students:[]}}, isLoggedIn=true, currentUserRole=${JSON.stringify(role)};
     function collectBackupData(){ return {_meta:{},schools,currentSchool,schoolProfiles,schoolData}; }
     function loadSchoolData(){} function applyPlatformData(){} function render(){}
   `);
@@ -27,7 +27,7 @@ function setup(me) {
 afterEach(() => { jest.useRealTimers(); document.body.innerHTML = ''; });
 const texts = () => [...document.querySelectorAll('button')].map(b => b.textContent);
 
-test('staff see only change-password and sign-out', async () => {
+test('a staff cloud account, opened by the System Developer, shows only change-password and sign-out', async () => {
   setup({ username: 'teach', role: 'staff', tenant: 'a', tenantName: 'School A', platform: false });
   await jest.advanceTimersByTimeAsync(10); await flush();
   window.MASMS_CLOUD.click();
@@ -45,4 +45,12 @@ test('school admin can open the users list; platform owner also gets All schools
   expect(document.body.textContent).toMatch(/Schools on this server/); expect(document.body.textContent).toMatch(/School A/);
   [...document.querySelectorAll('button')].find(b => b.textContent === 'Users').click(); await flush();
   expect(document.body.textContent).toMatch(/Reset password/); expect(document.body.textContent).toMatch(/t1/);
+});
+
+test('anyone else who is signed in to the app cannot open the cloud panel or sign the device out', async () => {
+  setup({ username: 'teach', role: 'staff', tenant: 'a', tenantName: 'School A', platform: false }, 'Teacher');
+  await jest.advanceTimersByTimeAsync(10); await flush();
+  window.MASMS_CLOUD.click();
+  expect(texts()).not.toContain('Sign out'); expect(texts()).not.toContain('Sync now');
+  expect(document.body.textContent).toMatch(/Only the System Developer can connect or change the cloud sign-in/);
 });

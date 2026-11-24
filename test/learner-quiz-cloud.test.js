@@ -70,7 +70,7 @@ describe('app wiring', () => {
     expect(src).toMatch(/window\.MASMS_NO_PERSIST = true/);
     expect(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'local-store.js'), 'utf8')).toMatch(/window\.MASMS_NO_PERSIST/);
   });
-  test('publishing warns when this device is not signed in to the cloud', () => {
-    expect(src).toMatch(/function qzPublishNote[\s\S]*not signed in to the cloud/);
+  test('publishing warns when this device has lost its link to the school cloud, and says how to restore it', () => {
+    expect(src).toMatch(/function qzPublishNote[\s\S]*lost its link to the school[\s\S]*log in again/i);
   });
 });

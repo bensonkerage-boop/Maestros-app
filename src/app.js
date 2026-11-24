@@ -7,6 +7,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { findStaffLogin } = require('./staff');
 const { getStore } = require('./store');
 
 const app = express();
@@ -34,14 +35,27 @@ const DEFAULT_TENANT = 'default';
 const tenantOf = u => (u && u.tenant) || DEFAULT_TENANT;
 const platformOf = u => !!u && (u.platform === true || (!u.tenant && u.role === 'admin'));
 const snapKey = tenant => (tenant === DEFAULT_TENANT ? SNAP_KEY : 'tenant:' + tenant);
-const sign = u => jwt.sign({ sub: u.id, username: u.username, role: u.role, tenant: tenantOf(u), platform: platformOf(u) }, SECRET, { expiresIn: '12h' });
+// A device is connected to the cloud once, by the System Developer, and then stays connected: the token lasts months and is renewed
+// automatically (see /api/auth/me), so staff never meet a cloud sign-in. Removing the account or suspending the school still ends it
+// within seconds (stillValid below). The platform owner's own token is shorter because it can create schools and reset passwords.
+const TOKEN_DAYS = Number(process.env.CLOUD_TOKEN_DAYS) || 180, PLATFORM_TOKEN_DAYS = Number(process.env.PLATFORM_TOKEN_DAYS) || 90, RENEW_AFTER_S = 24 * 3600;
+const signClaims = c => jwt.sign({ sub: c.sub, username: c.username, role: c.role, tenant: c.tenant, platform: !!c.platform, ...(c.staff ? { staff: true } : {}) }, SECRET, { expiresIn: (c.platform ? PLATFORM_TOKEN_DAYS : TOKEN_DAYS) + 'd' });
+const sign = u => signClaims({ sub: u.id, username: u.username, role: u.role, tenant: tenantOf(u), platform: platformOf(u) });
 
-// A token stays cryptographically valid for 12h, so every request also checks (cached for 15s) that the account still
+// A token stays cryptographically valid for months, so every request also checks (cached for 15s) that the account still
 // exists and that its school has not been suspended. Removing a user or suspending a school therefore bites within seconds.
 const live = new Map();
 const LIVE_MS = 15000;
 const forget = () => live.clear();
 async function stillValid(claims) {
+  if (claims.staff) {   // a school-scoped token from the staff sign-in (POST /api/staff/login): there is no cloud account behind it, only the school
+    const key = 'staff|' + claims.tenant, hit = live.get(key);
+    if (hit && Date.now() - hit.at < LIVE_MS) return hit.v;
+    const t = await (await getStore()).getTenant(claims.tenant);
+    const v = !t ? 'gone' : t.active === false ? 'suspended' : 'ok';
+    live.set(key, { v, at: Date.now() });
+    return v;
+  }
   const key = claims.username + '|' + claims.tenant, hit = live.get(key);
   if (hit && Date.now() - hit.at < LIVE_MS) return hit.v;
   const s = await getStore();
@@ -127,7 +141,12 @@ app.post('/api/auth/login', loginLimiter, wrap(async (req, res) => {
   res.json({ token: sign(u), user: await userInfo(u, s) });
 }));
 
-app.get('/api/auth/me', auth, wrap(async (req, res) => res.json(await userInfo({ username: req.user.username, role: req.user.role, tenant: req.user.tenant, platform: req.user.platform }, await getStore()))));
+// Also the sliding renewal: a token older than a day is swapped for a fresh one, so a device in use never runs out.
+app.get('/api/auth/me', auth, wrap(async (req, res) => {
+  const info = await userInfo({ username: req.user.username, role: req.user.role, tenant: req.user.tenant, platform: req.user.platform }, await getStore());
+  const age = Math.floor(Date.now() / 1000) - (Number(req.user.iat) || 0);
+  res.json(age > RENEW_AFTER_S ? { ...info, token: signClaims(req.user) } : info);
+}));
 
 // change your own password
 app.post('/api/auth/password', auth, loginLimiter, wrap(async (req, res) => {
@@ -193,6 +212,79 @@ app.post('/api/schools', auth, platformOnly, wrap(async (req, res) => {
   if (!created) return res.status(409).json({ error: 'That school code is already used' });
   await s.createUser({ username: au, passwordHash: await bcrypt.hash(adminPassword, 11), role: 'admin', tenant: c, platform: false });
   res.status(201).json({ school: { code: c, name: nm, active: true }, admin: au });
+}));
+// A school registered in the app is linked to the cloud automatically: this makes its own private cloud space (a "school" on the
+// server) and starts it with the school's registered details and principal login. Called by the System Developer's device. Safe to repeat:
+// a school that is already linked is simply returned.
+// Makes a school's own private cloud space (a tenant) and starts it with the school's registered details and principal login.
+// Returns { code, created }. A school that already has a space is simply returned (matched by name), so this is safe to repeat.
+async function linkSchool(s, nm, seed, by) {
+  const existing = (await s.listTenants()).find(t => t.name === nm && t.code !== DEFAULT_TENANT);
+  if (existing) return { code: existing.code, created: false };
+  let c = slug(nm), created = c && c !== DEFAULT_TENANT ? await s.createTenant({ code: c, name: nm }) : null;
+  for (let i = 2; i < 30 && !created; i++) { c = (slug(nm).slice(0, 26) || 'school') + '-' + i; created = await s.createTenant({ code: c, name: nm }); }
+  if (!created) return null;
+  const sd = seed && typeof seed === 'object' ? seed : {}, obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+  const data = { _meta: { app: 'MASMS', version: 2 }, schools: [nm], currentSchool: nm, schoolProfiles: obj(sd.schoolProfile) ? { [nm]: sd.schoolProfile } : {},
+    schoolData: { [nm]: obj(sd.schoolData) || {} }, platform: { sdSchools: obj(sd.sdRecord) ? [sd.sdRecord] : [] } };
+  await s.saveSnapshot(snapKey(c), data, 0, 'linked by ' + by);
+  forget();
+  return { code: c, created: true };
+}
+// A school registered in the app is linked to the cloud automatically: this makes its own private cloud space (a "school" on the
+// server) and starts it with the school's registered details and principal login. Called by the System Developer's device. Safe to repeat:
+// a school that is already linked is simply returned.
+app.post('/api/schools/link', auth, platformOnly, wrap(async (req, res) => {
+  const s = await getStore(), { name, seed } = req.body || {};
+  const nm = typeof name === 'string' ? name.trim().slice(0, 120) : '';
+  if (nm.length < 2) return res.status(400).json({ error: 'School name required' });
+  const r = await linkSchool(s, nm, seed, req.user.username);
+  if (!r) return res.status(409).json({ error: 'Could not choose a school code' });
+  res.status(r.created ? 201 : 200).json(r);
+}));
+
+// Safety net for a school that was registered but never got linked (the System Developer's device was offline or its sign-in had
+// lapsed at that moment). The System Developer's working copy on the server lists every registered school with its data. When
+// someone's staff details match a REGISTERED, ACTIVE school there that has no cloud space yet, the space is made now from that
+// copy, so signing in from any browser works the first time with nothing to connect. Only schools in the registry qualify
+// (never the built-in demo school or a name that is merely present in the data).
+async function linkFromPlatformCopy(s, username, password) {
+  const tenants = await s.listTenants();
+  for (const t of tenants.filter(x => x.active !== false)) {
+    const snap = await s.getSnapshot(snapKey(t.code));
+    const d = snap && snap.data;
+    if (!d || !d.schoolData || Object.keys(d.schoolData).length < 2) continue;   // only a multi-school working copy
+    const reg = Array.isArray(d.platform && d.platform.sdSchools) ? d.platform.sdSchools : [];
+    for (const rec of reg) {
+      const nm = rec && typeof rec.name === 'string' ? rec.name.trim() : '';
+      if (!nm || rec.status === 'Inactive' || !d.schoolData[nm] || tenants.some(x => x.name === nm && x.code !== DEFAULT_TENANT)) continue;
+      const seed = { schoolProfile: (d.schoolProfiles || {})[nm] || null, schoolData: d.schoolData[nm], sdRecord: rec };
+      const one = { schools: [nm], schoolData: { [nm]: d.schoolData[nm] }, platform: { sdSchools: [rec] } };
+      if (!findStaffLogin(one, username, password)) continue;
+      const r = await linkSchool(s, nm, seed, 'sign-in from ' + t.code);
+      if (r) return (await s.listTenants()).find(x => x.code === r.code) || null;
+    }
+  }
+  return null;
+}
+
+// Staff sign-in with no cloud sign-in on the device: finds the school that holds these details and gives this device that school's
+// token (and nothing else). The person then signs in to the app as usual against the school's data. Wrong details always get the same answer.
+const staffLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: Number(process.env.STAFF_LOGIN_RATE_LIMIT) || 30, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts, try again later' } });
+app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password.trim()) return res.status(400).json({ error: 'Enter your username and password.' });
+  const s = await getStore(), found = [];
+  for (const t of (await s.listTenants()).filter(x => x.active !== false)) {
+    const snap = await s.getSnapshot(snapKey(t.code));
+    if (snap && snap.data && findStaffLogin(snap.data, username, password)) found.push(t);
+  }
+  if (!found.length) { const t = await linkFromPlatformCopy(s, username, password); if (t && t.active !== false) found.push(t); }
+  if (!found.length) return res.status(401).json({ error: 'Incorrect username or password.' });
+  if (found.length > 1) return res.status(409).json({ error: 'More than one school has this account. Sign in with your user name that ends in @ and your school\'s name.' });
+  const t = found[0], uname = 'staff@' + t.code;
+  res.json({ token: signClaims({ sub: 'staff:' + t.code, username: uname, role: 'staff', tenant: t.code, platform: false, staff: true }),
+    user: { username: uname, role: 'staff', tenant: t.code, tenantName: t.name, platform: false } });
 }));
 app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
   const s = await getStore(), code = String(req.params.code).toLowerCase(), patch = {};
@@ -281,8 +373,14 @@ const qzMarksOf = (quiz, q) => (qzType(quiz) === 'structured' && Math.floor(Numb
 // <qz-scheme>
 // Marking scheme for structured answers. Each question has marking points (the worked answer, step by step), each worth some marks.
 // A learner's answer is compared with every point's wording and its accepted alternatives: a full match earns the point's marks, a
-// partial match earns proportional marks, no match earns none. Numbers must match exactly. The server runs this same code.
+// partial match earns proportional marks, no match earns none. Numbers must match exactly. Key terms must be spelled exactly (see qzKeyEq). The server runs this same code.
 const QZ_STOP = new Set('a an the of to in on at is are was were be been being it its this that these those and or but for with as by from into than then so such which who whom what when where there their they them he she his her we you your i me my our us not no can could will would should may might do does did has have had if also very'.split(' '));
+// Key terms: words whose spelling must be exact (a point's own "Key terms", plus a built-in glossary of science, geography and mathematics terms when the
+// quiz turns on strict spelling). Ordinary words still forgive slips and word endings; a key term only forgives its plural.
+const QZ_GLOSSARY = new Set('photosynthesis respiration chlorophyll chloroplast chloroplasts mitochondria mitochondrion nucleus cytoplasm membrane diffusion osmosis transpiration stomata xylem phloem germination pollination fertilisation fertilization reproduction ovary ovule stamen anther pistil stigma cotyledon embryo enzyme enzymes digestion absorption excretion circulation ventilation alveoli bronchus bronchi trachea diaphragm haemoglobin hemoglobin platelets artery arteries capillary capillaries oesophagus intestine pancreas kidney nephron urethra hormone hormones insulin adrenaline chromosome chromosomes allele dominant recessive heredity mutation evolution ecosystem habitat population community predator herbivore carnivore omnivore decomposer decomposers producer consumer parasite symbiosis bacteria virus fungi protozoa amoeba nutrition carbohydrate carbohydrates protein proteins vitamin vitamins antibody antibodies immunity vaccination malaria anopheles tuberculosis cholera typhoid molecule molecules atom atoms element compound mixture solution solvent solute filtration evaporation condensation distillation chromatography sublimation electron electrons proton protons neutron neutrons isotope valency valence electrolysis electrolyte electrode cathode anode oxidation reduction combustion corrosion catalyst indicator neutralisation neutralization precipitate hydrogen oxygen nitrogen carbon sulphur sulfur chlorine sodium potassium calcium magnesium aluminium ammonia sulphate carbonate hydroxide chloride nitrate periodic reactivity exothermic endothermic saturated hydrocarbon alkane alkene polymer esterification fermentation detergent hardness rusting alloy velocity acceleration momentum friction gravity density pressure buoyancy upthrust conduction convection radiation thermometer expansion refraction reflection diffraction dispersion spectrum concave convex wavelength amplitude frequency resonance voltage resistance resistor ammeter voltmeter conductor insulator circuit capacitor magnetic electromagnet transformer generator dynamo kinetic potential efficiency fulcrum pulley equilibrium radioactivity nuclear latitude longitude equator tropic meridian atmosphere climate weather precipitation humidity altitude erosion deposition weathering sedimentary igneous metamorphic volcano earthquake epicentre epicenter plateau escarpment delta estuary tributary watershed glacier peninsula archipelago vegetation savannah tundra irrigation urbanisation urbanization migration agriculture horticulture pastoralism tourism manufacturing renewable conservation afforestation deforestation numerator denominator hypotenuse perpendicular parallel perimeter circumference diameter radius quadrilateral parallelogram rhombus trapezium polygon pentagon hexagon octagon equilateral isosceles scalene obtuse acute reflex bisector tangent chord sector segment symmetry congruent gradient coefficient variable equation inequality quadratic simultaneous factorise factorize expression binomial logarithm exponent integer rational irrational median probability fertiliser fertilizer manure compost mulching pruning livestock silage rotation drainage'.split(' '));
+function qzKeyEq(p, r){ return p === r || r === p + 's' || r === p + 'es' || p === r + 's' || (/y$/.test(p) && r === p.slice(0, -1) + 'ies') || (/y$/.test(r) && p === r.slice(0, -1) + 'ies'); }
+function qzTermWords(list){ const s = new Set(); (Array.isArray(list) ? list : []).forEach(t => qzWords(t).forEach(w => { if(w.length > 2 && !/^\d/.test(w) && !QZ_STOP.has(w)) s.add(w); })); return s; }
+function qzMarkOpts(quiz){ return { strict: !!(quiz && quiz.strictTerms) }; }
 function qzStem(w){
   if(/^\d/.test(w) || w.length < 5) return w;
   if(/ies$/.test(w)) return w.slice(0, -3) + 'y';
@@ -291,8 +389,17 @@ function qzStem(w){
   if(/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
   return w;
 }
-function qzWords(s){ return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
-function qzMath(s){ return String(s == null ? '' : s).toLowerCase().replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-').replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/\s+/g, ' ').trim(); }
+// Mathematics-friendly folding, so equivalent working reads the same: 1/2 = 0.5, 5.0 = 5, 1,500 = 1500, x² = x^2, × · = *, 2*x = 2x
+function qzFold(s){
+  return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[−–—]/g, '-').replace(/×|·|\\cdot|\\times/g, '*').replace(/÷/g, '/').replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g, (m, a, b) => Number(b) ? String(+(Number(a) / Number(b)).toFixed(6)) : m)
+    .replace(/\d+\.\d+/g, m => String(Number(m)));
+}
+function qzWords(s){ return qzFold(s).match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
+function qzMath(s){ return qzFold(s).replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/(\d|[a-z)])\*(?=[a-z(])/g, '$1').replace(/\s+/g, ' ').trim(); }
+// Working-based subjects: a step the learner skipped, or only implied, is credited when a later step (or the final answer) is correct.
+// A teacher can switch it on or off for a quiz (impliedSteps); otherwise it is on for Mathematics, Physics, Chemistry, Accounting and Statistics.
+function qzImpliedOn(quiz){ if(quiz && typeof quiz.impliedSteps === 'boolean') return quiz.impliedSteps; return /math|physic|chem|account|statist/i.test(String(quiz && quiz.subject || '')); }
 function qzLev(a, b){
   if(Math.abs(a.length - b.length) > 2) return 3;
   let prev = Array.from({ length:b.length + 1 }, (_, j) => j);
@@ -313,37 +420,65 @@ function qzTokEq(p, r){
   return n >= 5 && qzLev(sp, sr) <= (n >= 9 ? 2 : 1);
 }
 // how much of this phrase the response contains: 0 to 1 (a wrong number makes it 0)
-function qzPhraseCov(phrase, rw, rm){
+function qzPhraseCov(phrase, rw, rm, isKey){
   const pw = qzWords(phrase).filter(w => /^\d/.test(w) || !QZ_STOP.has(w));
   if(!pw.length) return 0;
   if(/[=+\-*\/^%×÷]/.test(phrase)){
-    const pm = qzMath(phrase);
-    if(pm.length >= 3 && new RegExp('(^|[^0-9a-z.])' + pm.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&') + '($|[^0-9a-z])').test(rm)) return 1;
+    const e = t => t.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&'), pm = qzMath(phrase);
+    const has = t => t.length >= 3 && new RegExp('(^|[^0-9a-z.])' + e(t) + '($|[^0-9a-z])').test(rm);
+    if(has(pm)) return 1;
+    const sd = pm.split('=');
+    if(sd.length === 2 && sd[0] && sd[1]){
+      if(has(sd[1] + '=' + sd[0])) return 1;                                                                 // 5 = x for x = 5
+      if(new RegExp('(^|[^0-9a-z.])' + e(sd[0]) + '=[^,;]*=' + e(sd[1]) + '($|[^0-9a-z])').test(rm)) return 1;   // x = 10/2 = 5 (steps run together)
+    }
   }
   let hit = 0, numMiss = false;
-  for(const w of pw){ if(rw.some(r => qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
+  for(const w of pw){ const key = !!isKey && !/^\d/.test(w) && isKey(w); if(rw.some(r => key ? qzKeyEq(w, r) : qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
   return numMiss ? 0 : hit / pw.length;
 }
 // the question's marking points, scaled so they add up to the question's marks; null when there is no scheme (the teacher marks it)
 function qzPoints(x, max){
   let pts = (Array.isArray(x && x.points) ? x.points : []).map(p => ({
-    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0)
+    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0), shown:!!(p && p.shown),
+    terms:(Array.isArray(p && p.terms) ? p.terms : []).map(t => String(t || '').trim()).filter(Boolean)
   })).filter(p => (p.text || p.alt.length) && p.marks > 0);
   if(!pts.length){ const m = String(x && x.modelAnswer || '').trim(); if(m) pts = [{ text:m, alt:[], marks:max }]; }
   if(!pts.length) return null;
   const sum = pts.reduce((t, p) => t + p.marks, 0);
   return sum === max ? pts : pts.map(p => ({ ...p, marks:p.marks * max / sum }));
 }
-// { marks, max, points:[{ text, max, got }] } for one typed answer, or null when the question has no marking scheme
-function qzMarkTyped(x, resp, max){
+// { marks, max, points:[{ text, max, got, implied? }] } for one typed answer, or null when the question has no marking scheme.
+// With `implied` on (working-based subjects) the points are read in order as a chain of working: when a later point is fully shown, the
+// earlier ones are credited as implied, so a learner who skips steps (or just writes the answer) is not penalised. A point ticked
+// "Must be shown" is independent: it is never implied and does not imply the others.
+function qzMarkTyped(x, resp, max, implied, opts){
   const pts = qzPoints(x, max); if(!pts) return null;
-  const rw = qzWords(resp), rm = qzMath(resp);
-  const points = pts.map(p => {
+  const strict = !!(opts && opts.strict);
+  const rw = qzWords(resp), rm = qzMath(resp), r2 = v => Math.round(v * 100) / 100;
+  const keyOf = pts.map(p => { const ks = qzTermWords(p.terms); return w => ks.has(w) || (strict && QZ_GLOSSARY.has(w)); });
+  const covs = pts.map((p, i) => {
     let cov = 0;
-    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm));
-    const f = cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
-    return { text:p.text || p.alt[0], max:Math.round(p.marks * 100) / 100, got:Math.round(p.marks * f * 100) / 100 };
+    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm, keyOf[i]));
+    return cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
   });
+  // key terms the learner wrote almost right: reported so the teacher can see why marks were lost
+  const miss = pts.map((p, i) => { const out = [];
+    for(const c of [p.text, ...p.alt]) for(const w of qzWords(c)){
+      if(/^\d/.test(w) || QZ_STOP.has(w) || !keyOf[i](w) || out.some(o => o.term === w) || rw.some(r => qzKeyEq(w, r))) continue;
+      const near = rw.find(r => qzTokEq(w, r)); if(near) out.push({ term:w, wrote:near });
+    }
+    return out; });
+  const got = pts.map((p, i) => p.marks * covs[i]), imp = pts.map(() => false);
+  if(implied){
+    let later = false;
+    for(let i = pts.length - 1; i >= 0; i--){
+      if(pts[i].shown) continue;
+      if(covs[i] >= 1) later = true;
+      else if(later){ got[i] = pts[i].marks; imp[i] = true; }
+    }
+  }
+  const points = pts.map((p, i) => ({ text:p.text || p.alt[0], max:r2(p.marks), got:r2(got[i]), ...(imp[i] ? { implied:true } : {}), ...(miss[i].length ? { misspelt:miss[i] } : {}) }));
   return { marks:Math.min(max, Math.round(points.reduce((t, p) => t + p.got, 0) * 2) / 2), max, points };
 }
 // </qz-scheme>
@@ -351,7 +486,18 @@ function qzMarkTyped(x, resp, max){
 // `autoMark` only tells the learner's phone that the server will mark a structured quiz at once (every question has a scheme).
 const forLearner = q => qzType(q) === 'mcq' ? q : { ...q, ...(qzType(q) === 'structured' ? { autoMark: arr(q.questions).length > 0 && arr(q.questions).every(x => !!qzPoints(x, qzMarksOf(q, x))) } : {}),
   questions: arr(q.questions).map(({ accepted, modelAnswer, points, explanation, ...rest }) => rest) };
-const quizzesFor = (ds, st) => arr(ds.onlineQuizzes).filter(q => q && q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream));
+// Same rule as studentTakesSubject() in the app: a paper reaches only the learners who take its subject. Subjects every learner sits
+// go to the whole class; in Grade 10-12 the others go only to learners who chose them (or the mathematics track); in other grades a
+// learner with a chosen-subjects list sees only those, and one with no list is treated as taking the class's subjects.
+const QZ_COMPULSORY = ['English', 'Kiswahili', 'Community Service Learning', 'Physical Education', 'Pastoral/Religious Programme Information', 'Information Communication Technology', 'Mathematics'];
+const QZ_SENIOR = ['Grade 10', 'Grade 11', 'Grade 12'];
+const takesSubject = (st, subject) => {
+  if (!subject || QZ_COMPULSORY.includes(subject)) return true;
+  const opt = arr(st && st.optionalSubjects);
+  if (!QZ_SENIOR.includes(st && st.grade)) return opt.length ? opt.includes(subject) : true;
+  return opt.includes(subject) || (st && st.mathematicsChoice) === subject;
+};
+const quizzesFor = (ds, st) => arr(ds.onlineQuizzes).filter(q => q && q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream) && takesSubject(st, q.subject));
 function portalPayload(data, school, adm) {
   const ds = (data.schoolData || {})[school] || {};
   const st = arr(ds.students).find(x => String(x.admissionNumber).trim() === adm);
@@ -401,6 +547,23 @@ app.get('/api/portal/quizzes', portalAuth, wrap(async (req, res) => {
 // save this learner's quiz attempt into the school's data. The server owns the marking: a submitted attempt is final and its
 // score is worked out here from the teacher's answers, so a modified phone cannot post a better score.
 const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
+// Photos of written working (structured quizzes whose teacher switched it on). The school's whole data is one document, so photos are small
+// (the app shrinks them), few per question, and limited in total per school: QUIZ_PHOTO_BUDGET characters (default about 6 MB).
+const PHOTO_RE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, PHOTO_CHARS = 150000, PHOTOS_PER_Q = 2;
+const photoBudget = () => Number(process.env.QUIZ_PHOTO_BUDGET) || 6 * 1024 * 1024;
+const photoChars = at => Object.values((at && at.photos) || {}).reduce((t, l) => t + arr(l).reduce((u, s) => u + String(s).length, 0), 0);
+function cleanPhotos(raw, qids, room) {
+  const out = {}; let dropped = 0;
+  for (const [k, list] of Object.entries(raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {})) {
+    if (!qids.has(k) || !Array.isArray(list)) continue;
+    for (const src of list.slice(0, PHOTOS_PER_Q)) {
+      if (typeof src !== 'string' || src.length > PHOTO_CHARS || !PHOTO_RE.test(src)) { dropped++; continue; }
+      if (src.length > room) { dropped++; continue; }
+      room -= src.length; (out[k] = out[k] || []).push(src);
+    }
+  }
+  return { photos: out, dropped };
+}
 app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) => {
   const a = (req.body && req.body.attempt) || null, { tenant, school, adm } = req.portal;
   if (!a || typeof a !== 'object' || typeof a.quizId !== 'string') return res.status(400).json({ error: 'attempt required' });
@@ -422,12 +585,21 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
       if (qt === 'mcq') { if (Number.isInteger(v) && v >= 0 && v < 4) { answers[k] = v; saved[k] = true; } }
       else if (typeof v === 'string' && v.trim()) { answers[k] = clip(v, qt === 'short' ? 200 : 2000); saved[k] = true; }
     }
+    let photos = {}, photoNote = '';
+    if (qt === 'structured' && quiz.allowPhotos && a.photos) {
+      const others = arr(ds.quizAttempts).reduce((t, x, j) => t + (j === idx ? 0 : photoChars(x)), 0);
+      const r = cleanPhotos(a.photos, qids, Math.max(0, photoBudget() - others));
+      photos = r.photos;
+      if (r.dropped) photoNote = 'Some photos were not saved (too large, or the school\'s photo space is full). Type that working in your answer instead.';
+      for (const k of Object.keys(photos)) if (!saved[k]) { answers[k] = ''; saved[k] = true; }   // a photo alone is an answer
+    }
     const att = {
       id: cur ? cur.id : clip(a.id, 40) || (Date.now().toString(36)), quizId: quiz.id, adm,
       startedAt: cur ? cur.startedAt : (Number(a.startedAt) || Date.now()),
       pos: Number.isInteger(a.pos) && a.pos >= 0 && a.pos <= qids.size ? a.pos : 0, saved, answers,
       order: cur ? cur.order : (a.order && JSON.stringify(a.order).length < 40000 ? a.order : { qids: [...qids], opts: {} }),
       submittedAt: null, score: 0, total: totalMarks,
+      ...(Object.keys(photos).length ? { photos } : {}), ...(photoNote ? { photoNote } : {}),
     };
     if (a.submittedAt) {
       att.submittedAt = Date.now(); att.auto = !!a.auto;
@@ -442,8 +614,9 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
         // otherwise the teacher gives the marks
         att.score = 0; att.marked = false;
         const got = {};
-        for (const q of qs) { const r = qzMarkTyped(q, answers[q.id], qzMarksOf(quiz, q)); if (!r) break; got[q.id] = r.marks; }
-        if (qs.length && Object.keys(got).length === qs.length) {
+        const handMarked = Object.keys(photos).length > 0;   // written working in a photo is read and marked by the teacher
+        for (const q of qs) { const r = qzMarkTyped(q, answers[q.id], qzMarksOf(quiz, q), qzImpliedOn(quiz), qzMarkOpts(quiz)); if (!r) break; got[q.id] = r.marks; }
+        if (!handMarked && qs.length && Object.keys(got).length === qs.length) {
           att.marks = got; att.score = Object.values(got).reduce((t, m) => t + m, 0); att.marked = true; att.autoMarked = true;
           att.markedBy = 'Marking scheme'; att.markedOn = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
         }

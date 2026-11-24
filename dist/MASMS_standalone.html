@@ -5417,6 +5417,11 @@ html.is-mobile .app-footer{display:none;}
 
 /* ---- home dashboard ---- */
 .hm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px;}
+/* The dashboard is framed like the reference design: the key-metric cards sit inside an orange outline and the main content (charts, tables, panels) inside a green one. */
+.hm-stats{border:2px solid #f5a623;border-radius:20px;padding:10px;background:rgba(245,166,35,.06);}
+.hm-main{border:2px solid #22b24c;border-radius:20px;padding:10px;margin-bottom:14px;background:rgba(34,178,76,.05);}
+.hm-main > :last-child{margin-bottom:0 !important;}
+@media(max-width:520px){.hm-stats,.hm-main{padding:6px;border-radius:16px;}}
 .hm-stat{background:linear-gradient(180deg,#f4f7ff,#e8eefc);border:1px solid #c9d6f3;border-radius:18px;padding:16px 14px;display:flex;gap:12px;align-items:center;min-width:0;box-shadow:0 2px 10px rgba(20,40,110,.06);}
 .hm-ico{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
 .hm-ico.blue{background:#b9dcff;color:#1b6fe0;} .hm-ico.purple{background:#d8cffb;color:#6a3fe0;} .hm-ico.orange{background:#fcdcb0;color:#e8800a;} .hm-ico.green{background:#c0efd0;color:#16974a;}
@@ -6423,29 +6428,20 @@ function toggleResetPwVisibility(id, btn){
 
 // ---- Forgot password: a system-generated code goes to the phone / email kept for the person ----------------------
 // The server (POST /api/auth/recover/send) texts or emails a 6-digit code to the number or address ON FILE, never one typed
-// here. After the code is confirmed (POST /api/auth/recover/verify) the person's new password is saved on their account
-// exactly as at a first login, and syncs like any other change. Needs the internet and this device's cloud sign-in.
+// here. The code and the new password go to POST /api/auth/recover/reset, which saves the new password on their account
+// and every device picks it up on its next cloud check. Needs only the internet: no cloud sign-in on this device.
 function resetPwSay(msg, bad){
   const el = document.getElementById('reset_pw_msg'); if(!el) return;
   el.textContent = msg || ''; el.style.color = bad ? '#b91c1c' : '#15803d';
 }
 function resetPwApi(path, body){
-  const c = window.MASMS_CLOUD;
-  if(!c || typeof c.api !== 'function') return Promise.reject(new Error('A code can only be sent in the online app. Ask your administrator to reset your password (Settings > Users & Roles).'));
-  if(!c.signedIn()) return Promise.reject(new Error('Sign in to the cloud first (cloud button, bottom-left), then ask for the code here.'));
-  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to get a code.'));
-  return c.api('POST', path, body);
-}
-// the staff account that signs in with this phone number, in whichever school holds it (the same people the login accepts)
-function resetPwFindUser(key){
-  const find = () => (systemUsers || []).find(x => x && x.role !== "System Developer" && x.role !== "Sales Agent" && x.status !== "Inactive" && loginPhoneKey(staffPhoneForUser(x)) === key);
-  let u = find();
-  if(u) return u;
-  for(const name of schoolsWithPhone(key).filter(schoolLoginAllowed)){
-    if(name !== currentSchool){ try{ switchToSchool(name); }catch(_e){ continue; } }
-    u = find(); if(u) return u;
-  }
-  return null;
+  // Needs only the internet: the reset routes are public (the code sent to the phone/email on file is the proof of identity),
+  // so the device does not have to be signed in to the cloud. The single-file offline copy has no server to ask.
+  if(!window.MASMS_CLOUD) return Promise.reject(new Error('A code can only be sent in the online app (the website or the Android app). Ask your administrator to reset your password (Settings > Users & Roles).'));
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to reset your password.'));
+  return fetch((window.MASMS_API_BASE || '') + '/api' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+    .then(r => r.json().catch(() => ({})).then(j => { if(!r.ok) throw new Error(j.error || ('The server answered ' + r.status + '. Try again.')); return j; }),
+          () => { throw new Error('No internet connection. Connect to the internet to reset your password.'); });
 }
 let resetPwWaitTimer = null;
 function sendResetCode(via){
@@ -6456,7 +6452,7 @@ function sendResetCode(via){
   resetPwSay('Sending the code…');
   if(btn) btn.disabled = true;
   resetPwApi('/auth/recover/send', { phone: document.getElementById('reset_pw_phone').value.trim(), via: via === 'email' ? 'email' : undefined }).then(r => {
-    resetPwSay('A code was sent ' + (r.via === 'email' ? 'by email to ' : 'by SMS to ') + r.to + '. It is valid for ' + (r.minutes || 10) + ' minutes.');
+    resetPwSay('If a staff account has that number, a code has been sent to the phone or email on file. It is valid for ' + (r.minutes || 10) + ' minutes.');
     const code = document.getElementById('reset_pw_code'); if(code) code.focus();
     let left = 60; clearInterval(resetPwWaitTimer);
     resetPwWaitTimer = setInterval(() => {
@@ -6472,22 +6468,20 @@ function submitResetPassword(){
   const pw1 = document.getElementById('reset_pw_new').value;
   const pw2 = document.getElementById('reset_pw_confirm').value;
   if(!phone || !code || !pw1 || !pw2){ resetPwSay('Please fill in all fields.', true); return; }
-  const key = loginPhoneKey(phone);
-  const user = key ? resetPwFindUser(key) : null;
-  if(!user){ resetPwSay('No staff account on this device has that phone number. If you have never signed in, use your phone number and the password "welcome".', true); return; }
+  if(!loginPhoneKey(phone)){ resetPwSay('Enter the phone number you sign in with.', true); return; }
   // check the new password BEFORE the code is used up, so a weak password does not cost the person their code
-  const bad = passwordProblems(pw1, user);
+  const bad = passwordProblems(pw1, null);
   if(bad.length){ resetPwSay('Password needs: ' + bad.join('; ').toLowerCase() + '.', true); return; }
   if(pw1 !== pw2){ resetPwSay('Passwords do not match.', true); return; }
   resetPwSay('Checking the code…');
-  resetPwApi('/auth/recover/verify', { phone, code }).then(() => {
-    setUserPassword(user, pw1);
-    recordLoginAudit(phone, "reset", { name: user.name, role: user.role, school: currentSchool, portal: false, note: "password reset with a code sent to the phone/email on file" });
+  // The server checks the code and saves the new password on the staff account in the school's saved data.
+  resetPwApi('/auth/recover/reset', { phone, code, password: pw1 }).then(() => {
     closeResetPassword();
+    try{ if(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()) MASMS_CLOUD.syncNow(); }catch(_e){}   // this device picks up the new password now
     const ue = document.getElementById('login_username'), pe = document.getElementById('login_password');
     if(ue) ue.value = phone; if(pe){ pe.value = ''; pe.focus(); }
     alert('Password changed. Log in with your new password.');
-  }).catch(err => resetPwSay(err.message || 'The code could not be checked.', true));
+  }).catch(err => resetPwSay(err.message || 'The password could not be changed.', true));
 }
 
 // Platform-level System Developer account uses a fixed, real password
@@ -10050,10 +10044,50 @@ let quizMarking = null;   // { adm, draft } while a teacher looks at / marks one
 function qzEsc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function qzUid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function qzCanManage(){ return (typeof MARKS_EDIT_ROLES !== 'undefined' && MARKS_EDIT_ROLES.includes(currentUserRole)) || ['Administrator','Teacher','Principal','Deputy Principal','Dean of Studies'].includes(currentUserRole); }
-function qzGrades(){ return Array.from(new Set(classesList.map(c => c.grade).filter(Boolean))); }
-function qzStreams(grade){ return Array.from(new Set(classesList.filter(c => c.grade === grade && c.stream).map(c => c.stream))); }
-function qzSubjects(grade){
+// ---- Teachers post online quizzes only for the subjects they teach ----
+// What a Teacher may post is worked out from the school's own subject-teacher assignments (classSubjectTeachers) each time it is needed,
+// never copied. When the administrator assigns, changes or removes a teacher's subject, the teacher's pickers follow by themselves on
+// every device through the normal cloud sync. A teacher whose record lists a subject but who has no class assignment for it still gets it
+// for the classes that carry that subject and have no assigned subject teacher. Other roles (admin, principal, ...) are not restricted.
+function qzIsTeacher(){ return currentUserRole === 'Teacher'; }
+function qzTeacherScope(){
+  const out = [], seen = new Set();
+  const add = (c, sub) => { if(!c || !c.grade) return; const k = [c.grade, c.stream || '', sub].join('||'); if(!seen.has(k)){ seen.add(k); out.push({ grade:c.grade, stream:c.stream || '', subject:sub }); } };
+  const mine = teacherSubjectClassSubjects();
+  Object.keys(mine).forEach(i => mine[i].forEach(sub => add(classesList[i], sub)));
+  const rec = currentTeacherRecord();
+  ((rec && rec.subjects) || []).forEach(sub => classesList.forEach((c, i) => { if((c.subjects || []).includes(sub) && !getClassSubjectTeacher(i, sub)) add(c, sub); }));
+  return out;
+}
+// May the signed-in user post / manage a quiz for this class + stream + subject? (stream "" = every stream of the class)
+function qzScopeOk(q){
+  if(!qzIsTeacher()) return true;
+  if(!q || !q.grade || !q.subject) return false;
+  const rows = qzTeacherScope().filter(r => r.grade === q.grade && r.subject === q.subject);
+  if(!rows.length) return false;
+  if(q.stream) return rows.some(r => r.stream === q.stream);
+  const cls = classesList.filter(c => c.grade === q.grade && (c.subjects || []).includes(q.subject));
+  return cls.every(c => rows.some(r => r.stream === (c.stream || '')));
+}
+function qzCanEdit(q){ return !qzIsTeacher() || qzScopeOk(q); }
+function qzScopeMsg(q){
+  const where = [q && q.grade, q && q.stream].filter(Boolean).join(' ');
+  return `You can post quizzes only for the subjects you teach. ${q && q.subject ? q.subject : 'This subject'}${where ? ' (' + where + ')' : ''} is not assigned to you. Ask the administrator to assign it to you; it will then appear here by itself.`;
+}
+function qzGrades(){
+  if(qzIsTeacher()) return Array.from(new Set(qzTeacherScope().map(r => r.grade)));
+  return Array.from(new Set(classesList.map(c => c.grade).filter(Boolean)));
+}
+function qzStreams(grade){
+  if(qzIsTeacher()) return Array.from(new Set(qzTeacherScope().filter(r => r.grade === grade && r.stream).map(r => r.stream)));
+  return Array.from(new Set(classesList.filter(c => c.grade === grade && c.stream).map(c => c.stream)));
+}
+function qzSubjects(grade, stream){
   const set = new Set();
+  if(qzIsTeacher()){
+    qzTeacherScope().filter(r => r.grade === grade).forEach(r => { if(qzScopeOk({ grade, stream:stream || '', subject:r.subject })) set.add(r.subject); });
+    return Array.from(set);
+  }
   classesList.filter(c => c.grade === grade).forEach(c => (c.subjects || []).forEach(s => set.add(s)));
   return Array.from(set);
 }
@@ -10079,7 +10113,7 @@ function qzWhenLabel(q){
   const d = q.dueISO.split('-').reverse().join('/');
   return q.startTime || q.endTime ? `${d}, ${q.startTime ? qzTimeLabel(q.startTime) : 'any time'} – ${q.endTime ? qzTimeLabel(q.endTime) : 'end of day'}` : d;
 }
-function qzStudentsOf(q){ return studentsForGrade(q.grade, q.stream); }
+function qzStudentsOf(q){ return studentsForGrade(q.grade, q.stream).filter(st => qzTakesQuiz(st, q)); }   // only the learners who take the subject
 function qzAttempt(quizId, adm){ return quizAttempts.find(a => a.quizId === quizId && a.adm === adm); }
 function qzSubmitted(quizId){ return quizAttempts.filter(a => a.quizId === quizId && a.submittedAt); }
 // ---- Quiz types: mcq = multiple choice; short = typed answer, marked automatically; structured = typed answers, marked by the teacher ----
@@ -10093,8 +10127,14 @@ function qzShortOk(x, v){ const n = qzNorm(v); return !!n && (Array.isArray(x.ac
 // <qz-scheme>
 // Marking scheme for structured answers. Each question has marking points (the worked answer, step by step), each worth some marks.
 // A learner's answer is compared with every point's wording and its accepted alternatives: a full match earns the point's marks, a
-// partial match earns proportional marks, no match earns none. Numbers must match exactly. The server runs this same code.
+// partial match earns proportional marks, no match earns none. Numbers must match exactly. Key terms must be spelled exactly (see qzKeyEq). The server runs this same code.
 const QZ_STOP = new Set('a an the of to in on at is are was were be been being it its this that these those and or but for with as by from into than then so such which who whom what when where there their they them he she his her we you your i me my our us not no can could will would should may might do does did has have had if also very'.split(' '));
+// Key terms: words whose spelling must be exact (a point's own "Key terms", plus a built-in glossary of science, geography and mathematics terms when the
+// quiz turns on strict spelling). Ordinary words still forgive slips and word endings; a key term only forgives its plural.
+const QZ_GLOSSARY = new Set('photosynthesis respiration chlorophyll chloroplast chloroplasts mitochondria mitochondrion nucleus cytoplasm membrane diffusion osmosis transpiration stomata xylem phloem germination pollination fertilisation fertilization reproduction ovary ovule stamen anther pistil stigma cotyledon embryo enzyme enzymes digestion absorption excretion circulation ventilation alveoli bronchus bronchi trachea diaphragm haemoglobin hemoglobin platelets artery arteries capillary capillaries oesophagus intestine pancreas kidney nephron urethra hormone hormones insulin adrenaline chromosome chromosomes allele dominant recessive heredity mutation evolution ecosystem habitat population community predator herbivore carnivore omnivore decomposer decomposers producer consumer parasite symbiosis bacteria virus fungi protozoa amoeba nutrition carbohydrate carbohydrates protein proteins vitamin vitamins antibody antibodies immunity vaccination malaria anopheles tuberculosis cholera typhoid molecule molecules atom atoms element compound mixture solution solvent solute filtration evaporation condensation distillation chromatography sublimation electron electrons proton protons neutron neutrons isotope valency valence electrolysis electrolyte electrode cathode anode oxidation reduction combustion corrosion catalyst indicator neutralisation neutralization precipitate hydrogen oxygen nitrogen carbon sulphur sulfur chlorine sodium potassium calcium magnesium aluminium ammonia sulphate carbonate hydroxide chloride nitrate periodic reactivity exothermic endothermic saturated hydrocarbon alkane alkene polymer esterification fermentation detergent hardness rusting alloy velocity acceleration momentum friction gravity density pressure buoyancy upthrust conduction convection radiation thermometer expansion refraction reflection diffraction dispersion spectrum concave convex wavelength amplitude frequency resonance voltage resistance resistor ammeter voltmeter conductor insulator circuit capacitor magnetic electromagnet transformer generator dynamo kinetic potential efficiency fulcrum pulley equilibrium radioactivity nuclear latitude longitude equator tropic meridian atmosphere climate weather precipitation humidity altitude erosion deposition weathering sedimentary igneous metamorphic volcano earthquake epicentre epicenter plateau escarpment delta estuary tributary watershed glacier peninsula archipelago vegetation savannah tundra irrigation urbanisation urbanization migration agriculture horticulture pastoralism tourism manufacturing renewable conservation afforestation deforestation numerator denominator hypotenuse perpendicular parallel perimeter circumference diameter radius quadrilateral parallelogram rhombus trapezium polygon pentagon hexagon octagon equilateral isosceles scalene obtuse acute reflex bisector tangent chord sector segment symmetry congruent gradient coefficient variable equation inequality quadratic simultaneous factorise factorize expression binomial logarithm exponent integer rational irrational median probability fertiliser fertilizer manure compost mulching pruning livestock silage rotation drainage'.split(' '));
+function qzKeyEq(p, r){ return p === r || r === p + 's' || r === p + 'es' || p === r + 's' || (/y$/.test(p) && r === p.slice(0, -1) + 'ies') || (/y$/.test(r) && p === r.slice(0, -1) + 'ies'); }
+function qzTermWords(list){ const s = new Set(); (Array.isArray(list) ? list : []).forEach(t => qzWords(t).forEach(w => { if(w.length > 2 && !/^\d/.test(w) && !QZ_STOP.has(w)) s.add(w); })); return s; }
+function qzMarkOpts(quiz){ return { strict: !!(quiz && quiz.strictTerms) }; }
 function qzStem(w){
   if(/^\d/.test(w) || w.length < 5) return w;
   if(/ies$/.test(w)) return w.slice(0, -3) + 'y';
@@ -10103,8 +10143,17 @@ function qzStem(w){
   if(/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
   return w;
 }
-function qzWords(s){ return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
-function qzMath(s){ return String(s == null ? '' : s).toLowerCase().replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-').replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/\s+/g, ' ').trim(); }
+// Mathematics-friendly folding, so equivalent working reads the same: 1/2 = 0.5, 5.0 = 5, 1,500 = 1500, x² = x^2, × · = *, 2*x = 2x
+function qzFold(s){
+  return String(s == null ? '' : s).toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[−–—]/g, '-').replace(/×|·|\\cdot|\\times/g, '*').replace(/÷/g, '/').replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g, (m, a, b) => Number(b) ? String(+(Number(a) / Number(b)).toFixed(6)) : m)
+    .replace(/\d+\.\d+/g, m => String(Number(m)));
+}
+function qzWords(s){ return qzFold(s).match(/\d+(?:\.\d+)?|[a-zà-ɏ]+/g) || []; }
+function qzMath(s){ return qzFold(s).replace(/\s*([=+\-*\/^%])\s*/g, '$1').replace(/(\d|[a-z)])\*(?=[a-z(])/g, '$1').replace(/\s+/g, ' ').trim(); }
+// Working-based subjects: a step the learner skipped, or only implied, is credited when a later step (or the final answer) is correct.
+// A teacher can switch it on or off for a quiz (impliedSteps); otherwise it is on for Mathematics, Physics, Chemistry, Accounting and Statistics.
+function qzImpliedOn(quiz){ if(quiz && typeof quiz.impliedSteps === 'boolean') return quiz.impliedSteps; return /math|physic|chem|account|statist/i.test(String(quiz && quiz.subject || '')); }
 function qzLev(a, b){
   if(Math.abs(a.length - b.length) > 2) return 3;
   let prev = Array.from({ length:b.length + 1 }, (_, j) => j);
@@ -10125,44 +10174,72 @@ function qzTokEq(p, r){
   return n >= 5 && qzLev(sp, sr) <= (n >= 9 ? 2 : 1);
 }
 // how much of this phrase the response contains: 0 to 1 (a wrong number makes it 0)
-function qzPhraseCov(phrase, rw, rm){
+function qzPhraseCov(phrase, rw, rm, isKey){
   const pw = qzWords(phrase).filter(w => /^\d/.test(w) || !QZ_STOP.has(w));
   if(!pw.length) return 0;
   if(/[=+\-*\/^%×÷]/.test(phrase)){
-    const pm = qzMath(phrase);
-    if(pm.length >= 3 && new RegExp('(^|[^0-9a-z.])' + pm.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&') + '($|[^0-9a-z])').test(rm)) return 1;
+    const e = t => t.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&'), pm = qzMath(phrase);
+    const has = t => t.length >= 3 && new RegExp('(^|[^0-9a-z.])' + e(t) + '($|[^0-9a-z])').test(rm);
+    if(has(pm)) return 1;
+    const sd = pm.split('=');
+    if(sd.length === 2 && sd[0] && sd[1]){
+      if(has(sd[1] + '=' + sd[0])) return 1;                                                                 // 5 = x for x = 5
+      if(new RegExp('(^|[^0-9a-z.])' + e(sd[0]) + '=[^,;]*=' + e(sd[1]) + '($|[^0-9a-z])').test(rm)) return 1;   // x = 10/2 = 5 (steps run together)
+    }
   }
   let hit = 0, numMiss = false;
-  for(const w of pw){ if(rw.some(r => qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
+  for(const w of pw){ const key = !!isKey && !/^\d/.test(w) && isKey(w); if(rw.some(r => key ? qzKeyEq(w, r) : qzTokEq(w, r))) hit++; else if(/^\d/.test(w)) numMiss = true; }
   return numMiss ? 0 : hit / pw.length;
 }
 // the question's marking points, scaled so they add up to the question's marks; null when there is no scheme (the teacher marks it)
 function qzPoints(x, max){
   let pts = (Array.isArray(x && x.points) ? x.points : []).map(p => ({
-    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0)
+    text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.max(0, Number(p && p.marks) || 0), shown:!!(p && p.shown),
+    terms:(Array.isArray(p && p.terms) ? p.terms : []).map(t => String(t || '').trim()).filter(Boolean)
   })).filter(p => (p.text || p.alt.length) && p.marks > 0);
   if(!pts.length){ const m = String(x && x.modelAnswer || '').trim(); if(m) pts = [{ text:m, alt:[], marks:max }]; }
   if(!pts.length) return null;
   const sum = pts.reduce((t, p) => t + p.marks, 0);
   return sum === max ? pts : pts.map(p => ({ ...p, marks:p.marks * max / sum }));
 }
-// { marks, max, points:[{ text, max, got }] } for one typed answer, or null when the question has no marking scheme
-function qzMarkTyped(x, resp, max){
+// { marks, max, points:[{ text, max, got, implied? }] } for one typed answer, or null when the question has no marking scheme.
+// With `implied` on (working-based subjects) the points are read in order as a chain of working: when a later point is fully shown, the
+// earlier ones are credited as implied, so a learner who skips steps (or just writes the answer) is not penalised. A point ticked
+// "Must be shown" is independent: it is never implied and does not imply the others.
+function qzMarkTyped(x, resp, max, implied, opts){
   const pts = qzPoints(x, max); if(!pts) return null;
-  const rw = qzWords(resp), rm = qzMath(resp);
-  const points = pts.map(p => {
+  const strict = !!(opts && opts.strict);
+  const rw = qzWords(resp), rm = qzMath(resp), r2 = v => Math.round(v * 100) / 100;
+  const keyOf = pts.map(p => { const ks = qzTermWords(p.terms); return w => ks.has(w) || (strict && QZ_GLOSSARY.has(w)); });
+  const covs = pts.map((p, i) => {
     let cov = 0;
-    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm));
-    const f = cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
-    return { text:p.text || p.alt[0], max:Math.round(p.marks * 100) / 100, got:Math.round(p.marks * f * 100) / 100 };
+    for(const c of [p.text, ...p.alt]) if(c) cov = Math.max(cov, qzPhraseCov(c, rw, rm, keyOf[i]));
+    return cov >= 0.8 ? 1 : cov < 0.3 ? 0 : cov;
   });
+  // key terms the learner wrote almost right: reported so the teacher can see why marks were lost
+  const miss = pts.map((p, i) => { const out = [];
+    for(const c of [p.text, ...p.alt]) for(const w of qzWords(c)){
+      if(/^\d/.test(w) || QZ_STOP.has(w) || !keyOf[i](w) || out.some(o => o.term === w) || rw.some(r => qzKeyEq(w, r))) continue;
+      const near = rw.find(r => qzTokEq(w, r)); if(near) out.push({ term:w, wrote:near });
+    }
+    return out; });
+  const got = pts.map((p, i) => p.marks * covs[i]), imp = pts.map(() => false);
+  if(implied){
+    let later = false;
+    for(let i = pts.length - 1; i >= 0; i--){
+      if(pts[i].shown) continue;
+      if(covs[i] >= 1) later = true;
+      else if(later){ got[i] = pts[i].marks; imp[i] = true; }
+    }
+  }
+  const points = pts.map((p, i) => ({ text:p.text || p.alt[0], max:r2(p.marks), got:r2(got[i]), ...(imp[i] ? { implied:true } : {}), ...(miss[i].length ? { misspelt:miss[i] } : {}) }));
   return { marks:Math.min(max, Math.round(points.reduce((t, p) => t + p.got, 0) * 2) / 2), max, points };
 }
 // </qz-scheme>
 // marks for every question of a submitted structured attempt, worked out from the marking schemes; null unless EVERY question has a scheme
 function qzAutoMarks(q, a){
   const marks = {};
-  for(const x of q.questions){ const r = qzMarkTyped(x, a.answers && a.answers[x.id], qzQMarks(q, x)); if(!r) return null; marks[x.id] = r.marks; }
+  for(const x of q.questions){ const r = qzMarkTyped(x, a.answers && a.answers[x.id], qzQMarks(q, x), qzImpliedOn(q), qzMarkOpts(q)); if(!r) return null; marks[x.id] = r.marks; }
   return marks;
 }
 function qzScoreAttempt(q, a){
@@ -10193,13 +10270,19 @@ function qzSetImage(i, input){
 function qzClearImage(i){ if(quizDraft && quizDraft.questions[i]){ quizDraft.questions[i].image = ""; render(); } }
 
 // ---------- Teacher: list ----------
-function qzNew(){ quizDraft = qzBlankQuiz(); quizBulkText = ""; quizMsg = null; quizView = "edit"; render(); }
+function qzNew(){
+  if(qzIsTeacher() && !qzTeacherScope().length){ quizMsg = { type:'error', text:'No subject is assigned to you yet, so there is nothing to post a quiz for. Ask the administrator to assign your subjects; they will appear here automatically.' }; render(); return; }
+  quizDraft = qzBlankQuiz();
+  if(qzIsTeacher()){ const sc = qzTeacherScope(); if(sc.length === 1) Object.assign(quizDraft, { grade:sc[0].grade, stream:sc[0].stream, subject:sc[0].subject }); }
+  quizBulkText = ""; quizMsg = null; quizView = "edit"; render(); }
 function qzEdit(id){
   const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  if(!qzCanEdit(q)){ quizMsg = { type:'error', text:qzScopeMsg(q) }; render(); return; }
   quizDraft = JSON.parse(JSON.stringify(q)); quizBulkText = ""; quizMsg = null; quizView = "edit"; render();
 }
 function qzDelete(id){
   const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  if(!qzCanEdit(q)){ quizMsg = { type:'error', text:qzScopeMsg(q) }; render(); return; }
   if(!confirm(`Delete "${q.title}" and all student attempts? Marks already posted to Marks Entry are kept.`)) return;
   onlineQuizzes = onlineQuizzes.filter(x => x.id !== id);
   quizAttempts = quizAttempts.filter(a => a.quizId !== id);
@@ -10207,6 +10290,7 @@ function qzDelete(id){
 }
 function qzTogglePublish(id){
   const q = onlineQuizzes.find(x => x.id === id); if(!q) return;
+  if(!qzCanEdit(q)){ quizMsg = { type:'error', text:qzScopeMsg(q) }; try{ alert(qzScopeMsg(q)); }catch(_e){} render(); return; }
   if(!q.published){
     const bad = qzValidate(q);
     if(bad){ quizMsg = { type:'error', text:bad }; try{ alert(bad); }catch(_e){} render(); return; }
@@ -10216,13 +10300,15 @@ function qzTogglePublish(id){
   render();
 }
 function qzAddExample(){
+  if(qzIsTeacher() && !qzTeacherScope().length){ quizMsg = { type:'error', text:'No subject is assigned to you yet, so an example quiz cannot be added.' }; render(); return; }
   const g = qzGrades()[0] || "Grade 8";
-  const subs = qzSubjects(g);
-  const subject = subs.find(x => /math/i.test(x)) || subs[0] || "Mathematics";
+  const sc0 = qzIsTeacher() ? qzTeacherScope().find(r => r.grade === g) : null, st0 = sc0 ? sc0.stream : "";
+  const subs = qzSubjects(g, st0);
+  const subject = subs.find(x => /math/i.test(x)) || subs[0] || (qzIsTeacher() ? "" : "Mathematics");
   const ex = qzExamsFor(g)[0] || { term:"", exam:"" };
   const mk = (text, options, answer) => ({ id:qzUid(), text, options, answer });
   onlineQuizzes.unshift({
-    id:qzUid(), title:"Example: Fractions Quiz", grade:g, stream:"", subject, term:ex.term, exam:ex.exam,
+    id:qzUid(), title:"Example: Fractions Quiz", grade:g, stream:st0, subject, term:ex.term, exam:ex.exam,
     createdBy:currentUserName, createdOn:todayDDMMYYYY(), dueISO:"", minutes:10, shuffle:true, allowRetake:true, published:false, postedOn:"",
     questions:[
       mk("What is 1/2 + 1/4?", ["1/6","3/4","2/6","1/8"], 1),
@@ -10236,10 +10322,24 @@ function qzAddExample(){
   render();
 }
 function qzBackToList(){ quizView = "list"; quizDraft = null; quizResultsId = null; quizMarking = null; quizMsg = null; render(); }
-function qzOpenResults(id){ quizResultsId = id; quizView = "results"; quizMsg = null; render(); }
+function qzOpenResults(id){
+  const q = onlineQuizzes.find(x => x.id === id);
+  if(q && !qzCanEdit(q)){ quizMsg = { type:'error', text:qzScopeMsg(q) }; render(); return; }
+  quizResultsId = id; quizView = "results"; quizMsg = null; render(); }
 
+function qzScopeBanner(){
+  if(!qzIsTeacher()) return '';
+  const sc = qzTeacherScope(), by = {};
+  sc.forEach(r => { (by[r.subject] = by[r.subject] || []).push([r.grade, r.stream].filter(Boolean).join(' ')); });
+  const chips = Object.keys(by).map(sub => `<span style="display:inline-block;margin:2px 6px 2px 0;padding:3px 9px;border-radius:999px;background:rgba(37,99,235,.10);border:1px solid rgba(37,99,235,.25);font-size:12px;font-weight:600;"><i class="fa-solid fa-book-open"></i>&nbsp;${qzEsc(sub)} <span style="color:var(--muted);font-weight:500;">&middot; ${qzEsc(by[sub].join(', '))}</span></span>`).join('');
+  return `<div style="padding:10px 20px;border-bottom:1px solid var(--border);font-size:13px;">
+    <div style="font-weight:700;margin-bottom:4px;"><i class="fa-solid fa-rotate"></i>&nbsp;Your subjects <span style="color:var(--muted);font-weight:500;">(synced automatically from your class assignments, you can post quizzes only for these)</span></div>
+    ${chips || '<span style="color:var(--rose);font-weight:600;">No subject is assigned to you yet. Ask the administrator to assign your subjects; they will appear here by themselves.</span>'}</div>`;
+}
 function renderQuizList(){
-  const rows = onlineQuizzes.map(q => {
+  const mine = qzIsTeacher() ? onlineQuizzes.filter(q => qzScopeOk(q) || tNameEq(q.createdBy, currentUserName)) : onlineQuizzes;
+  const rows = mine.map(q => {
+    const locked = !qzCanEdit(q);
     const n = qzStudentsOf(q).length, done = qzSubmitted(q.id).length;
     const status = !q.published ? ['Draft','status-pending'] : qzIsClosed(q) ? ['Closed','status-pending'] : qzNotOpenYet(q) ? ['Scheduled','status-pending'] : ['Open','status-paid'];
     return `<tr>
@@ -10252,19 +10352,20 @@ function renderQuizList(){
       <td style="color:var(--muted);">${qzEsc(qzWhenLabel(q))}</td>
       <td style="text-align:center;">${done}/${n}</td>
       <td><span class="pill-status ${status[1]}">${status[0]}</span></td>
-      <td style="white-space:nowrap;">
+      <td style="white-space:nowrap;">${locked ? `<span style="font-size:12px;color:var(--muted);"><i class="fa-solid fa-lock"></i>&nbsp;No longer your subject, view only</span>` : `
         <button class="link-btn" onclick="qzTogglePublish('${q.id}')"><i class="fa-solid ${q.published ? 'fa-eye-slash' : 'fa-upload'}"></i>&nbsp;${q.published ? 'Unpublish' : 'Publish'}</button>
         <button class="link-btn" onclick="qzOpenResults('${q.id}')"><i class="fa-solid fa-chart-column"></i>&nbsp;Results</button>
         <button class="link-btn" onclick="qzEdit('${q.id}')"><i class="fa-solid fa-pen"></i>&nbsp;Edit</button>
-        <button class="link-btn danger" onclick="qzDelete('${q.id}')"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+        <button class="link-btn danger" onclick="qzDelete('${q.id}')"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>`}
       </td></tr>`;
   }).join('') || `<tr><td colspan="10" class="empty">No online quizzes yet. Click "New Quiz" to create one.</td></tr>`;
   return `
     <div class="panel" style="overflow:hidden;">
       <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <h3>Online Quizzes (${onlineQuizzes.length})</h3>
+        <h3>Online Quizzes (${mine.length})</h3>
         ${qzCanManage() ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" style="width:auto;" onclick="qzAddExample()"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Add Example Quiz</button><button class="btn-primary auto" onclick="qzNew()"><i class="fa-solid fa-plus"></i>&nbsp;New Quiz</button></div>` : ''}
       </div>
+      ${qzScopeBanner()}
       ${quizMsg ? `<div style="padding:10px 20px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
       <div class="streams-scroll"><table style="min-width:900px;">
         <thead><tr><th>Title</th><th>Type</th><th>Class</th><th>Subject</th><th>Exam</th><th>Questions</th><th>Date &amp; time</th><th>Done</th><th>Status</th><th>Actions</th></tr></thead>
@@ -10275,6 +10376,7 @@ function renderQuizList(){
 // ---------- Teacher: editor ----------
 function qzSet(k, v){ if(quizDraft) quizDraft[k] = v; }
 function qzSetGrade(v){ quizDraft.grade = v; quizDraft.stream = ""; quizDraft.subject = ""; quizDraft.term = ""; quizDraft.exam = ""; render(); }
+function qzSetStream(v){ quizDraft.stream = v; if(quizDraft.subject && !qzSubjects(quizDraft.grade, v).includes(quizDraft.subject)) quizDraft.subject = ""; render(); }
 function qzSetExam(v){ const [t, e] = String(v).split('||'); quizDraft.term = t || ""; quizDraft.exam = e || ""; }
 function qzSetQ(i, v){ quizDraft.questions[i].text = v; }
 function qzSetOpt(i, j, v){ quizDraft.questions[i].options[j] = v; }
@@ -10292,6 +10394,8 @@ function qzAddPt(i){ qzPts(i).push({ text:"", alt:[], marks:1 }); qzPtSync(i); r
 function qzDelPt(i, k){ qzPts(i).splice(k, 1); qzPtSync(i); render(); }
 function qzSetPtText(i, k, v){ qzPts(i)[k].text = v; }
 function qzSetPtAlt(i, k, v){ qzPts(i)[k].alt = String(v).split('\n'); }
+function qzSetPtShown(i, k, v){ qzPts(i)[k].shown = !!v; }
+function qzSetPtTerms(i, k, v){ qzPts(i)[k].terms = String(v).split('\n'); }
 function qzSetPtMarks(i, k, v){ qzPts(i)[k].marks = v; qzPtSync(i); }
 function qzAddQ(){ quizDraft.questions.push(qzBlankQuestion()); render(); }
 function qzDelQ(i){ if(quizDraft.questions.length > 1) quizDraft.questions.splice(i, 1); render(); }
@@ -10307,6 +10411,7 @@ function qzValidate(q){
   if(!q.title.trim()) return "Give the quiz a title.";
   if(!q.grade) return "Choose the class this quiz is for.";
   if(!q.subject) return "Choose the subject.";
+  if(!qzScopeOk(q)) return qzScopeMsg(q);
   if(!q.questions.length) return "Add at least one question.";
   for(let i = 0; i < q.questions.length; i++){
     const x = q.questions[i];
@@ -10333,7 +10438,7 @@ function qzCloudNow(){ try{ if(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()) MAS
 function qzPublishNote(base){
   let on = false; try{ on = !!(window.MASMS_CLOUD && MASMS_CLOUD.signedIn()); }catch(_e){}
   if(on){ qzCloudNow(); return { type:'ok', text: base + ' It is being uploaded to the cloud, so students can open it on their own phones within a few seconds.' }; }
-  return { type:'error', text: base + ' BUT this device is not signed in to the cloud, so students on other phones or computers cannot see it yet. Tap the cloud button (bottom-left), sign in, and it will upload.' };
+  return { type:'error', text: base + ' BUT this device has lost its link to the school\'s cloud, so students cannot see it yet. Log out and log in again with your own username and password while online: the link is restored by itself (no cloud sign-in needed) and the quiz uploads at once.' };
 }
 function qzSave(publish){
   const q = quizDraft; if(!q){ try{ alert('Nothing to save. Open New Quiz first.'); }catch(_e){} return; }
@@ -10353,12 +10458,12 @@ function qzSave(publish){
       x.accepted = (Array.isArray(x.accepted) ? x.accepted : []).map(t => String(t || '').trim()).filter(Boolean);
       x.modelAnswer = String(x.modelAnswer || '').trim();
       x.explanation = String(x.explanation || '').trim();
-      x.points = (Array.isArray(x.points) ? x.points : []).map(p => ({ text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.floor(Number(p && p.marks)) > 0 ? Math.floor(Number(p.marks)) : 1 })).filter(p => p.text || p.alt.length);
+      x.points = (Array.isArray(x.points) ? x.points : []).map(p => ({ text:String(p && p.text || '').trim(), alt:(Array.isArray(p && p.alt) ? p.alt : []).map(t => String(t || '').trim()).filter(Boolean), marks:Math.floor(Number(p && p.marks)) > 0 ? Math.floor(Number(p.marks)) : 1, shown:!!(p && p.shown), ...((Array.isArray(p && p.terms) ? p.terms : []).map(t => String(t || '').trim()).filter(Boolean).length ? { terms:(p.terms).map(t => String(t || '').trim()).filter(Boolean) } : {}) })).filter(p => p.text || p.alt.length);
       x.marks = Math.floor(Number(x.marks)) > 0 ? Math.floor(Number(x.marks)) : 1;
       if(q.type === 'structured' && x.points.length) x.marks = qzPtSum(x);   // the question's marks are the marking points added up
       x.image = (typeof x.image === 'string' && /^data:image\//.test(x.image)) ? x.image : "";
     });
-    const bad = (publish || q.published) ? qzValidate(q) : (!q.title ? "Give the quiz a title." : "");
+    const bad = (publish || q.published) ? qzValidate(q) : (!q.title ? "Give the quiz a title." : (q.subject && !qzScopeOk(q) ? qzScopeMsg(q) : ""));
     if(bad){ fail(bad); return; }
     if(publish) q.published = true;
     const i = onlineQuizzes.findIndex(x => x.id === q.id);
@@ -10434,6 +10539,155 @@ function qzParseLines(lines){
 }
 function qzParseBulk(text){ return qzParseLines(String(text || '').replace(/\r/g, '').split('\n').map(t => ({ text:t }))); }
 
+// ---------- Short-answer and structured questions from Word / PDF / pasted text ----------
+// Short answer:  "1. Question"  then  "Answer: photosynthesis | photo synthesis"  (several Answer / "Also accept:" lines are fine).
+// Structured:    "1. Question (4 marks)"; (a) (b) parts stay in the question; "Answer: worked answer"; then "Marking scheme:" with one
+//                marking point per line, e.g. "- Deforestation removes the cover | clearing of trees (1)" (| separates accepted wording).
+// Either type may take its answers from a key at the end: a heading ("Answers", "Marking scheme", "Memo") then "1. ..." entries.
+// Returns the questions; `.notes` counts what still needs the teacher's attention.
+function qzParseTypedLines(lines, type, opts){
+  const structured = type === 'structured';
+  const qs = [], key = {};
+  let cur = null, mode = 'q', keyMode = !!(opts && opts.keyOnly), keyCur = null;   // keyOnly: the file is only a marking scheme / answer key, numbered like the questions
+  const qRe = /^(?:q(?:uestion)?\s*)?(\d{1,3})\s*[\).:\-](?!\d)\s*(.*)$/i, qWordRe = /^q(?:uestion)?\s*(\d{1,3})\s*[\).:\-]?\s*(.*)$/i;
+  const ansRe = /^(?:model\s+|correct\s+)?(?:answers?|ans|solution)\s*[:\-=]\s*(.*)$/i;
+  const accRe = /^(?:also\s+accept(?:ed)?|accept(?:ed)?|alternatives?)\s*[:\-=]\s*(.*)$/i;
+  const expRe = /^(?:explanation|working|workings)\s*[:\-=]\s*(.*)$/i;
+  const schemeRe = /^(?:marking\s*(?:scheme|points?|guide)|mark\s*scheme|scheme|points)\s*[:\-]\s*(.*)$/i;
+  const headRe = /^(?:answers?|answer\s*key|marking\s*(?:scheme|guide)|mark\s*scheme|memo|key)\s*[:\-]?\s*$/i, headOnlyRe = /^(?:answers?|answer\s*key|memo|key)\b/i;
+  const bulletRe = /^(?:[-•*–✓✔▪●○◦]|point\s*\d*\s*[:.)])\s*/i;
+  const takeMarks = (t, strict) => {
+    let m = t.match(/\s*[\(\[]\s*(\d{1,3})\s*(marks?|mks?|m|pts?|points?)?\s*[\)\]]\s*$/i);
+    if(m && (!strict || m[2])) return Number(m[1]);
+    m = t.match(/\s[-–:]?\s*(\d{1,3})\s*marks?\s*$/i);
+    return m ? Number(m[1]) : 0;
+  };
+  const alts = (t, withSemi) => String(t || '').split(withSemi ? /\s*\|\s*|\s*;\s*|\s+\/\s+/ : /\s*\|\s*|\s+\/\s+/).map(x => x.trim()).filter(Boolean);
+  // key terms (spelled exactly): written [key: a; b] after a point, or the bold words of the point in a Word file
+  const point = (t, bolds) => {
+    t = String(t || '').replace(bulletRe, '').replace(/^\(?\d{1,2}[\).:]\s+/, '').trim();
+    let marks = 0, shown = false, terms = [];
+    const km = t.match(/\s*[\[(]\s*key(?:\s*terms?)?\s*[:=]\s*([^\])]*)[\])]/i);
+    if(km){ terms = km[1].split(/\s*[;,|]\s*/).map(x => x.trim()).filter(Boolean); t = (t.slice(0, km.index) + ' ' + t.slice(km.index + km[0].length)).replace(/\s+/g, ' ').trim(); }
+    const mab = t.match(/\s*[\(\[]?\s*((?:[MAB]\d{1,2}(?:\s*ft)?[\s,]*)+)[\)\]]?\s*$/);   // marking-scheme codes: M1 method, A1 accuracy, B1 independent
+    if(mab){ mab[1].replace(/([MAB])(\d{1,2})/g, (_, c, n) => { marks += Number(n); if(c === 'B') shown = true; return ''; }); t = t.slice(0, mab.index).trim(); }
+    else {
+      marks = takeMarks(t, false);
+      if(marks) t = t.replace(/\s*[\(\[]\s*\d{1,3}\s*(?:marks?|mks?|m|pts?|points?)?\s*[\)\]]\s*$|\s[-–:]?\s*\d{1,3}\s*marks?\s*$/i, '').trim();
+    }
+    const a = alts(t, false); if(!a.length) return null;
+    (Array.isArray(bolds) ? bolds : []).forEach(b => { b = String(b || '').trim().replace(/[.,;:]+$/, ''); const n = b.split(/\s+/).length;
+      if(b.length >= 3 && n <= 3 && b.length < t.length * 0.8 && t.toLowerCase().includes(b.toLowerCase()) && !/^\d+$/.test(b) && !terms.some(x => x.toLowerCase() === b.toLowerCase())) terms.push(b); });
+    return { text:a[0], alt:a.slice(1), marks:marks > 0 ? marks : 1, ...(shown ? { shown:true } : {}), ...(terms.length ? { terms } : {}) };
+  };
+  const addAnswer = (x, rest) => {
+    if(!rest) return;
+    if(structured) x.modelAnswer = (x.modelAnswer ? x.modelAnswer + '\n' : '') + rest;
+    else alts(rest, true).forEach(a => { if(!x.accepted.includes(a)) x.accepted.push(a); });
+  };
+  const newQ = (num, text) => {
+    cur = Object.assign(qzBlankQuestion(), { text:text.trim(), accepted:[], _num:num, _doc:structured ? takeMarks(text, false) : 0 });
+    qs.push(cur); mode = 'q';
+  };
+  const keyAdd = (k, t, bolds) => {
+    t = String(t || '').trim(); if(!t) return;
+    const am = t.match(ansRe);
+    if(structured){ if(am){ k.model = (k.model ? k.model + '\n' : '') + am[1]; return; } const sm = t.match(schemeRe); const pt = point(sm ? sm[1] : t, bolds); if(pt) k.points.push(pt); }
+    else alts(am ? am[1] : t, true).forEach(a => { if(!k.answers.includes(a)) k.answers.push(a); });
+  };
+  const texts = lines.map(r => String(r.text == null ? '' : r.text).replace(/ /g, ' ').trim());
+  for(let i = 0; i < lines.length; i++){
+    const raw = lines[i], text = texts[i]; if(!text) continue;
+    if(headRe.test(text)){
+      const nx = texts.slice(i + 1).find(Boolean) || '';
+      if(/^(?:q(?:uestion)?\s*)?1\s*[\).:\-]/i.test(nx) && (headOnlyRe.test(text) || qs.length >= 2)){ keyMode = true; keyCur = null; continue; }
+      if(structured && cur && /scheme|points?|guide/i.test(text)){ mode = 'scheme'; continue; }
+      continue;
+    }
+    if(keyMode){
+      const km = text.match(qRe) || text.match(qWordRe);
+      if(km){ keyCur = key[Number(km[1])] = { answers:[], model:'', points:[] }; keyAdd(keyCur, km[2], raw.bold); }
+      else if(keyCur) keyAdd(keyCur, text, raw.bold);
+      continue;
+    }
+    let m;
+    if(cur && (m = text.match(ansRe))){ mode = 'ans'; addAnswer(cur, m[1].trim()); continue; }
+    if(cur && !structured && (m = text.match(accRe))){ mode = 'ans'; alts(m[1], true).forEach(a => { if(!cur.accepted.includes(a)) cur.accepted.push(a); }); continue; }
+    if(cur && (m = text.match(expRe))){ mode = 'exp'; cur.explanation = m[1].trim(); continue; }
+    if(cur && structured && (m = text.match(schemeRe))){ mode = 'scheme'; const pt = point(m[1], raw.bold); if(pt) cur.points.push(pt); continue; }
+    const qm = text.match(qRe) || text.match(qWordRe);
+    if(qm){
+      const n = Number(qm[1]), strict = structured && cur && (mode === 'scheme' || mode === 'ans');
+      if(!strict || /^q/i.test(text) || n === cur._num + 1){ newQ(n, qm[2]); continue; }
+    }
+    if(!cur){ newQ(qs.length + 1, text); continue; }
+    if(mode === 'scheme'){ const pt = point(text, raw.bold); if(pt) cur.points.push(pt); continue; }
+    if(mode === 'ans'){
+      if(structured){ if(/\?\s*$/.test(text)) newQ(qs.length + 1, text); else cur.modelAnswer += '\n' + text; continue; }
+      if(raw.bullet || bulletRe.test(text)) addAnswer(cur, text.replace(bulletRe, '').trim()); else newQ(qs.length + 1, text);
+      continue;
+    }
+    if(mode === 'exp'){ cur.explanation += ' ' + text; continue; }
+    cur.text += (/^\(?(?:[a-z]|[ivx]{1,4})\)/i.test(text) ? '\n' : ' ') + text;
+    if(structured) cur._doc += takeMarks(text, false);
+  }
+  const notes = { noAnswer:0, noScheme:0, marksDiffer:0 };
+  qs.forEach(x => {
+    const k = key[x._num];
+    if(k){
+      if(structured){ if(!x.points.length) x.points = k.points; if(!x.modelAnswer) x.modelAnswer = k.model; }
+      else k.answers.forEach(a => { if(!x.accepted.includes(a)) x.accepted.push(a); });
+    }
+    if(structured){
+      const sum = qzPtSum(x);
+      if(sum > 0){ if(x._doc && x._doc !== sum) notes.marksDiffer++; x.marks = sum; }
+      else { x.marks = x._doc > 0 ? x._doc : 1; notes.noScheme++; }
+      if(!x.points.length && !x.modelAnswer) notes.noAnswer++;
+    } else if(!x.accepted.length) notes.noAnswer++;
+    delete x._num; delete x._doc;
+  });
+  qs.notes = notes; qs.key = key;
+  return qs;
+}
+function qzParseBulkTyped(text, type){ return qzParseTypedLines(String(text || '').replace(/\r/g, '').split('\n').map(t => ({ text:t })), type); }
+// A marking scheme / answer key on its own (no questions in the file): numbered like the quiz's questions, so scheme 1 goes to question 1.
+function qzParseScheme(lines, type){ return qzParseTypedLines(lines, type, { keyOnly:true }).key || {}; }
+function qzApplyScheme(questions, key, type){
+  const res = { applied:0, replaced:0, missing:[], extra:[] };
+  questions.forEach((x, i) => {
+    const k = key[i + 1], ok = k && (type === 'structured' ? (k.points.length || k.model) : k.answers.length);
+    if(!ok){ res.missing.push(i + 1); return; }
+    if(type === 'structured'){
+      if((x.points && x.points.length) || String(x.modelAnswer || '').trim()) res.replaced++;
+      x.points = k.points.map(p => Object.assign({}, p, { alt:(p.alt || []).slice(), ...(p.terms ? { terms:p.terms.slice() } : {}) }));
+      if(k.model) x.modelAnswer = k.model;
+      const sum = qzPtSum(x); if(sum > 0) x.marks = sum;
+    } else {
+      if((x.accepted || []).some(t => String(t || '').trim())) res.replaced++;
+      x.accepted = k.answers.slice();
+    }
+    res.applied++;
+  });
+  res.extra = Object.keys(key).map(Number).filter(n => n > questions.length).sort((a, b) => a - b);
+  return res;
+}
+function qzSchemeNote(res, total, fileName){
+  const bits = [];
+  if(res.replaced) bits.push(`it replaced the scheme already on ${res.replaced} question${res.replaced===1?'':'s'}`);
+  if(res.missing.length) bits.push(`no scheme was found for question${res.missing.length===1?'':'s'} ${res.missing.join(', ')}`);
+  if(res.extra.length) bits.push(`the file has a scheme for question${res.extra.length===1?'':'s'} ${res.extra.join(', ')}, but the quiz has only ${total} question${total===1?'':'s'}`);
+  return { type: (res.missing.length || res.extra.length) ? 'error' : 'ok',
+    text:`Marking scheme from ${fileName || 'the file'} added to ${res.applied} of ${total} question${total===1?'':'s'}.` + (bits.length ? ' ' + bits.join('; ') + '.' : ' Please skim the marking points to confirm.') };
+}
+function qzTypedNote(found, fileName){
+  const n = found.notes || {}, bits = [];
+  if(n.noAnswer) bits.push(`${n.noAnswer} ha${n.noAnswer===1?'s':'ve'} no answer, so add one before publishing`);
+  if(n.noScheme) bits.push(`${n.noScheme} ha${n.noScheme===1?'s':'ve'} no marking points, so ${n.noScheme===1?'it':'they'} will wait for you to mark ${n.noScheme===1?'it':'them'}`);
+  if(n.marksDiffer) bits.push(`the marks in the document differ from the marking points on ${n.marksDiffer} question${n.marksDiffer===1?'':'s'}; the marking points were used`);
+  return { type: (n.noAnswer || n.marksDiffer) ? 'error' : 'ok',
+    text:`Imported ${found.length} question${found.length===1?'':'s'}${fileName ? ' from ' + fileName : ''}, in the same order.` + (bits.length ? ' ' + bits.join('; ') + '.' : ' Please skim them to confirm.') };
+}
+
 // -- DOCX: read the zip with the browser's built-in inflate, then walk the paragraphs --
 async function qzUnzip(buf, wanted){
   const dv = new DataView(buf), u8 = new Uint8Array(buf), out = {};
@@ -10481,19 +10735,22 @@ async function qzDocxLines(buf){
   const letter = k => { let s = ''; k = Math.max(1, k); while(k > 0){ s = String.fromCharCode(65 + ((k - 1) % 26)) + s; k = Math.floor((k - 1) / 26); } return s; };
   const lines = [];
   tag(doc, 'w:p').forEach(par => {
-    let text = '', mark = false;
+    let text = '', mark = false, bAcc = '';
+    const bolds = [];
     Array.from(par.getElementsByTagName('w:r')).forEach(r => {
       let t = '';
       Array.from(r.childNodes).forEach(c => { if(c.nodeName === 'w:t') t += c.textContent; else if(c.nodeName === 'w:tab') t += ' '; else if(c.nodeName === 'w:br') t += ' '; });
-      if(!t.trim()){ text += t; return; }
+      if(!t.trim()){ text += t; if(bAcc) bAcc += t; return; }
       text += t;
       const rp = r.getElementsByTagName('w:rPr')[0];
+      { const bb = rp && rp.getElementsByTagName('w:b')[0]; if(bb && !/^(0|false)$/.test(val(bb) || '')) bAcc += t; else { if(bAcc.trim()) bolds.push(bAcc.trim()); bAcc = ''; } }
       if(rp){
         const b = rp.getElementsByTagName('w:b')[0], u = rp.getElementsByTagName('w:u')[0], h = rp.getElementsByTagName('w:highlight')[0], c = rp.getElementsByTagName('w:color')[0], sh = rp.getElementsByTagName('w:shd')[0];
         if((b && !/^(0|false)$/.test(val(b) || '')) || (u && val(u) !== 'none') || (h && val(h) !== 'none') ||
            (c && !/^(auto|000000|FFFFFF)$/i.test(val(c) || 'auto')) || (sh && !/^(auto|FFFFFF)$/i.test(sh.getAttribute('w:fill') || 'auto'))) mark = true;
       }
     });
+    if(bAcc.trim()) bolds.push(bAcc.trim());
     // automatic list numbering (1. 2. / A. B.) is not in the text, so rebuild the label
     let np = par.getElementsByTagName('w:numPr')[0];
     if(!np){ const ps = par.getElementsByTagName('w:pStyle')[0]; if(ps) np = styleNum[val(ps)] || null; }
@@ -10509,7 +10766,7 @@ async function qzDocxLines(buf){
         else text = (fmt === 'upperLetter' ? letter(n) + '.' : fmt === 'lowerLetter' ? letter(n).toLowerCase() + ')' : n + '.') + ' ' + text;
       }
     }
-    lines.push({ text, mark, bullet });
+    lines.push({ text, mark, bullet, bold:bolds });
   });
   return lines;
 }
@@ -10542,35 +10799,57 @@ async function qzPdfLines(buf){
   return lines;
 }
 
+async function qzReadLines(f){
+  const name = f.name.toLowerCase();
+  if(name.endsWith('.docx')) return qzDocxLines(await f.arrayBuffer());
+  if(name.endsWith('.pdf')) return qzPdfLines(await f.arrayBuffer());
+  if(name.endsWith('.txt')) return (await f.text()).replace(/\r/g, '').split('\n').map(t => ({ text:t }));
+  if(name.endsWith('.doc')) throw new Error('Old .doc files are not supported. Open it in Word and use Save As → .docx, then upload again.');
+  throw new Error('Upload a Word (.docx), PDF or text file.');
+}
+// Upload a marking scheme (short: accepted answers; structured: worked answer + marking points) for the questions already in the editor
+async function qzImportSchemeFile(inputEl){
+  const f = inputEl.files && inputEl.files[0]; inputEl.value = '';
+  if(!f) return;
+  try{
+    const qt0 = qzType(quizDraft); if(qt0 === 'mcq') throw new Error('Marking schemes are for short-answer and structured quizzes.');
+    const lines = await qzReadLines(f), key = qzParseScheme(lines, qt0);
+    if(!Object.keys(key).length) throw new Error('No marking scheme was found. Number each answer like the questions (1. 2. 3.), with \"Answer: ...\" for the worked answer and one marking point per line ending in its marks.');
+    const qs = quizDraft.questions.filter(x => String(x.text || '').trim());
+    if(!qs.length) throw new Error('Add the questions first (type them or upload the question paper), then upload the marking scheme.');
+    const dry = qzApplyScheme(qs.map(x => JSON.parse(JSON.stringify(x))), key, qt0);
+    if(dry.replaced && typeof confirm === 'function' && !confirm(`${dry.replaced} question${dry.replaced===1?' already has':'s already have'} a marking scheme. Replace ${dry.replaced===1?'it':'them'} with the one in ${f.name}?`)){ render(); return; }
+    quizMsg = qzSchemeNote(qzApplyScheme(qs, key, qt0), qs.length, f.name);
+  }catch(err){ quizMsg = { type:'error', text: String(err && err.message || err) }; }
+  render();
+}
 async function qzImportFile(inputEl){
   const f = inputEl.files && inputEl.files[0]; inputEl.value = '';
   if(!f) return;
-  const name = f.name.toLowerCase();
   try{
-    let lines;
-    if(name.endsWith('.docx')) lines = await qzDocxLines(await f.arrayBuffer());
-    else if(name.endsWith('.pdf')) lines = await qzPdfLines(await f.arrayBuffer());
-    else if(name.endsWith('.txt')) lines = (await f.text()).replace(/\r/g, '').split('\n').map(t => ({ text:t }));
-    else if(name.endsWith('.doc')) throw new Error('Old .doc files are not supported. Open it in Word and use Save As → .docx, then upload again.');
-    else throw new Error('Upload a Word (.docx), PDF or text file.');
-    const found = qzParseLines(lines);
-    if(!found.length) throw new Error('No questions were found. Questions should be numbered (1. 2. 3.) with options A) B) C) D).');
+    const lines = await qzReadLines(f);
+    const qt0 = qzType(quizDraft);
+    const found = qt0 === 'mcq' ? qzParseLines(lines) : qzParseTypedLines(lines, qt0);
+    if(!found.length) throw new Error(qt0 === 'mcq' ? 'No questions were found. Questions should be numbered (1. 2. 3.) with options A) B) C) D).' : 'No questions were found. Number each question (1. 2. 3.) and put "Answer: ..." under it.');
     if(quizDraft.questions.length === 1 && !quizDraft.questions[0].text.trim()) quizDraft.questions = [];
     quizDraft.questions.push(...found);
     const check = found.filter(x => x.needsCheck).length;
-    quizMsg = { type: check ? 'error' : 'ok', text:`Imported ${found.length} question${found.length===1?'':'s'} from ${f.name}, in the same order.` + (check ? ` ${check} had no answer marked — they are flagged below; tick the correct option for each before publishing.` : ' Please skim them to confirm.') };
+    if(qt0 !== 'mcq') quizMsg = qzTypedNote(found, f.name);
+    else quizMsg = { type: check ? 'error' : 'ok', text:`Imported ${found.length} question${found.length===1?'':'s'} from ${f.name}, in the same order.` + (check ? ` ${check} had no answer marked — they are flagged below; tick the correct option for each before publishing.` : ' Please skim them to confirm.') };
   }catch(err){ quizMsg = { type:'error', text: String(err && err.message || err) }; }
   render();
 }
 
 function qzImportBulk(){
-  const found = qzParseBulk(quizBulkText);
-  if(!found.length){ quizMsg = { type:'error', text:'No questions found. Use: question line, options A) B) C) D), then "Answer: B", with a blank line between questions.' }; render(); return; }
+  const qt0 = qzType(quizDraft);
+  const found = qt0 === 'mcq' ? qzParseBulk(quizBulkText) : qzParseBulkTyped(quizBulkText, qt0);
+  if(!found.length){ quizMsg = { type:'error', text: qt0 === 'mcq' ? 'No questions found. Use: question line, options A) B) C) D), then "Answer: B", with a blank line between questions.' : 'No questions found. Number each question (1. 2. 3.) and put "Answer: ..." under it.' }; render(); return; }
   const missing = found.filter(f => f.needsCheck).length;
   if(quizDraft.questions.length === 1 && !quizDraft.questions[0].text.trim()) quizDraft.questions = [];
   quizDraft.questions.push(...found);
   quizBulkText = "";
-  quizMsg = { type:'ok', text:`Imported ${found.length} question${found.length===1?'':'s'}.` + (missing ? ` ${missing} had no "Answer:" line — flagged below; tick the correct option for each.` : '') };
+  if(qt0 !== 'mcq') quizMsg = qzTypedNote(found, '');
+  else quizMsg = { type:'ok', text:`Imported ${found.length} question${found.length===1?'':'s'}.` + (missing ? ` ${missing} had no "Answer:" line — flagged below; tick the correct option for each.` : '') };
   render();
 }
 
@@ -10594,14 +10873,16 @@ function renderQuizEditor(){
       </div>` : `
       <div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--blue-tint, #f4f8ff);">
         <div style="font-weight:700;font-size:13px;margin-bottom:2px;"><i class="fa-solid fa-list-check" style="color:var(--blue);"></i>&nbsp;Marking scheme <span style="font-weight:400;color:var(--muted);font-size:12px;">(only teachers see it)</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Write the worked answer, then list each point that earns marks. A learner's answer is compared with every point and earns its marks in full, in part (in proportion to how much of the point is there) or not at all. Numbers must match exactly. Questions with no points are marked by you.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Write the worked answer, then list each point that earns marks. A learner's answer is compared with every point and earns its marks in full, in part (in proportion to how much of the point is there) or not at all. Numbers must match exactly. Equivalent working counts (1/2 = 0.5, 5 = x for x = 5, 2*x = 2x). In Mathematics, a step the learner skips is credited when a later step or the final answer is correct; tick <strong>Must be shown</strong> on a point that has to appear (a formula, a "show that" step). Questions with no points are marked by you.</div>
         <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);">Worked / model answer<br><textarea rows="3" placeholder="e.g. 2 x 5 + 3 = 13. The answer is 13." style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetModel(${i},this.value)">${qzEsc(x.modelAnswer || '')}</textarea></label>
         ${(Array.isArray(x.points) ? x.points : []).map((pt, k) => `
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
           <span style="font-weight:700;color:var(--muted);width:22px;padding-top:7px;">${k+1}.</span>
           <label style="flex:2;min-width:200px;font-size:11.5px;font-weight:700;color:var(--muted);">Point / step that earns marks<br><input type="text" value="${qzEsc(pt.text || '')}" placeholder="e.g. Substitutes correctly: 2 x 5 + 3" style="width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetPtText(${i},${k},this.value)"></label>
           <label style="flex:2;min-width:180px;font-size:11.5px;font-weight:700;color:var(--muted);">Other accepted wording / values (one per line, optional)<br><textarea rows="2" placeholder="e.g. 2(5)+3" style="width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetPtAlt(${i},${k},this.value)">${qzEsc((Array.isArray(pt.alt) ? pt.alt : []).join('\n'))}</textarea></label>
+          <label style="flex:1;min-width:150px;font-size:11.5px;font-weight:700;color:var(--muted);" title="Words that must be spelled exactly, one per line (for example photosynthesis). Other words forgive small spelling slips."><span style="display:block;">Key terms (exact spelling)</span><textarea rows="2" placeholder="e.g. photosynthesis" style="width:100%;box-sizing:border-box;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:400;" oninput="qzSetPtTerms(${i},${k},this.value)">${qzEsc((Array.isArray(pt.terms) ? pt.terms : []).join('\n'))}</textarea></label>
           <label style="font-size:11.5px;font-weight:700;color:var(--muted);">Marks<br><input type="number" min="1" max="100" step="1" value="${qzEsc(pt.marks == null ? 1 : pt.marks)}" style="width:70px;padding:6px 8px;" oninput="qzSetPtMarks(${i},${k},this.value)"></label>
+          <label style="font-size:11.5px;font-weight:700;color:var(--muted);" title="Tick for a point that must be written down (for example a formula, or a 'show that' step). Other steps are credited when a later step or the final answer is correct."><span style="display:block;">Must be shown</span><input type="checkbox" ${pt.shown ? 'checked' : ''} onchange="qzSetPtShown(${i},${k},this.checked)" style="margin-top:8px;"></label>
           <button type="button" class="link-btn danger" style="margin-top:20px;" onclick="qzDelPt(${i},${k})" title="Remove this point"><i class="fa-solid fa-xmark"></i></button>
         </div>`).join('')}
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px;">
@@ -10645,9 +10926,9 @@ function renderQuizEditor(){
           <label class="field"><span>Class&nbsp;<span class="req">*</span></span>
             <select onchange="qzSetGrade(this.value)"><option value="" ${!q.grade?'selected':''} disabled>Select class...</option>${grades.map(g => opt(g, q.grade)).join('')}</select></label>
           <label class="field"><span>Stream</span>
-            <select onchange="qzSet('stream',this.value)"><option value="">All streams</option>${qzStreams(q.grade).map(s => opt(s, q.stream)).join('')}</select></label>
+            <select onchange="qzSetStream(this.value)"><option value="">All streams</option>${qzStreams(q.grade).map(s => opt(s, q.stream)).join('')}</select></label>
           <label class="field"><span>Subject&nbsp;<span class="req">*</span></span>
-            <select onchange="qzSet('subject',this.value)"><option value="" ${!q.subject?'selected':''} disabled>Select subject...</option>${qzSubjects(q.grade).map(s => opt(s, q.subject)).join('')}</select></label>
+            <select onchange="qzSet('subject',this.value)"><option value="" ${!q.subject?'selected':''} disabled>Select subject...</option>${qzSubjects(q.grade, q.stream).map(s => opt(s, q.subject)).join('')}</select>${qzIsTeacher() ? `<small style="display:block;margin-top:4px;color:var(--muted);font-weight:500;">${qzSubjects(q.grade, q.stream).length || !q.grade ? 'Only the subjects assigned to you are listed. They update by themselves when the administrator changes your assignments.' : 'None of your subjects is taught in this class / stream. Pick another class or stream.'}</small>` : ''}</label>
           <label class="field"><span>Post marks to exam</span>
             <select onchange="qzSetExam(this.value)"><option value="">— choose later —</option>${exams.map(e => opt(e.term+'||'+e.exam, q.term+'||'+q.exam, `${e.exam} (${e.term})`)).join('')}</select></label>
           <label class="field"><span>Time limit (minutes)&nbsp;<span class="req">*</span></span>
@@ -10662,6 +10943,9 @@ function renderQuizEditor(){
           <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:13px;">
             <label><input type="checkbox" ${q.shuffle?'checked':''} onchange="qzSet('shuffle',this.checked)"> Shuffle questions &amp; options</label>
             <label><input type="checkbox" ${q.allowRetake?'checked':''} onchange="qzSet('allowRetake',this.checked)"> Allow students to retake</label>
+            ${qt === 'structured' ? `<label title="When a later step or the final answer is correct, steps the learner skipped or only implied are credited."><input type="checkbox" ${qzImpliedOn(q)?'checked':''} onchange="qzSet('impliedSteps',this.checked)"> Credit skipped / implied working</label>` : ''}
+            ${qt === 'structured' ? `<label title="Science, geography and mathematics key words (photosynthesis, hypotenuse, ...) must be spelled exactly. Key terms you list on a marking point are always exact."><input type="checkbox" ${q.strictTerms?'checked':''} onchange="qzSet('strictTerms',this.checked)"> Key terms must be spelled exactly</label>` : ''}
+            ${qt === 'structured' ? `<label title="Each question gets an Add photo button, so a learner can show handwritten working. Answers with photos are marked by you, not automatically."><input type="checkbox" ${q.allowPhotos?'checked':''} onchange="qzSet('allowPhotos',this.checked)"> Learners may attach a photo of written working</label>` : ''}
           </div>
         </div>
 
@@ -10669,19 +10953,29 @@ function renderQuizEditor(){
         ${qs}
         <button type="button" class="btn-ghost" style="width:auto;" onclick="qzAddQ()"><i class="fa-solid fa-plus"></i>&nbsp;Add question</button>
 
-        ${qt !== 'mcq' ? '<div style="margin-top:14px;font-size:12px;color:var(--muted);">Uploading questions from Word, PDF or pasted text works for multiple-choice quizzes only. Type or paste each question above.</div>' : `
         <div style="margin-top:18px;border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff;">
           <div style="font-weight:700;font-size:13px;margin-bottom:4px;"><i class="fa-solid fa-file-arrow-up" style="color:var(--blue);"></i>&nbsp;Upload questions from a Word or PDF file</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Questions are added in the same order as the document. Number each question (1. 2. 3.) and list options A) B) C) D). Mark the answer with "Answer: B", an answer key at the end, or make the correct option <strong>bold / highlighted</strong> (Word).</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${qt === 'mcq' ? 'Questions are added in the same order as the document. Number each question (1. 2. 3.) and list options A) B) C) D). Mark the answer with "Answer: B", an answer key at the end, or make the correct option <strong>bold / highlighted</strong> (Word).'
+            : qt === 'short' ? 'Number each question (1. 2. 3.) and put the typed answer under it as <strong>Answer: ...</strong>. Separate other accepted wording with | , for example <em>Answer: photosynthesis | photo synthesis</em>. Or put the answers in a key at the end (a heading "Answers", then 1. ..., 2. ...).'
+            : 'Number each question (1. 2. 3.) and give its marks, for example <em>(4 marks)</em>; (a) (b) parts stay in the question. Under it write <strong>Answer:</strong> (the worked answer) and <strong>Marking scheme:</strong> followed by one marking point per line, each starting with - and ending with its marks, for example <em>- Deforestation removes ground cover (1)</em>. Use | for other accepted wording; the codes M1 / A1 / B1 work too (B marks must be shown). A marking scheme at the end of the paper (heading "Marking scheme", then 1. ...) also works.'}</div>
           <input type="file" accept=".docx,.pdf,.txt" onchange="qzImportFile(this)" style="font-size:12px;">
         </div>
+        ${qt !== 'mcq' ? `<div style="margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px;"><i class="fa-solid fa-list-check" style="color:var(--blue);"></i>&nbsp;Upload a marking scheme for the questions above (Word or PDF)</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${qt === 'short'
+            ? 'A file that holds only the answers: number each one like the questions (1. 2. 3.) and separate accepted wording with | , for example <em>1. photosynthesis | photo synthesis</em>.'
+            : 'A file that holds only the marking scheme: number each answer like the questions (1. 2. 3.), then <strong>Answer:</strong> (the worked answer) and one marking point per line ending in its marks, for example <em>- Deforestation removes ground cover | clearing of trees (2)</em>. Scheme 1 goes to question 1, scheme 2 to question 2, and so on. Make a key term <strong>bold</strong> in Word, or add <em>[key: photosynthesis]</em> after the point, and it must be spelled exactly.'}</div>
+          <input type="file" accept=".docx,.pdf,.txt" onchange="qzImportSchemeFile(this)" style="font-size:12px;">
+        </div>` : ''}
         <details style="margin-top:12px;border:1px dashed var(--border);border-radius:8px;padding:12px;">
           <summary style="cursor:pointer;font-weight:700;font-size:13px;">Paste many questions at once</summary>
-          <div style="font-size:12px;color:var(--muted);margin:8px 0;">One question per block, blank line between blocks:<br>
-            <code>What is 1/2 + 1/4?<br>A) 1/6<br>B) 3/4<br>C) 2/6<br>D) 1/8<br>Answer: B</code></div>
+          <div style="font-size:12px;color:var(--muted);margin:8px 0;">One question per block:<br>
+            ${qt === 'mcq' ? '<code>What is 1/2 + 1/4?<br>A) 1/6<br>B) 3/4<br>C) 2/6<br>D) 1/8<br>Answer: B</code>'
+              : qt === 'short' ? '<code>1. Name the process by which plants make food.<br>Answer: photosynthesis | photo synthesis<br>2. What is the capital of Kenya?<br>Answer: Nairobi</code>'
+              : '<code>1. Explain two causes of soil erosion. (4 marks)<br>Answer: Deforestation and overgrazing expose the soil.<br>Marking scheme:<br>- Deforestation removes ground cover | clearing of trees (2)<br>- Overgrazing leaves soil bare (2)</code>'}</div>
           <textarea rows="8" style="width:100%;box-sizing:border-box;padding:8px;font-family:monospace;font-size:12.5px;" oninput="quizBulkText=this.value">${qzEsc(quizBulkText)}</textarea>
           <button type="button" class="btn-ghost" style="width:auto;margin-top:8px;" onclick="qzImportBulk()"><i class="fa-solid fa-file-import"></i>&nbsp;Import questions</button>
-        </details>`}
+        </details>
 
         <div class="wizard-nav" style="padding:20px 0 0;border-top:none;">
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -10785,19 +11079,27 @@ function renderQuizResults(){
 // Mark every submitted structured attempt that the teacher has not reviewed by hand, by comparing the answers with the marking scheme
 function qzAutoMarkAll(){
   const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || qzType(q) !== 'structured') return;
-  let n = 0, skipped = 0;
+  let n = 0, skipped = 0, photo = 0;
   qzSubmitted(q.id).forEach(a => {
     if(a.marked && !a.autoMarked) return;   // a teacher's own marks are kept
+    if(qzHasPhotos(a)){ photo++; return; }   // written working is marked by the teacher
     const m = qzAutoMarks(q, a); if(!m){ skipped++; return; }
     a.marks = m; a.marked = true; a.autoMarked = true; a.markedBy = 'Marking scheme'; a.markedOn = todayDDMMYYYY();
     a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); n++;
   });
-  quizMsg = n ? { type:'ok', text:`${n} attempt${n===1?'':'s'} marked against the marking scheme. Open each one with Review marks to check it, then approve and post.` + (skipped ? ` ${skipped} could not be auto-marked because some questions have no marking scheme.` : '') }
-              : { type:'error', text: skipped ? 'Nothing was auto-marked: some questions have no marking scheme (worked answer or marking points). Add them in Edit, or mark by hand.' : 'No attempts need auto-marking.' };
+  quizMsg = n ? { type:'ok', text:`${n} attempt${n===1?'':'s'} marked against the marking scheme. Open each one with Review marks to check it, then approve and post.` + (photo ? ` ${photo} with photos of written working ${photo===1?'was':'were'} left for you to mark.` : '') + (skipped ? ` ${skipped} could not be auto-marked because some questions have no marking scheme.` : '') }
+              : { type:'error', text: skipped ? 'Nothing was auto-marked: some questions have no marking scheme (worked answer or marking points). Add them in Edit, or mark by hand.' : photo ? 'Nothing was auto-marked: the answers have photos of written working, which you mark by hand.' : 'No attempts need auto-marking.' };
   if(n) qzCloudNow();
   render();
 }
 // ---------- Teacher: one learner's answers (structured: mark them) ----------
+function qzClearPhotos(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
+  if(!a || !qzHasPhotos(a)) return;
+  if(typeof confirm === 'function' && !confirm('Delete this learner\'s photos? This cannot be undone, so mark the answers first.')) return;
+  delete a.photos; a.photosRemoved = Date.now(); qzCloudNow();
+  quizMsg = { type:'ok', text:'The photos were deleted.' }; render();
+}
 function qzOpenMarking(id, adm){ quizResultsId = id; quizMarking = { adm, draft:null }; quizView = "mark"; quizMsg = null; render(); }
 function qzMarkInput(qid, v){ if(quizMarking){ quizMarking.draft = quizMarking.draft || {}; quizMarking.draft[qid] = v; } }
 function qzSaveMarking(){
@@ -10832,16 +11134,16 @@ function renderQuizMarking(){
       keyHtml = `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Accepted: ${(x.accepted || []).map(z => `<strong>${qzEsc(z)}</strong>`).join(', ') || '—'}</div>` + (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '');
     } else {
       mineHtml = has ? qzEsc(mine) : '<em>none</em>';
-      const auto = qzMarkTyped(x, mine, max);   // the answer compared with the marking scheme
+      const auto = qzMarkTyped(x, mine, max, qzImpliedOn(q), qzMarkOpts(q));   // the answer compared with the marking scheme
       keyHtml = (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '') + (auto ? `
-        <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
+        <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.implied ? ' <span style="color:var(--muted);font-size:11.5px;">(implied by later working)</span>' : ''}${(p.misspelt || []).map(m => ` <span style="color:var(--rose);font-size:11.5px;">(key term <strong>${qzEsc(m.term)}</strong> written as “${qzEsc(m.wrote)}”)</span>`).join('')}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
       const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : (auto ? auto.marks : ''));
       markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)">${auto ? `<span style="font-weight:400;color:var(--muted);margin-left:8px;">suggested from the scheme: ${auto.marks}</span>` : ''}</label>`;
     }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${isStruct ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${max} mark${max===1?'':'s'}]</span>` : ''}</div>
       ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
-      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${keyHtml}${markHtml}</div>`;
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}${keyHtml}${markHtml}</div>`;
   }).join('');
   return `
     <div class="panel" style="overflow:hidden;">
@@ -10852,6 +11154,7 @@ function renderQuizMarking(){
       <div style="padding:14px 24px;">
         ${quizMsg ? `<div style="margin-bottom:10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
         ${isStruct ? `<div style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">${a.autoMarked ? '<strong style="color:var(--green);">Marked automatically</strong> against the marking scheme. Check each answer, change any marks you disagree with, then press <strong>Save marks</strong> to confirm.' : 'Each answer is compared with its marking scheme; the marks box is filled with the suggestion. Adjust where needed, then press <strong>Save marks</strong>.'}</div>` : ''}
+        ${qzHasPhotos(a) ? `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;"><i class="fa-solid fa-camera" style="color:var(--blue);"></i>&nbsp;This learner attached photos of written working. Read them under each answer and give the marks yourself. <button type="button" class="link-btn danger" onclick="qzClearPhotos()"><i class="fa-solid fa-trash"></i>&nbsp;Delete the photos after marking</button><span style="color:var(--muted);"> (frees the school's data space)</span></div>` : ''}
         ${rows}
         ${isStruct ? `<button class="btn-primary auto" onclick="qzSaveMarking()"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save marks</button>${a.marked ? `<span style="margin-left:10px;font-size:12px;color:var(--muted);">Last marked ${qzEsc(a.markedOn || '')}${a.markedBy ? ' by ' + qzEsc(a.markedBy) : ''}</span>` : ''}` : ''}
       </div>
@@ -10859,6 +11162,8 @@ function renderQuizMarking(){
 }
 function renderQuizzesTab(){
   if(quizView === "edit" && quizDraft) return renderQuizEditor();
+  const cur = onlineQuizzes.find(x => x.id === quizResultsId);
+  if((quizView === "mark" || quizView === "results") && cur && !qzCanEdit(cur)){ quizView = "list"; quizResultsId = null; quizMarking = null; }   // reassigned away from this teacher
   if(quizView === "mark" && quizMarking) return renderQuizMarking();
   if(quizView === "results") return renderQuizResults();
   return renderQuizList();
@@ -10902,7 +11207,7 @@ function prPush(a){
     if(r.ok && r.data && r.data.attempt){
       delete MASMS_PR.unsynced[a.id];
       const srv = r.data.attempt;
-      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; a.autoMarked = !!srv.autoMarked; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
+      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; a.autoMarked = !!srv.autoMarked; if(a.photos){ a.photos = srv.photos || {}; } if(srv.photoNote) a.photoNote = srv.photoNote; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
     } else if(r.status === 401){ prSessionLost(); }
     else if(r.status === 404){ delete MASMS_PR.unsynced[a.id]; }   // quiz withdrawn or retake granted: nothing to save
     else { MASMS_PR.unsynced[a.id] = a; }
@@ -10959,8 +11264,11 @@ let _qzTimer = null;
 function qzOpenQuizzes(){ portalQuiz = { mode:'list' }; renderPortalApp(); }
 function qzPortalHome(){ qzStopTimer(); portalQuiz = null; renderPortalApp(); }
 function qzStopTimer(){ if(_qzTimer){ clearInterval(_qzTimer); _qzTimer = null; } }
+// A paper is posted to a class but seen only by the learners who take its subject (a learner who does not take Physics never sees the
+// Physics test). The server applies the same rule before it sends anything to a learner's phone.
+function qzTakesQuiz(st, q){ return !q.subject || studentTakesSubject(st, q.subject); }
 function qzQuizzesForStudent(st){
-  return onlineQuizzes.filter(q => q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream));
+  return onlineQuizzes.filter(q => q.published && q.grade === st.grade && (!q.stream || q.stream === st.stream) && qzTakesQuiz(st, q));
 }
 function qzOpenCount(st){
   return qzQuizzesForStudent(st).filter(q => !qzIsClosed(q) && !qzNotOpenYet(q) && (!qzAttempt(q.id, st.admissionNumber) || (qzAttempt(q.id, st.admissionNumber) && !qzAttempt(q.id, st.admissionNumber).submittedAt))).length;
@@ -11010,6 +11318,59 @@ function qzTyped(quizId, qid, val){
   portalQuiz.pending = String(val).trim() ? String(val) : null;
   const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
 }
+// ---- Learner: a photo of written working (structured quizzes whose teacher allows it) ----
+// Photos are shrunk on the phone (at most 1000 px, JPEG) because the school's cloud data is one small document. The server checks them again.
+const QZ_PHOTOS_PER_Q = 2, QZ_PHOTO_CHARS = 140000;
+function qzPhotosOf(a, qid){ return a && a.photos && Array.isArray(a.photos[qid]) ? a.photos[qid] : []; }
+function qzHasPhotos(a){ return !!a && !!a.photos && Object.keys(a.photos).some(k => Array.isArray(a.photos[k]) && a.photos[k].length > 0); }
+function qzHasPending(){ return !!portalQuiz && (portalQuiz.pending != null || (portalQuiz.photos || []).length > 0); }
+function qzPhotoHtml(quizId, qid, a){
+  const saved = !!(a.saved && a.saved[qid]), list = saved ? qzPhotosOf(a, qid) : ((portalQuiz && portalQuiz.photos) || []);
+  const thumbs = list.map((src, i) => `<span style="position:relative;display:inline-block;margin:0 10px 8px 0;"><img src="${qzEsc(src)}" alt="Your written working" style="height:90px;border:1px solid var(--border);border-radius:6px;background:#fff;">${saved ? '' : `<button type="button" class="link-btn danger" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;" onclick="qzPhotoRemove('${quizId}','${qid}',${i})" title="Remove this photo"><i class="fa-solid fa-xmark"></i></button>`}</span>`).join('');
+  const add = (!saved && list.length < QZ_PHOTOS_PER_Q) ? `<label class="link-btn" style="cursor:pointer;"><i class="fa-solid fa-camera"></i>&nbsp;${list.length ? 'Add another photo' : 'Add a photo of your written working'}<input type="file" accept="image/*" style="display:none;" onchange="qzPhotoAdd('${quizId}','${qid}',this)"></label>` : '';
+  return `<div style="margin-top:10px;">${thumbs}${add}<div style="font-size:11.5px;color:var(--muted);">Up to ${QZ_PHOTOS_PER_Q} photos. Your teacher marks written working by hand.</div>${a.photoNote ? `<div style="font-size:12px;color:var(--rose);margin-top:4px;">${qzEsc(a.photoNote)}</div>` : ''}</div>`;
+}
+function qzShrinkPhoto(file){
+  return new Promise((resolve, reject) => {
+    if(!file || !/^image\//.test(file.type || '')) return reject(new Error('Choose a photo (an image file).'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try{
+        let out = '';
+        for(const px of [1000, 800, 650, 500]){
+          const s = Math.min(1, px / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.max(1, Math.round(img.naturalWidth * s)), h = Math.max(1, Math.round(img.naturalHeight * s));
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+          for(let q = 0.7; q >= 0.35; q -= 0.1){ out = c.toDataURL('image/jpeg', q); if(out.length <= QZ_PHOTO_CHARS) break; }
+          if(out.length <= QZ_PHOTO_CHARS) break;
+        }
+        URL.revokeObjectURL(url);
+        if(out.length > QZ_PHOTO_CHARS) reject(new Error('That photo is too large to send. Take it again with more light and less background.')); else resolve(out);
+      }catch(e){ URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That file could not be read as a photo.')); };
+    img.src = url;
+  });
+}
+function qzPhotoRefresh(quizId, qid, a){
+  const pb = document.getElementById('qzPhotoBox'); if(pb) pb.innerHTML = qzPhotoHtml(quizId, qid, a);
+  const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
+}
+async function qzPhotoAdd(quizId, qid, inputEl){
+  const f = inputEl.files && inputEl.files[0]; inputEl.value = '';
+  const st = studentByAdmissionNumber(currentPortalStudentAdm), a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!f || !a || a.submittedAt || (a.saved && a.saved[qid]) || !portalQuiz || portalQuiz.quizId !== quizId) return;
+  portalQuiz.photos = portalQuiz.photos || [];
+  if(portalQuiz.photos.length >= QZ_PHOTOS_PER_Q) return;
+  try{ portalQuiz.photos.push(await qzShrinkPhoto(f)); }catch(err){ try{ alert(String(err && err.message || err)); }catch(_e){} }
+  qzPhotoRefresh(quizId, qid, a);
+}
+function qzPhotoRemove(quizId, qid, i){
+  const st = studentByAdmissionNumber(currentPortalStudentAdm), a = st && qzAttempt(quizId, st.admissionNumber);
+  if(!a || !portalQuiz || portalQuiz.quizId !== quizId || !portalQuiz.photos) return;
+  portalQuiz.photos.splice(i, 1); qzPhotoRefresh(quizId, qid, a);
+}
+function qzPhotoImgs(list){ return (list || []).map(src => `<img src="${qzEsc(src)}" alt="Written working" style="max-width:100%;max-height:420px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;display:block;">`).join(''); }
 function qzActionHtml(quizId, qid, a){
   const q = onlineQuizzes.find(x => x.id === quizId); const last = a.pos >= a.order.qids.length - 1;
   if(a.saved && a.saved[qid]){
@@ -11017,15 +11378,17 @@ function qzActionHtml(quizId, qid, a){
       (last ? `<button class="btn-primary auto" onclick="qzFinish('${quizId}',false)"><i class="fa-solid fa-flag-checkered"></i>&nbsp;Finish &amp; submit</button>`
             : `<button class="btn-primary auto" onclick="qzNext('${quizId}')">Next <i class="fa-solid fa-arrow-right"></i></button>`);
   }
-  if(portalQuiz && portalQuiz.pending != null) return `<button class="btn-primary auto" onclick="qzSaveAnswer('${quizId}','${qid}')"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save</button>`;
+  if(qzHasPending()) return `<button class="btn-primary auto" onclick="qzSaveAnswer('${quizId}','${qid}')"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save</button>`;
   return `<div style="font-size:12.5px;color:var(--muted);">${q && qzType(q) !== 'mcq' ? 'Type your answer' : 'Choose an answer'}, then press Save.</div>`;
 }
 function qzSaveAnswer(quizId, qid){
   const st = studentByAdmissionNumber(currentPortalStudentAdm); const a = st && qzAttempt(quizId, st.admissionNumber);
-  if(!a || a.submittedAt || !portalQuiz || portalQuiz.pending == null) return;
-  a.answers[qid] = portalQuiz.pending; a.saved = a.saved || {}; a.saved[qid] = true;
+  if(!a || a.submittedAt || !qzHasPending()) return;
+  a.answers[qid] = portalQuiz.pending != null ? portalQuiz.pending : ''; a.saved = a.saved || {}; a.saved[qid] = true;
+  if((portalQuiz.photos || []).length){ a.photos = a.photos || {}; a.photos[qid] = portalQuiz.photos.slice(0, QZ_PHOTOS_PER_Q); }
   try{ prDirty(a); }catch(_e){}
-  portalQuiz.pending = null;
+  portalQuiz.pending = null; portalQuiz.photos = [];
+  { const pb = document.getElementById('qzPhotoBox'); if(pb) pb.innerHTML = qzPhotoHtml(quizId, qid, a); }
   const box = document.getElementById('qzActionBox'); if(box) box.innerHTML = qzActionHtml(quizId, qid, a);
   const q = onlineQuizzes.find(x => x.id === quizId), el = document.getElementById('qzCount');
   if(q && el) el.textContent = Object.keys(a.saved).length + '/' + q.questions.length + ' saved';
@@ -11048,7 +11411,7 @@ function qzFinish(quizId, auto){
     if(!confirm(left ? `You have ${left} unanswered question${left===1?'':'s'}. Submit anyway?` : 'Submit your answers now? You cannot change them afterwards.')) return;
   }
   a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); a.submittedAt = Date.now(); a.auto = !!auto;
-  if(qzType(q) === 'short' || (qzType(q) === 'structured' && q.autoMark)) a._scoring = true;   // the server marks typed answers (it holds the answer keys and marking schemes); the score appears when it replies
+  if(qzType(q) === 'short' || (qzType(q) === 'structured' && q.autoMark && !qzHasPhotos(a))) a._scoring = true;   // the server marks typed answers (it holds the answer keys and marking schemes); the score appears when it replies
   try{ prPush(a); }catch(_e){}
   qzStopTimer();
   portalQuiz = { mode:'review', quizId };
@@ -11105,6 +11468,7 @@ function renderPortalQuizBody(st){
         <li>You have <strong>${q.minutes} minutes</strong>. The timer starts the moment you press <strong>Start</strong>${q.endTime ? ` and the quiz closes at <strong>${qzEsc(qzTimeLabel(q.endTime))}</strong>` : ''}.</li>
         <li>Questions appear one at a time. ${qzType(q)==='mcq' ? 'Choose an answer' : 'Type your answer'}, press <strong>Save</strong>, then press <strong>Next</strong>.</li>
         <li>A saved answer cannot be changed.</li>
+        ${qzType(q)==='structured' && q.allowPhotos ? '<li>You may add a <strong>photo of your written working</strong> to an answer. Your teacher marks answers with photos by hand, so the marks come later.</li>' : ''}
         <li>When the time ends, your saved answers are submitted automatically.</li>
         ${q.allowRetake ? '' : '<li>You can take this quiz only once.</li>'}
       </ol>
@@ -11130,7 +11494,7 @@ function renderPortalQuizBody(st){
         <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">QUESTION ${a.pos + 1} OF ${total}</div>
         <div style="font-weight:700;font-size:16px;margin-bottom:12px;">${qzEsc(x.text)}${qzType(q)==='structured' ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${qzQMarks(q, x)} mark${qzQMarks(q, x)===1?'':'s'}]</span>` : ''}</div>
         ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;background:#fff;">` : ''}
-        ${qzType(q) !== 'mcq' ? `<textarea rows="${qzType(q)==='short' ? 2 : 7}" maxlength="${qzType(q)==='short' ? 200 : 2000}" placeholder="${qzType(q)==='short' ? 'Type your answer' : 'Write your answer here'}" ${isSaved?'disabled':''} style="width:100%;box-sizing:border-box;padding:10px;font-family:inherit;font-size:15px;" oninput="qzTyped('${q.id}','${qid}',this.value)">${qzEsc(sel == null ? '' : sel)}</textarea>` : a.order.opts[qid].map((oi, k) => `
+        ${qzType(q) !== 'mcq' ? `<textarea rows="${qzType(q)==='short' ? 2 : 7}" maxlength="${qzType(q)==='short' ? 200 : 2000}" placeholder="${qzType(q)==='short' ? 'Type your answer' : 'Write your answer here'}" ${isSaved?'disabled':''} style="width:100%;box-sizing:border-box;padding:10px;font-family:inherit;font-size:15px;" oninput="qzTyped('${q.id}','${qid}',this.value)">${qzEsc(sel == null ? '' : sel)}</textarea>${qzType(q)==='structured' && q.allowPhotos ? `<div id="qzPhotoBox">${qzPhotoHtml(q.id, qid, a)}</div>` : ''}` : a.order.opts[qid].map((oi, k) => `
           <label style="display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:6px;cursor:${isSaved?'default':'pointer'};${sel===oi?'background:var(--blue-tint);':''}">
             <input type="radio" name="qa_${qzEsc(qid)}" ${sel===oi?'checked':''} ${isSaved?'disabled':''} onchange="qzPick('${q.id}','${qid}',${oi})">
             <span><strong style="color:var(--muted);">${String.fromCharCode(65+k)}.</strong> ${qzEsc(x.options[oi])}</span>
@@ -11171,7 +11535,7 @@ function qzTypedReview(q, a){
     return `<div style="border:1px solid var(--border);border-left:4px solid ${col};border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${t === 'structured' ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${qzQMarks(q, x)} mark${qzQMarks(q, x)===1?'':'s'}]</span>` : ''}</div>
       ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
-      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Your answer: ${has ? qzEsc(mine) : '<em>none</em>'}${ok === null ? '' : ok ? ' ✔' : ' ✘'}${extra}</div></div>`;
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Your answer: ${has ? qzEsc(mine) : (qzPhotosOf(a, x.id).length ? '<em>see photo</em>' : '<em>none</em>')}${ok === null ? '' : ok ? ' ✔' : ' ✘'}${extra}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}</div>`;
   }).join('');
 }
 function qzRetake(quizId){
@@ -12103,6 +12467,8 @@ function sdSaveSchool(e){
     // A newly registered school is Active from the start, and its principal can sign in with the mobile number given here.
     if(saved){ if(!sdEditingId) saved.status = 'Active'; try{ sdEnsurePrincipalAccount(saved); }catch(_e){ console.warn('principal account', _e); } } }
   sdCloseModal();
+  // a newly registered school is linked to the cloud (its own private space and server login) straight away
+  try{ if(window.MASMS_CLOUD && MASMS_CLOUD.linkSchools) setTimeout(() => MASMS_CLOUD.linkSchools(), 0); }catch(_e){}
 }
 
 function sdRemoveSchool(id){
@@ -15868,7 +16234,7 @@ function quickCloudClick(){ if(window.MASMS_CLOUD) window.MASMS_CLOUD.click(); }
 function quickLinksHtml(){
   return `
     <a href="#" class="quick-link" onclick="quickToggleTheme();return false;" title="Switch between dark and light mode"><i class="fa-solid ${quickThemeIcon()}"></i><span>${quickThemeLabel()}</span></a>
-    ${window.MASMS_CLOUD ? `<a href="#" class="quick-link" onclick="quickCloudClick();return false;" title="Cloud sync"><i class="fa-solid fa-cloud"></i><span>${quickCloudLabel()}</span></a>` : ''}`;
+    ${window.MASMS_CLOUD && currentUserRole === "System Developer" ? `<a href="#" class="quick-link" onclick="quickCloudClick();return false;" title="Cloud sync"><i class="fa-solid fa-cloud"></i><span>${quickCloudLabel()}</span></a>` : ''}`;
 }
 function refreshQuickLinks(){
   const c = document.getElementById('quickLinksCell'); if(c) c.innerHTML = quickLinksHtml();
@@ -17890,6 +18256,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
     ${dNotice}
     ${dCfg.stats ? `<div class="hm-stats">${hmCards}</div>` : ''}
 
+    <div class="hm-main">
     ${(dCfg.enroll || dCfg.byclass) ? `<div class="hm-charts">
       ${dCfg.enroll ? `<div class="hm-card"><h3>Enrollment Overview</h3><div class="hm-area">${enrollmentChart}</div></div>` : '<div></div>'}
       ${dCfg.byclass ? `<div class="hm-card"><h3>Students by Class</h3>
@@ -17941,8 +18308,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
     </div>` : ''}
 
     ${dCfg.analysis ? renderDashExamAnalysis() : ''}
-
-
+    </div>
   `;
 }
 
@@ -59684,7 +60050,7 @@ function renderMobileChrome(){
         ${currentUserRole === 'System Developer' ? `<button onclick="changeWaSupportNumber()"><i class="fa-brands fa-whatsapp"></i>WhatsApp number</button>` : ''}
         <button onclick="mDesktopView()"><i class="fa-solid fa-desktop"></i>Desktop view</button>
         <button onclick="quickToggleTheme()"><i class="fa-solid ${quickThemeIcon()}"></i>${quickThemeLabel()}</button>
-        ${window.MASMS_CLOUD ? `<button onclick="mCloseSheet();quickCloudClick()"><i class="fa-solid fa-cloud"></i>${quickCloudLabel()}</button>` : ''}
+        ${window.MASMS_CLOUD && currentUserRole === "System Developer" ? `<button onclick="mCloseSheet();quickCloudClick()"><i class="fa-solid fa-cloud"></i>${quickCloudLabel()}</button>` : ''}
         <button onclick="mOpenSheet('account')"><i class="fa-solid fa-globe"></i>Language &amp; account</button>
         <button class="danger" onclick="mDoLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>Log out</button>
       </div></div>`;
@@ -63197,7 +63563,36 @@ if(isLoggedIn){
   if(typeof wrapped==='function') window.logout=function(){ armed=false; clear(); try{ return wrapped.apply(this,arguments); } finally{ armed=true; } };
 
   var _csl=window.completeStaffLogin; if(typeof _csl==='function') window.completeStaffLogin=function(){ loggedOutElsewhere=false; return _csl.apply(this,arguments); };
-  function finish(){ try{ restore(); }catch(e){} unhide(); armed=true; save(); }
+  // Online-only builds (the hosted site and the Android app set window.MASMS_ONLINE_ONLY): a saved session is only picked up
+  // again after the server has been reached, exactly like a fresh sign-in. Offline, or when the server no longer accepts this
+  // device's cloud sign-in, the saved session is dropped and the person lands on the login page and must sign in online.
+  function serverCheck(){
+    var API=(window.MASMS_API_BASE||'')+'/api', tok=null; try{ tok=localStorage.getItem('masmsCloudToken'); }catch(e){}
+    try{ if(!window.MASMS_API_BASE && window.Capacitor && (location.hostname==='localhost'||location.hostname==='127.0.0.1')) return Promise.resolve('offline'); }catch(e){}   // app built with no server address
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve('offline');
+    var ctl=(typeof AbortController!=='undefined')?new AbortController():null, timer=setTimeout(function(){ if(ctl) ctl.abort(); },6000);
+    var o={cache:'no-store',headers:tok?{Authorization:'Bearer '+tok}:{}}; if(ctl) o.signal=ctl.signal;
+    // only a genuine MASMS server answer counts: an HTML page (the app's own files, a Wi-Fi login page) is not the internet
+    return fetch(API+(tok?'/auth/me':'/auth/status'),o).then(function(r){
+      if(r.status===401||r.status===403){ clearTimeout(timer); return 'rejected'; }
+      if(!r.ok){ clearTimeout(timer); return 'offline'; }
+      return r.json().then(function(j){ clearTimeout(timer); return (j&&typeof j==='object'&&(tok?typeof j.username==='string':typeof j.needsSetup==='boolean'))?'ok':'offline'; },function(){ clearTimeout(timer); return 'offline'; });
+    }).catch(function(){ clearTimeout(timer); return 'offline'; });
+  }
+  function finish(){
+    if(window.MASMS_ONLINE_ONLY && read()){
+      serverCheck().then(function(st){
+        if(st==='ok'){ try{ restore(); }catch(e){} }
+        else{
+          clear();
+          try{ loginError = st==='offline' ? 'No internet connection. Connect to the internet to sign in.' : 'Your sign-in is no longer valid. Sign in again.'; renderLoginPage(); }catch(e){}
+        }
+        unhide(); armed=true; save();
+      });
+      return;
+    }
+    try{ restore(); }catch(e){} unhide(); armed=true; save();
+  }
   var L=window.MASMS_LOCAL;
   if(L&&L.ready&&L.ready.then) L.ready.then(finish,finish);
   else if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(finish,0); });
@@ -63210,7 +63605,7 @@ if(isLoggedIn){
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); });
   window.addEventListener('pagehide',save);
   window.addEventListener('beforeunload',save);
-  window.MASMS_SESSION={ restore:restore, save:save, clear:clear };
+  window.MASMS_SESSION={ restore:restore, save:save, clear:clear, serverCheck:serverCheck };
 })();
 </script>
 <script>/* MASMS app-update: checks for a newer version automatically, with no button to press.

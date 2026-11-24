@@ -32,21 +32,28 @@
   }
   function setState(s){ state=s; paint(); try{ window.dispatchEvent(new Event('masms-cloud')); }catch(e){} }
   function signOut(){ token=null; ready=false; me=null; try{localStorage.removeItem(TOKEN_KEY);}catch(e){} setState('off'); }
-  pill.onclick=function(){ if(!token) openDialog(); else openAccount(); };
+  // Only the System Developer connects the device to the cloud (once, from the login page or the top bar) and manages it afterwards;
+  // nobody else is offered the cloud sign-in, sign-out or account screens. A connected device stays connected (the token renews itself).
+  var setupOpen=false, afterSetup=null;
+  function isSysDev(){ try{ return !!isLoggedIn && currentUserRole==='System Developer'; }catch(e){ return false; } }
+  pill.onclick=function(){
+    if(!isSysDev() && !setupOpen){ toast('Only the System Developer can connect or change the cloud sign-in.'); return; }
+    if(!token) openDialog(); else openAccount();
+  };
 
   // used by the top-bar / mobile menu "cloud" link
-  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: syncing…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; }, syncNow:function(){ return pull(true).then(function(){ save(); }); }, api:function(m,path,body){ return api(m,path,body); } };
+  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: syncing…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; }, setup:function(cb){ if(token){ if(cb) cb(); return; } setupOpen=true; afterSetup=cb||null; openDialog(); }, isSysDev:isSysDev, connect:function(t){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} return Promise.resolve(start()); }, linkSchools:function(){ return linkSchools(); }, setToken:function(t){ if(t&&t!==token){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} } }, syncNow:function(){ return pull(true).then(function(){ save(); }); }, api:function(m,path,body){ return api(m,path,body); } };
 
   function openDialog(){
     api('GET','/auth/status').catch(function(){return {};}).then(function(st){
       var d=document.createElement('div');
       d.style.cssText='position:fixed;inset:0;background:rgba(10,20,40,.55);z-index:2147483001;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif';
-      d.innerHTML='<form style="background:#fff;border-radius:14px;padding:22px;width:320px;max-width:92vw;display:grid;gap:10px"><b style="font-size:16px">'+(st.needsSetup?'Create the platform owner account':'Cloud sign-in')+'</b><input name="u" placeholder="Username" autocomplete="username" style="padding:10px;border:1px solid #cfd8ea;border-radius:8px"><input name="p" type="password" placeholder="Password (8+ chars)" autocomplete="current-password" style="padding:10px;border:1px solid #cfd8ea;border-radius:8px"><div class="e" style="color:#d63a3a;font-size:12px;min-height:14px"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="c" style="padding:8px 14px;border:1px solid #cfd8ea;background:#fff;border-radius:8px;cursor:pointer">Cancel</button><button style="padding:8px 16px;border:0;background:#1a1aff;color:#fff;border-radius:8px;font-weight:600;cursor:pointer">'+(st.needsSetup?'Create':'Sign in')+'</button></div></form>';
+      d.innerHTML='<form style="background:#fff;border-radius:14px;padding:22px;width:320px;max-width:92vw;display:grid;gap:10px"><b style="font-size:16px">'+(st.needsSetup?'Create the platform owner account':'Connect this device (System Developer)')+'</b><input name="u" placeholder="Username" autocomplete="username" style="padding:10px;border:1px solid #cfd8ea;border-radius:8px"><input name="p" type="password" placeholder="Password (8+ chars)" autocomplete="current-password" style="padding:10px;border:1px solid #cfd8ea;border-radius:8px"><div class="e" style="color:#d63a3a;font-size:12px;min-height:14px"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="c" style="padding:8px 14px;border:1px solid #cfd8ea;background:#fff;border-radius:8px;cursor:pointer">Cancel</button><button style="padding:8px 16px;border:0;background:#1a1aff;color:#fff;border-radius:8px;font-weight:600;cursor:pointer">'+(st.needsSetup?'Create':'Sign in')+'</button></div></form>';
       document.body.appendChild(d);
-      var f=d.firstChild; d.querySelector('.c').onclick=function(){ d.remove(); };
+      var f=d.firstChild; d.querySelector('.c').onclick=function(){ d.remove(); setupOpen=false; afterSetup=null; };
       f.onsubmit=function(ev){ ev.preventDefault();
         api('POST',st.needsSetup?'/auth/register':'/auth/login',{username:f.u.value,password:f.p.value}).then(function(r){
-          token=r.token; try{localStorage.setItem(TOKEN_KEY,token);}catch(e){} d.remove(); start();
+          token=r.token; try{localStorage.setItem(TOKEN_KEY,token);}catch(e){} d.remove(); var cb=afterSetup; setupOpen=false; afterSetup=null; Promise.resolve(start()).then(function(){ if(cb) cb(); });
         }).catch(function(e){ d.querySelector('.e').textContent=e.message; });
       };
     });
@@ -74,6 +81,7 @@
   // A shared phone or computer may hold another school's data from an earlier sign-in. Never carry it over: wipe it and restart clean.
   function checkSchool(){
     return api('GET','/auth/me').then(function(u){
+      if(u.token){ token=u.token; try{ localStorage.setItem(TOKEN_KEY,token); }catch(e){} }   // the server renews a token daily so the device never has to sign in again
       me=u; var prev=null; try{ prev=localStorage.getItem(TENANT_KEY); }catch(e){}
       try{ localStorage.setItem(TENANT_KEY,u.tenant); }catch(e){}
       if(prev&&prev!==u.tenant&&window.MASMS_LOCAL&&MASMS_LOCAL.wipe){
@@ -82,10 +90,39 @@
     });
   }
 
+  // Every school registered in the app gets its own private cloud space automatically, so its staff can sign in on any phone with no
+  // cloud sign-in. Runs on the System Developer's (platform owner's) connected device: after start-up and whenever a school is registered.
+  var linking=false;
+  var relink=false;
+  function linkSchools(){
+    // a school registered while another link is in flight is linked as soon as that one ends (not at the 30s retry)
+    if(linking){ relink=true; return Promise.resolve(); }
+    if(!token||!me||!me.platform) return Promise.resolve();
+    var list=[]; try{ list=(typeof sdSchools!=='undefined'?sdSchools:[]).filter(function(r){ return r&&r.name&&!r.cloudCode; }); }catch(e){}
+    if(!list.length) return Promise.resolve();
+    var snap; try{ snap=collectBackupData(); }catch(e){ return Promise.resolve(); }
+    linking=true; var changed=false, chain=Promise.resolve();
+    list.forEach(function(r){
+      chain=chain.then(function(){
+        var seed={ schoolProfile:(snap.schoolProfiles||{})[r.name]||null, schoolData:(snap.schoolData||{})[r.name]||{}, sdRecord:JSON.parse(JSON.stringify(r)) };
+        return api('POST','/schools/link',{ name:r.name, seed:seed }).then(function(j){ if(j&&j.code){ r.cloudCode=j.code; changed=true; } }).catch(function(){});   // a failure is retried at the next start-up
+      });
+    });
+    return chain.then(function(){
+      linking=false;
+      if(relink){ relink=false; setTimeout(linkSchools,0); }
+      if(changed){ try{ if(window.MASMS_DIRTY) MASMS_DIRTY.bump(); }catch(e){} }
+      // a school that could not be linked now (signal dropped, server busy) is tried again soon: do not wait for the next start-up
+      var pending=0; try{ pending=(typeof sdSchools!=='undefined'?sdSchools:[]).filter(function(r){ return r&&r.name&&!r.cloudCode; }).length; }catch(e){}
+      if(pending&&!linkTimer) linkTimer=setTimeout(function(){ linkTimer=null; linkSchools(); },5000);
+    });
+  }
+  var linkTimer=null;
+
   function start(){
     if(!token) return setState('off');
     setState('sync');
-    localReady().then(checkSchool).then(function(){ return api('GET','/data'); }).then(function(r){
+    return localReady().then(checkSchool).then(function(){ return api('GET','/data'); }).then(function(r){
       version=r.version||0;
       // data restored from this device that the cloud never received (e.g. entered offline): combine marks if that is all that
       // changed, otherwise let the user choose
@@ -93,11 +130,12 @@
       var baseP=(unsynced&&MASMS_LOCAL.loadBase)?MASMS_LOCAL.loadBase().catch(function(){ return null; }):Promise.resolve(null);
       return baseP.then(function(b){
         var merged=unsynced&&b&&b.json?mergeOnto(b.json,r):null;
-        if(merged){ ready=true; adoptMerged(r,merged); return; }
+        if(merged){ ready=true; adoptMerged(r,merged); linkSchools(); return; }
         var keepLocal=unsynced&&
-          confirm('This device has changes that were never uploaded to the cloud.\n\nOK = keep this device\'s data and upload it\nCancel = replace it with the cloud copy');
+          confirm('This device has changes that were never uploaded to the school\'s server.\n\nOK = keep this device\'s data and upload it\nCancel = replace it with the copy on the server');
         if(r.data&&!keepLocal){ apply(r.data); lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); ready=true; setState('ok'); }
         else { ready=true; lastHash=''; save(); }
+        linkSchools();
       });
     }).catch(function(e){ if(e.status===401){ token=null; try{localStorage.removeItem(TOKEN_KEY);}catch(_){} setState('off'); } else if(e.status===403){ setState('err'); alert(e.message); } else setState('err'); });
   }
@@ -138,14 +176,14 @@
       if(done) return;
       if(dirty){
         var who=m.updatedBy?(' ('+m.updatedBy+')'):'';
-        var useCloud=confirm('Another device'+who+' saved newer data to the cloud, and this device also has changes that were not uploaded yet.\n\nOK = load the other device\'s data (this device\'s unsaved changes are replaced)\nCancel = keep this device\'s data and overwrite the cloud copy');
+        var useCloud=confirm('Another device'+who+' saved newer data to the school\'s server, and this device also has changes that were not uploaded yet.\n\nOK = load the other device\'s data (this device\'s unsaved changes are replaced)\nCancel = keep this device\'s data and overwrite the copy on the server');
         if(!useCloud){ version=m.version; seenEpoch=-1; return; }   // next save() uploads this device's data on top of the newer version
       }
       setState('sync');
       return api('GET','/data').then(function(r){
         if(!r.data) return;
         apply(r.data); version=r.version||m.version; lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); seenEpoch=-1;
-        setState('ok'); toast('Updated from cloud'+(r.updatedBy?' (saved by '+r.updatedBy+')':''));
+        setState('ok'); toast('Updated with the latest saved data'+(r.updatedBy?' (saved by '+r.updatedBy+')':''));
       });
       });
     }).catch(function(e){
@@ -165,7 +203,7 @@
     if(h===lastHash) return;
     busy=true; setState('sync');
     var base=version;
-    api('PUT','/data',{data:snap,baseVersion:version}).then(function(r){ version=r.merged?base:r.version; lastHash=h; markSynced(h); if(!r.merged) setBase(str,version); setState('ok'); })   // merged: the server added learners' attempts, so the next check loads them
+    api('PUT','/data',{data:snap,baseVersion:version}).then(function(r){ version=r.merged?base:r.version; lastHash=h; markSynced(h); if(!r.merged) setBase(str,version); setState('ok'); linkSchools(); })   // merged: the server added learners' attempts, so the next check loads them
       .catch(function(e){
         seenEpoch=-1;   // upload failed: retry on the next tick even if nothing else changes
         if(e.status===409){ busy=false; pull(true); }   // another device saved first: pull() loads it or lets the user choose

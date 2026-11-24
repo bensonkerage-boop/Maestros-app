@@ -16,8 +16,10 @@ function setup({ cloudToken } = {}) {
   window.fetch = jest.fn((url, opt) => {
     const ok = (j, status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(j) });
     if (/\/portal\/login$/.test(url)) { const st = portalStatus(JSON.parse(opt.body)); return ok(st === 200 ? { token: 't' } : { error: 'More than one school has this admission number.' }, st); }
+    if (/\/staff\/login$/.test(url)) { const b = JSON.parse(opt.body); return b.username === '0733 000 111' && b.password === 'welcome' ? ok({ token: 'SCHOOL-TOKEN', user: { tenant: 'a' } }) : ok({ error: 'Incorrect username or password.' }, 401); }
     if (/\/auth\/status$/.test(url)) return ok({ needsSetup: false });
-    if (/\/auth\/me$/.test(url)) return ok({ username: 'jane' });
+    if (/\/auth\/me$/.test(url)) return ok({ username: 'jane', tenant: 'A' });
+    if (/\/auth\/login$/.test(url)) return ok({ token: 'DEVICE-TOKEN', user: { username: 'school-a', tenant: 'A' } });
     if (/\/data\/version$/.test(url)) return ok({ version: 1 });
     if (/\/data$/.test(url)) return ok({ version: 0, data: null });
     return ok({});
@@ -63,13 +65,45 @@ test('an admission number shared by two schools still reaches the login, which s
   expect(entered()).toEqual(['4502']);
 });
 
-test('staff details on a device with no cloud sign-in are still stopped and told to sign in to the cloud', async () => {
+test('a staff member on a device with no cloud sign-in is connected to their school automatically: no cloud sign-in is shown, and the sign-in carries on', async () => {
   setup();
   await jest.advanceTimersByTimeAsync(10); await flush();
-  type('0733 000 111', 'welcome');           // a staff phone number: the server does not accept it as a learner or parent
+  type('0733 000 111', 'welcome');           // a staff phone number the server finds in a school
+  await submit();
+  await jest.advanceTimersByTimeAsync(200); await flush(200);
+  expect(localStorage.getItem('masmsCloudToken')).toBe('SCHOOL-TOKEN');   // this device is now connected to that school only
+  expect(entered()).toEqual(['0733 000 111']);                            // and the normal login went ahead with the typed details
+  expect(document.querySelector('form')).toBeNull();                      // nobody was shown a cloud sign-in
+});
+
+test('details no school holds are refused with the usual message, and no cloud sign-in is shown', async () => {
+  setup();
+  await jest.advanceTimersByTimeAsync(10); await flush();
+  type('0700 999 999', 'nope');
   await submit();
   expect(entered()).toEqual([]);
-  expect(error()).toMatch(/Sign in to the cloud first/);
+  expect(error()).toBe('Incorrect username or password.');
+  expect(localStorage.getItem('masmsCloudToken')).toBeNull();
+  expect(document.querySelector('form')).toBeNull();
+  window.MASMS_CLOUD.click();                                   // the cloud button does nothing for anyone but the System Developer
+  await jest.advanceTimersByTimeAsync(50); await flush();
+  expect(document.querySelector('form')).toBeNull();
+});
+
+test('the System Developer is offered the cloud sign-in once, then continues into the app and the device stays connected', async () => {
+  setup();
+  window.eval('var SYSDEV_USERNAME = "Oimeke", SYSDEV_PASSWORD = "Aiden@2023";');
+  await jest.advanceTimersByTimeAsync(10); await flush();
+  type('Oimeke', 'Aiden@2023');
+  await submit();
+  expect(entered()).toEqual([]);
+  const form = document.querySelector('form');
+  expect(form).not.toBeNull(); expect(form.textContent).toMatch(/System Developer/);
+  form.u.value = 'school-a'; form.p.value = 'password123';
+  form.onsubmit({ preventDefault() {} });
+  await jest.advanceTimersByTimeAsync(200); await flush(200);
+  expect(localStorage.getItem('masmsCloudToken')).toBe('DEVICE-TOKEN');
+  expect(entered()).toEqual(['Oimeke']);                         // carried straight on into the System Developer sign-in
 });
 
 test('empty fields are stopped without asking the server', async () => {
@@ -78,7 +112,8 @@ test('empty fields are stopped without asking the server', async () => {
   type('', '');
   await submit();
   expect(entered()).toEqual([]);
-  expect(window.fetch.mock.calls.some(c => /portal\/login/.test(c[0]))).toBe(false);
+  expect(window.fetch.mock.calls.some(c => /portal\/login|staff\/login/.test(c[0]))).toBe(false);
+  expect(error()).toMatch(/Enter your username and password/);
 });
 
 test('a device that IS signed in to the cloud signs in as before, without asking the portal', async () => {

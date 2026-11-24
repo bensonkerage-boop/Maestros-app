@@ -1,5 +1,8 @@
 /* MASMS online-only sign-in ("lenient" mode).
-   - Signing in (password or fingerprint) needs a working internet connection and a valid cloud sign-in, so the
+   - Signing in (password or fingerprint) needs a working internet connection and a connection to the person's school. Nobody is
+     asked to sign in to the cloud: the first time on a device the server finds the school that holds the typed staff details and
+     connects the device to it by itself (POST /api/staff/login); the device then stays connected. (Only the System Developer makes
+     the one-time platform connection.) So the
      user list is current (removed/suspended people can't get in) and this device is set up to upload its work.
    - Once signed in, the person keeps working even if the signal drops. Marks and everything else are saved on the
      phone and uploaded automatically (cloud-sync.js) when the connection returns, so a DOS elsewhere sees them.
@@ -38,6 +41,10 @@
       return r.json().then(function(j){
         clearTimeout(timer);
         var real = j && typeof j === 'object' && (token ? typeof j.username === 'string' : typeof j.needsSetup === 'boolean');
+        if(real && token && typeof j.token === 'string'){   // the server renewed this device's cloud sign-in: keep it
+          lsSet(TOKEN_KEY, j.token);
+          try{ if(window.MASMS_CLOUD && MASMS_CLOUD.setToken) MASMS_CLOUD.setToken(j.token); }catch(e){}
+        }
         return real ? 'ok' : 'offline';
       }, function(){ clearTimeout(timer); return 'offline'; });
     }).catch(function(){ clearTimeout(timer); return 'offline'; });
@@ -63,6 +70,27 @@
       }, function(){ return false; });
   }
 
+  // Ask the server whether the typed details are a staff account in some school. 200 gives this device that school's token.
+  function staffConnect(){
+    var u = document.getElementById('login_username'), p = document.getElementById('login_password');
+    var user = u && u.value.trim(), pass = p && p.value.trim();
+    if(!user || !pass) return Promise.resolve({ status: 400 });
+    return fetch(API + '/staff/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })
+      .then(function(r){
+        return r.json().then(function(j){
+          j = (j && typeof j === 'object') ? j : {};
+          return { status: r.status, token: (r.status === 200 && typeof j.token === 'string') ? j.token : null, error: typeof j.error === 'string' ? j.error : '' };
+        }, function(){ return { status: r.status }; });
+      });
+  }
+
+  function typedSysDev(){
+    try{
+      var u = document.getElementById('login_username'), p = document.getElementById('login_password');
+      return !!u && !!p && u.value.trim().toLowerCase() === SYSDEV_USERNAME.toLowerCase() && p.value.trim() === SYSDEV_PASSWORD;
+    }catch(e){ return false; }
+  }
+
   // Run `go` only when the server can be reached and the cloud sign-in is valid; otherwise explain and stay on the login page.
   var checking = false;
   function gate(go){
@@ -73,13 +101,34 @@
       if(st === 'offline'){ checking = false; say(unlinked() ? 'This app is not linked to the MASMS server. Install the latest version of the app.' : 'No internet connection. Connect to the internet to sign in.'); return; }
       var c = window.MASMS_CLOUD;
       if(st === 'rejected' || !c.signedIn()){
-        var needCloud = function(){
+        // This device is not connected to a school yet. Nobody is asked to sign in to the cloud: the server finds the school that
+        // holds the typed staff details and connects the device to it by itself, then the normal sign-in carries on. (The System
+        // Developer, whose details are not in any school, makes the one-time platform connection instead.)
+        var fail = function(msg){ checking = false; say(msg); };
+        if(typedSysDev() && c.setup){
+          var u0 = document.getElementById('login_username'), p0 = document.getElementById('login_password'), tu0 = u0.value, tp0 = p0.value;
+          say('System Developer: sign in with the platform owner account to connect this device.');
           checking = false;
-          say('Sign in to the cloud first (cloud button, bottom-left), then sign in here.');
-          try{ c.click(); }catch(e){}
-        };
-        if(st === 'rejected') return needCloud();
-        learnerAccepted().then(function(ok){ if(ok){ checking = false; go(); } else needCloud(); });
+          c.setup(function(){   // the page redraws after the data loads: put the typed details back, then sign in
+            var u1 = document.getElementById('login_username'), p1 = document.getElementById('login_password');
+            if(u1) u1.value = tu0; if(p1) p1.value = tp0;
+            stamp(); go();
+          });
+          return;
+        }
+        staffConnect().then(function(r){
+          if(r.token && c.connect){
+            var tu = document.getElementById('login_username').value, tp = document.getElementById('login_password').value;
+            return c.connect(r.token).then(function(){
+              var u1 = document.getElementById('login_username'), p1 = document.getElementById('login_password');
+              if(u1) u1.value = tu; if(p1) p1.value = tp;
+              checking = false; stamp(); go();
+            });
+          }
+          if(r.status === 400) return fail('Enter your username and password. (A fingerprint works once this device has signed in with a password.)');
+          if(r.status === 409 && r.error) return fail(r.error);
+          return learnerAccepted().then(function(ok){ if(ok){ checking = false; go(); } else fail('Incorrect username or password.'); });
+        }, function(){ fail('No internet connection. Connect to the internet to sign in.'); });
         return;
       }
       // bring the user list up to date first, so a removed or suspended person cannot get in with an old copy (max ~8s)
@@ -124,7 +173,7 @@
       if(st === 'rejected'){
         showBar(false);
         try{ logout(); }catch(e){}
-        say('Your cloud sign-in is no longer valid (account removed or school suspended). Sign in again when online.');
+        say('Your sign-in is no longer valid (account removed or school suspended). Sign in again when online.');
         return;
       }
       showBar(true);   // offline: keep working, saved locally
