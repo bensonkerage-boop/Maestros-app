@@ -40,10 +40,16 @@ test('offline (no signal): the saved session is dropped and the login page asks 
   expect(sessionStorage.getItem('masmsSession')).toBeNull();
 });
 
-test('offline (browser reports no network): no request is made and nobody is signed in', async () => {
+test('browser wrongly reports no network (Firefox/Edge) but the server answers: the saved session is restored', async () => {
   setup({ navOnline: false });
   await jest.advanceTimersByTimeAsync(50); await flush();
-  expect(window.fetch).not.toHaveBeenCalled();
+  expect(window.fetch).toHaveBeenCalled();
+  expect(state().in).toBe(true);
+});
+
+test('browser reports no network and the server really is unreachable: nobody is signed in', async () => {
+  setup({ navOnline: false, reject: true });
+  await jest.advanceTimersByTimeAsync(50); await flush();
   expect(state().in).toBe(false);
 });
 

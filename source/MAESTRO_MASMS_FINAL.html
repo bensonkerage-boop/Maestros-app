@@ -6076,7 +6076,7 @@ function resetPwApi(path, body){
   // Needs only the internet: the reset routes are public (the code sent to the phone/email on file is the proof of identity),
   // so the device does not have to be signed in to the cloud. The single-file offline copy has no server to ask.
   if(!window.MASMS_CLOUD) return Promise.reject(new Error('A code can only be sent in the online app (the website or the Android app). Ask your administrator to reset your password (Settings > Users & Roles).'));
-  if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new Error('No internet connection. Connect to the internet to reset your password.'));
+  // (navigator.onLine is not trusted: Firefox/Edge report false while the network works. A failed request gives the same message below.)
   return fetch((window.MASMS_API_BASE || '') + '/api' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
     .then(r => r.json().catch(() => ({})).then(j => { if(!r.ok) throw new Error(j.error || ('The server answered ' + r.status + '. Try again.')); return j; }),
           () => { throw new Error('No internet connection. Connect to the internet to reset your password.'); });
@@ -8396,7 +8396,7 @@ function renderPortalApp(){
     <div class="panel dash2-panel portal-card" onclick="qzOpenQuizzes()" role="button" tabindex="0">
       <h3><i class="fa-solid fa-circle-question" style="color:var(--orange);margin-right:8px;"></i>Online Exams</h3>
       <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">${_qOpen ? `<strong style="color:var(--rose);">${_qOpen} quiz${_qOpen===1?'':'zes'} waiting</strong> for ${fullName(student)}.` : 'No quizzes waiting. Past quiz scores appear here.'}</p>
-      <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open quizzes</div>
+      <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open Exams</div>
     </div>` : '';
   const cards = [feeCard, examCard, quizCard, attCard, msgCard].filter(Boolean).join('');
 

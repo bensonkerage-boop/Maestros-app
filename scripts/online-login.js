@@ -30,7 +30,8 @@
   // that is not the MASMS server's (an HTML page, a captive portal, the app's own files); 'rejected' = server says this sign-in is no longer valid
   function ping(){
     if(unlinked()) return Promise.resolve('offline');
-    if(typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve('offline');
+    // navigator.onLine is NOT trusted: Firefox and Edge report false on VPNs, some Wi-Fi/proxy set-ups and Windows "limited
+    // connectivity" even when the server is reachable, which used to block every sign-in. The real request below decides.
     var token = lsGet(TOKEN_KEY), ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, PING_TIMEOUT);
     var opts = { cache: 'no-store', headers: token ? { Authorization: 'Bearer ' + token } : {} };

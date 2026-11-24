@@ -115,7 +115,7 @@
   function serverCheck(){
     var API=(window.MASMS_API_BASE||'')+'/api', tok=null; try{ tok=localStorage.getItem('masmsCloudToken'); }catch(e){}
     try{ if(!window.MASMS_API_BASE && window.Capacitor && (location.hostname==='localhost'||location.hostname==='127.0.0.1')) return Promise.resolve('offline'); }catch(e){}   // app built with no server address
-    if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve('offline');
+    // navigator.onLine is not trusted (Firefox/Edge report false while the network works): the request below decides
     var ctl=(typeof AbortController!=='undefined')?new AbortController():null, timer=setTimeout(function(){ if(ctl) ctl.abort(); },6000);
     var o={cache:'no-store',headers:tok?{Authorization:'Bearer '+tok}:{}}; if(ctl) o.signal=ctl.signal;
     // only a genuine MASMS server answer counts: an HTML page (the app's own files, a Wi-Fi login page) is not the internet

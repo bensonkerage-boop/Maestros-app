@@ -8758,7 +8758,7 @@ function renderPortalApp(){
     <div class="panel dash2-panel portal-card" onclick="qzOpenQuizzes()" role="button" tabindex="0">
       <h3><i class="fa-solid fa-circle-question" style="color:var(--orange);margin-right:8px;"></i>Online Quizzes</h3>
       <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">${_qOpen ? `<strong style="color:var(--rose);">${_qOpen} quiz${_qOpen===1?'':'zes'} waiting</strong> for ${fullName(student)}.` : 'No quizzes waiting. Past quiz scores appear here.'}</p>
-      <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open quizzes</div>
+      <div class="portal-card-action"><i class="fa-solid fa-pen-to-square"></i> Open Exams</div>
     </div>` : '';
   const cards = [feeCard, examCard, quizCard, attCard, msgCard].filter(Boolean).join('');
 

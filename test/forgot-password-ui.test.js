@@ -92,9 +92,10 @@ describe('Send code', () => {
   });
   test('no internet, or the single-file offline copy, is told what to do', async () => {
     setup(); useServer(); fill({ phone: '0712345678' });
+    window.fetch = jest.fn(() => Promise.reject(new Error('offline')));   // the request itself fails: Firefox/Edge's onLine flag is not trusted
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     window.sendResetCode(); await flush();
-    expect(calls).toHaveLength(0); expect(msg()).toMatch(/No internet connection/);
+    expect(msg()).toMatch(/No internet connection/);
     setup({ cloud: 'none' }); useServer(); fill({ phone: '0712345678' });
     window.sendResetCode(); await flush();
     expect(msg()).toMatch(/administrator/);
