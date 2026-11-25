@@ -708,6 +708,20 @@ app.get('/api/android-apk', (req, res) => {
 // Landing-page content (text, contacts, gallery photos) edited by the System Developer in the app (Web Page tab).
 // Reading is public so the landing page can show it before anyone logs in; saving needs a cloud admin sign-in.
 const WP_STR = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+// Landing-page cards the System Developer can edit: photo, title, text and a "View more" link.
+const WP_CARDS = ['hero1', 'hero2', 'academics', 'nemis', 'timetable', 'fees', 'portal', 'communication'];
+const WP_LINK = v => { const u = WP_STR(v, 500); return /^(https?:\/\/|mailto:|tel:)[^\s<>"']+$/i.test(u) ? u : ''; };
+function cleanCards(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const k of WP_CARDS) {
+    const v = raw[k]; if (!v || typeof v !== 'object') continue;
+    const img = typeof v.img === 'string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v.img) && v.img.length <= 450 * 1024 ? v.img : '';
+    const card = { img, title: WP_STR(v.title, 80), text: WP_STR(v.text, 300), link: WP_LINK(v.link), linkLabel: WP_STR(v.linkLabel, 30) };
+    if (card.img || card.title || card.text || card.link || card.linkLabel) out[k] = card;
+  }
+  return out;
+}
 function cleanWebPage(c) {
   if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
   const hero = c.hero || {}, ct = c.contacts || {};
@@ -721,6 +735,7 @@ function cleanWebPage(c) {
     hero: { heading: WP_STR(hero.heading, 80), text: WP_STR(hero.text, 600) },
     contacts: { phone: WP_STR(ct.phone, 40), email: WP_STR(ct.email, 120), facebookName: WP_STR(ct.facebookName, 80), facebookUrl: WP_STR(ct.facebookUrl, 300), whatsapp: WP_STR(ct.whatsapp, 40) },
     gallery,
+    cards: cleanCards(c.cards),
   };
 }
 app.get('/api/web-page', wrap(async (req, res) => {

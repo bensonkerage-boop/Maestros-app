@@ -10,7 +10,8 @@
     "test": "jest --runInBand",
     "standalone": "node scripts/standalone.js",
     "build:android": "NATIVE_APP=1 node scripts/build.js && cap sync android",
-    "apk": "npm run build:android && cd android && ./gradlew assembleDebug"
+    "apk": "npm run build:android && cd android && ./gradlew assembleDebug",
+    "landing:css": "node scripts/landing-css.js"
   },
   "engines": {
     "node": ">=18"

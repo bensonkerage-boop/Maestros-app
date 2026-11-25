@@ -139,6 +139,14 @@ describe('web page (landing content)', () => {
     expect(got.gallery).toHaveLength(1);
     expect(got.gallery[0].src).toBe(png);
   });
+  test('card edits are saved; unsafe photos and links are dropped', async () => {
+    const cards = { fees: { img: png, title: 'Fees', text: 'T', link: 'https://example.com/x', linkLabel: 'Read more' }, nemis: { img: 'javascript:alert(1)', link: 'javascript:alert(1)', title: 'N' }, bogus: { title: 'x' } };
+    expect((await call('PUT', '/api/web-page', { content: { ...content, cards } }, admin)).s).toBe(200);
+    const got = (await call('GET', '/api/web-page')).j.content.cards;
+    expect(got.fees).toEqual({ img: png, title: 'Fees', text: 'T', link: 'https://example.com/x', linkLabel: 'Read more' });
+    expect(got.nemis.img).toBe(''); expect(got.nemis.link).toBe(''); expect(got.nemis.title).toBe('N');
+    expect(got.bogus).toBeUndefined();
+  });
   test('rejects a body without content', async () => {
     expect((await call('PUT', '/api/web-page', { nope: 1 }, admin)).s).toBe(400);
   });

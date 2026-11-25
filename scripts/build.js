@@ -102,9 +102,9 @@ if (require.main !== module) return;
   fs.writeFileSync(path.join(pub, 'vendor/fa/all.min.css'), fs.readFileSync(path.join(pub, 'vendor/fa/all.min.css'), 'utf8').replace(/\.\.\/webfonts\//g, 'webfonts/'));
 
   html = injectDark(html);
-  // Landing page is for the web browser only. The Android build (NATIVE_APP=1) opens straight on the login screen.
+  // The landing page is first in the web browser and in the Android app (NATIVE_APP=1); its Log in button reveals the app login.
   const androidBuild = process.env.NATIVE_APP === '1';
-  if (!androidBuild) html = injectLanding(html, root);   // landing page first; its Log in button reveals the app login
+  html = injectLanding(html, root);
   // PWA: manifest, icons, service worker; optional API base for the Android app (API_BASE=https://your-site)
   fs.cpSync(path.join(root, 'pwa', 'icons'), path.join(pub, 'icons'), { recursive: true });
   cp(path.join(root, 'pwa', 'manifest.webmanifest'), path.join(pub, 'manifest.webmanifest'));

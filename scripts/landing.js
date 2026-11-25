@@ -1,4 +1,4 @@
-// Landing page shown in the web browser before login (NOT in the Android app: see native() in RUNTIME and NATIVE_APP in build.js).
+// Landing page shown before login, in the web browser AND in the Android app (the same page in both).
 // injectLanding(html) puts pwa/landing.html (embedded as an iframe srcdoc, so it also works offline, in the APK and as a
 // single file) at the start of <body>. Its "Log in" button hides it and reveals the app's own login page.
 // It is skipped when someone is already signed in (saved session), when the address ends in #app, and for the rest of the
@@ -7,22 +7,6 @@ const fs = require('fs'), path = require('path');
 
 const RUNTIME = `(function(){
   var f=document.getElementById('masms-landing');
-  // Android app (Capacitor): no landing page at all, the app opens straight on the login screen.
-  // window.MASMS_LANDING is left undefined, so the login page also hides its "Home" back button.
-  function native(){try{var C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform())}catch(e){return false}}
-  if(native()){
-    if(f&&f.parentNode)f.parentNode.removeChild(f);
-    try{var NA=window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
-      if(NA&&NA.addListener)NA.addListener('backButton',function(){
-        try{
-          if(typeof isLoggedIn!=='undefined'&&!isLoggedIn){NA.exitApp();return}
-          if(window.history.length>1){window.history.back();return}
-          NA.exitApp();
-        }catch(e){try{NA.exitApp()}catch(x){}}
-      });
-    }catch(e){}
-    return;
-  }
   if(!f) return;
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}
@@ -39,7 +23,7 @@ const RUNTIME = `(function(){
   // back arrow on the login page: return to the landing page's Home view
   function home(){
     seen(false);show();
-    try{var w=f.contentWindow;if(w&&w.location.hash&&w.location.hash!=='#top')w.location.hash='#top';else if(w)w.scrollTo(0,0)}catch(e){}
+    try{var w=f.contentWindow;if(w&&w.location.hash&&w.location.hash!=='#home')w.location.hash='#home';else if(w)w.scrollTo(0,0)}catch(e){}
     try{window.scrollTo(0,0)}catch(e){}
   }
   window.MASMS_LANDING={show:show,hide:hide,home:home,refresh:function(){if(loaded)try{f.contentWindow.MASMS_WEBPAGE_APPLY()}catch(e){}},visible:function(){return !f.hidden}};
@@ -56,7 +40,7 @@ const RUNTIME = `(function(){
     try{
       if(!f.hidden){
         var w=f.contentWindow,h=w&&w.location.hash;
-        if(h&&h!=='#top'&&h!=='#'){w.location.hash='#top';return}
+        if(h&&h!=='#home'&&h!=='#top'&&h!=='#'){w.location.hash='#home';return}
         App.exitApp();return;
       }
       if(typeof isLoggedIn!=='undefined'&&!isLoggedIn){home();return}

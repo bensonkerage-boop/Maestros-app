@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1E2D3D">
+    <link rel="icon" href="/icons/icon-192.png">
+    <title>MAESTRO — Advanced School Management System</title>
+    <link rel="stylesheet" href="/vendor/fonts.css">
+    <style id="tw">/*__TAILWIND__*/</style>
+    <style id="cardx">.more-link{color:#0000FF;font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;min-height:32px;padding:0 4px}.more-link:hover{color:#0000CC}.more-link:after{content:" \2192";margin-left:4px}</style>
+    <style>
+        /* Android native tap feedback & safe area spacing */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        html { scroll-padding-top: 72px; scroll-behavior: smooth; }
+        body {
+            background-color: #F4F7FA;
+            color: #1E2D3D;
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        /* Hide scrollbar on horizontal mobile chips while keeping touch scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-canvas text-slateNavy font-sans antialiased overflow-x-hidden pb-20 md:pb-0">
+
+    <!-- ===================================================================== -->
+    <!-- TOP APP BAR (Compact 56px Android Material Bar on Mobile / Full Nav)  -->
+    <!-- ===================================================================== -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-14 md:h-18">
+                
+                <!-- Brand Identity -->
+                <a href="#home" class="flex items-center gap-2.5 sm:gap-3 focus:outline-none">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-royalBlue flex items-center justify-center text-white shadow-sm shrink-0">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L2 9l10 6 10-6-10-6z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-4.5"/>
+                        </svg>
+                    </div>
+                    <div class="leading-tight">
+                        <span class="block font-extrabold text-base sm:text-lg tracking-tight text-slateNavy">MAESTRO</span>
+                        <span class="hidden sm:block text-[11px] font-semibold text-slate-500 tracking-wide uppercase">
+                            Advanced School Management System
+                        </span>
+                        <span class="block sm:hidden text-[10px] font-medium text-slate-500">
+                            School Management System
+                        </span>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation Links -->
+                <nav class="hidden md:flex items-center gap-7">
+                    <a href="#home" class="text-sm font-semibold text-royalBlue transition-colors">Home</a>
+                    <a href="#features" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Features</a>
+                    <a href="#who-its-for" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Who it’s For</a>
+                    <a href="#faq" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">FAQ</a>
+                    <a href="#contacts" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Contacts</a>
+                    <button onclick="openLoginModal()" class="ml-1 px-5 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white font-semibold text-sm shadow-sm transition-all active:scale-95">
+                        Log in
+                    </button>
+                </nav>
+
+                <!-- Android Mobile Compact Action Pill -->
+                <div class="flex items-center gap-2 md:hidden">
+                    <button onclick="openLoginModal()" class="h-9 px-4 rounded-full bg-royalBlue active:bg-royalBlueDark text-white text-xs font-bold tracking-wide shadow-xs flex items-center gap-1.5 transition-transform active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                        </svg>
+                        <span>Log in</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- MAIN CONTENT CONTAINER                                                -->
+    <!-- ===================================================================== -->
+    <main id="home" class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-12 space-y-6 sm:space-y-10">
+
+        <!-- ================================================================= -->
+        <!-- SECTION 1: 2-COLUMN HERO BANNER CARDS WITH DARK SLATE STRIPS      -->
+        <!-- ================================================================= -->
+        <section aria-label="Featured Highlights" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            
+            <!-- Left Hero Banner Card -->
+            <div data-card="hero1" onclick="cardOpen('hero1')" class="group relative rounded-xl overflow-hidden bg-white shadow-card hover:shadow-cardHover transition-all duration-300 cursor-pointer">
+                <div class="relative h-48 sm:h-64 md:h-72 w-full overflow-hidden bg-slate-200">
+                    <img data-f="img" loading="lazy" 
+                        src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1000&q=80" 
+                        onerror="imgFb(this,'1E2D3D','FFFFFF','MAESTRO Modern Campus')"
+                        alt="Modern school campus illuminated at dusk" 
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    >
+                    <!-- Subtle Top Pill Tag -->
+                    <span class="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-white/90 backdrop-blur-xs text-[11px] font-bold text-slateNavy shadow-xs">
+                        CBE &amp; 8-4-4 Ready
+                    </span>
+                </div>
+                <!-- Signature Deep Slate Navy (#1E2D3D) Bottom Caption Strip -->
+                <div class="bg-slateNavy px-4 py-3.5 sm:px-6 sm:py-4 text-center">
+                    <h1 id="hero-heading" data-f="title" class="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide uppercase">
+                        MAESTRO SCHOOL MANAGEMENT SYSTEM
+                    </h1>
+                    <p id="hero-text" data-f="text" class="text-slate-300 text-xs sm:text-sm mt-0.5 line-clamp-1">
+                        Unified academic grading, NEMIS/KEMIS sync, and digital school administration
+                    </p>
+                </div>
+                <div class="bg-white px-4 py-2.5 text-center"><a data-f="more" href="#" class="more-link">View more</a></div>
+            </div>
+
+            <!-- Right Hero Banner Card -->
+            <div data-card="hero2" onclick="cardOpen('hero2')" class="group relative rounded-xl overflow-hidden bg-white shadow-card hover:shadow-cardHover transition-all duration-300 cursor-pointer">
+                <div class="relative h-48 sm:h-64 md:h-72 w-full overflow-hidden bg-slate-200">
+                    <img data-f="img" loading="lazy" 
+                        src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1000&q=80" 
+                        onerror="imgFb(this,'1E88E5','FFFFFF','Offline & Cloud Sync')"
+                        alt="Students and educators in modern learning environment" 
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    >
+                    <span class="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-royalBlue text-white text-[11px] font-bold shadow-xs">
+                        Offline + Cloud Hybrid
+                    </span>
+                </div>
+                <!-- Signature Deep Slate Navy (#1E2D3D) Bottom Caption Strip -->
+                <div class="bg-slateNavy px-4 py-3.5 sm:px-6 sm:py-4 text-center">
+                    <h2 data-f="title" class="text-white font-bold text-sm sm:text-base md:text-lg tracking-wide uppercase">
+                        SEAMLESS OFFLINE &amp; CLOUD OPERATIONS
+                    </h2>
+                    <p data-f="text" class="text-slate-300 text-xs sm:text-sm mt-0.5 line-clamp-1">
+                        Instant exam reports, M-Pesa fee reconciliation, and automated parent SMS alerts
+                    </p>
+                </div>
+                <div class="bg-white px-4 py-2.5 text-center"><a data-f="more" href="#" class="more-link">View more</a></div>
+            </div>
+
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SECTION 2: 3x2 CORE MODULE GRID (With Signature Center Blue Card) -->
+        <!-- ================================================================= -->
+        <section id="features" class="space-y-4 sm:space-y-6">
+            
+            <!-- Section Header (Compact on Android, clean on Desktop) -->
+            <div class="flex items-center justify-between px-0.5">
+                <div>
+                    <h2 class="text-lg sm:text-2xl font-extrabold text-slateNavy tracking-tight">
+                        Core System Modules
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                        Tap any module below to explore automated school workflows
+                    </p>
+                </div>
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-royalBlueLight text-royalBlue text-xs font-bold">
+                    6 Integrated Suites
+                </span>
+            </div>
+
+            <!-- 3-Column x 2-Row Grid on Desktop / Balanced 1-Col (or 2-Col Tablet) on Android -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+                <!-- CARD 1 (Row 1, Col 1): Academic & CBE Exams -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-slate-100" data-card="academics">
+                    <div>
+                        <div class="h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
+                            <img data-f="img" loading="lazy" 
+                                src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80" 
+                                onerror="imgFb(this,'E3F2FD','1E2D3D','Academic & CBE Exams')"
+                                alt="Classroom analytics and academic grading" 
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            >
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                Academic &amp; CBE Exams
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Automated merit lists, CBE competency rubrics (EE/ME/AE/BE), value-added progress, and batch PDF report forms.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openModuleModal('academics')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Explore Module
+                        </button>
+                    </div>
+                </article>
+
+                <!-- CARD 2 (Row 1, Col 2): NEMIS & KEMIS Student Registry -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-slate-100" data-card="nemis">
+                    <div>
+                        <div class="h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
+                            <img data-f="img" loading="lazy" 
+                                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80" 
+                                onerror="imgFb(this,'E3F2FD','1E2D3D','NEMIS & KEMIS Registry')"
+                                alt="Student enrollment and bio-data management" 
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            >
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                NEMIS &amp; KEMIS Registry
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Centralized learner profiles, instant UPI audit checks, and one-click Ministry of Education compliant Excel exports.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openModuleModal('nemis')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Explore Module
+                        </button>
+                    </div>
+                </article>
+
+                <!-- CARD 3 (Row 1, Col 3): Smart Master Timetabling -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-slate-100" data-card="timetable">
+                    <div>
+                        <div class="h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
+                            <img data-f="img" loading="lazy" 
+                                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80" 
+                                onerror="imgFb(this,'E3F2FD','1E2D3D','Smart Timetabling')"
+                                alt="School campus and academic scheduling" 
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            >
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                Smart Timetabling
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Conflict-free master timetable generator with automated double-lesson balancing, lab allocations, and teacher schedules.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openModuleModal('timetable')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Explore Module
+                        </button>
+                    </div>
+                </article>
+
+                <!-- CARD 4 (Row 2, Col 1): Fee & Bursary Accounting -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-slate-100" data-card="fees">
+                    <div>
+                        <div class="h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
+                            <img data-f="img" loading="lazy" 
+                                src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80" 
+                                onerror="imgFb(this,'E3F2FD','1E2D3D','Fee & Bursary Ledger')"
+                                alt="School finance and fee accounting office" 
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            >
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                Fee &amp; Bursary Ledger
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Vote-head billing, M-Pesa &amp; bank paybill reconciliation, CDF bursary tracking, and real-time fee balance statements.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openModuleModal('fees')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Explore Module
+                        </button>
+                    </div>
+                </article>
+
+                <!-- CARD 5 (Row 2, Col 2 — SIGNATURE SOLID ROYAL BLUE CENTER CARD FROM REFERENCE) -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-royalBlue/30" data-card="portal">
+                    <div>
+                        <!-- Solid Royal Blue Header Graphic matching the signature center card in reference -->
+                        <div class="h-44 sm:h-48 w-full bg-gradient-to-b from-royalBlue to-[#1976D2] flex flex-col items-center justify-center text-white relative overflow-hidden">
+                            <img data-f="img" alt="" class="hidden absolute inset-0 w-full h-full object-cover" style="z-index:1">
+                            <!-- Campus / School House Icon matching the white icon in reference -->
+                            <svg class="w-14 h-14 text-white mb-2 drop-shadow-xs" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 3L2 9.5V11h2v9h5v-6h6v6h5v-9h2V9.5L12 3zm-3 8H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/>
+                            </svg>
+                            <span class="font-extrabold text-base sm:text-lg tracking-widest uppercase">
+                                MAESTRO PORTAL
+                            </span>
+                            <!-- Deep Slate Navy Bottom Band inside the blue graphic matching reference -->
+                            <div class="absolute bottom-0 inset-x-0 h-5 bg-slateNavy"></div>
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                Unified Cloud &amp; Offline Hub
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Role-based access for Principals, Deans, Teachers, Bursars, and Parents—working seamlessly online or offline.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openLoginModal()" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Launch Portal
+                        </button>
+                    </div>
+                </article>
+
+                <!-- CARD 6 (Row 2, Col 3): Parent & Bulk SMS Communication -->
+                <article class="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col justify-between border border-slate-100" data-card="communication">
+                    <div>
+                        <div class="h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
+                            <img data-f="img" loading="lazy" 
+                                src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80" 
+                                onerror="imgFb(this,'E3F2FD','1E2D3D','Parent & SMS Connect')"
+                                alt="Teacher and parent communication" 
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            >
+                        </div>
+                        <div class="p-4 sm:p-6 text-center">
+                            <h3 data-f="title" class="text-base sm:text-lg font-bold text-slateNavy">
+                                Parent &amp; SMS Connect
+                            </h3>
+                            <p data-f="text" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Dispatch personalized exam scores, fee reminders, and school announcements directly to parents via branded SMS.
+                            </p>
+                            <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
+                        </div>
+                    </div>
+                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
+                        <button onclick="openModuleModal('communication')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
+                            Explore Module
+                        </button>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SECTION 3: "WHO IT'S FOR" STAKEHOLDER WORKSPACES (Android Chips)  -->
+        <!-- ================================================================= -->
+        <section id="who-its-for" class="bg-white rounded-xl shadow-card border border-slate-100 p-4 sm:p-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-royalBlue">
+                        Tailored User Experience
+                    </span>
+                    <h2 class="text-lg sm:text-2xl font-extrabold text-slateNavy mt-0.5">
+                        Who MAESTRO is Built For
+                    </h2>
+                </div>
+
+                <!-- Touch-Friendly Scrollable Android Filter Chips (No horizontal page overflow) -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist">
+                    <button onclick="switchRole('admin')" id="role-btn-admin" class="role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-royalBlue text-white text-xs sm:text-sm font-semibold transition-all">
+                        Administrators
+                    </button>
+                    <button onclick="switchRole('teacher')" id="role-btn-teacher" class="role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all">
+                        Teachers
+                    </button>
+                    <button onclick="switchRole('parent')" id="role-btn-parent" class="role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all">
+                        Parents
+                    </button>
+                    <button onclick="switchRole('student')" id="role-btn-student" class="role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all">
+                        Students
+                    </button>
+                </div>
+            </div>
+
+            <!-- Role Details Card -->
+            <div class="bg-canvas rounded-xl p-4 sm:p-6 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                <div class="lg:col-span-8 space-y-2.5">
+                    <span id="role-tag" class="inline-block px-2.5 py-0.5 rounded bg-royalBlueLight text-royalBlue text-xs font-bold">
+                        Principals &amp; School Directors
+                    </span>
+                    <h3 id="role-heading" class="text-base sm:text-xl font-bold text-slateNavy">
+                        Complete Institutional Oversight in Real Time
+                    </h3>
+                    <p id="role-summary" class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                        Track termly academic performance trends across streams, monitor daily fee collections, audit NEMIS/KEMIS records, and approve staff leave from one executive dashboard.
+                    </p>
+                    <ul id="role-points" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs sm:text-sm text-slateNavy font-medium">
+                        <li class="flex items-center gap-2"><span class="text-royalBlue font-bold">✓</span> Stream &amp; Subject Mean Analytics</li>
+                        <li class="flex items-center gap-2"><span class="text-royalBlue font-bold">✓</span> Daily Fee &amp; Bursary Summaries</li>
+                        <li class="flex items-center gap-2"><span class="text-royalBlue font-bold">✓</span> One-Click KNEC &amp; NEMIS Exports</li>
+                        <li class="flex items-center gap-2"><span class="text-royalBlue font-bold">✓</span> Offline Desktop &amp; Mobile Sync</li>
+                    </ul>
+                </div>
+
+                <div class="lg:col-span-4 bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-semibold text-slate-500">Workspace Metric</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">Active</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="bg-canvas p-3 rounded-lg text-center">
+                            <div id="role-kpi1-val" class="text-lg sm:text-xl font-extrabold text-royalBlue">100%</div>
+                            <div id="role-kpi1-lbl" class="text-[11px] text-slate-500">NEMIS Ready</div>
+                        </div>
+                        <div class="bg-canvas p-3 rounded-lg text-center">
+                            <div id="role-kpi2-val" class="text-lg sm:text-xl font-extrabold text-slateNavy">&lt; 3 min</div>
+                            <div id="role-kpi2-lbl" class="text-[11px] text-slate-500">Report Forms</div>
+                        </div>
+                    </div>
+                    <button onclick="openLoginModal()" class="w-full min-h-[44px] py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white text-xs sm:text-sm font-semibold transition-colors">
+                        Preview Role Portal
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SECTION 4: FAQ ACCORDION & CONTACT / DEMO REQUEST                 -->
+        <!-- ================================================================= -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+            
+            <!-- FAQ Card (7 Cols) -->
+            <div id="faq" class="lg:col-span-7 bg-white rounded-xl shadow-card border border-slate-100 p-4 sm:p-7">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-royalBlue">Support &amp; Setup</span>
+                <h2 class="text-lg sm:text-2xl font-extrabold text-slateNavy mt-0.5 mb-4">
+                    Frequently Asked Questions
+                </h2>
+
+                <div class="divide-y divide-slate-200">
+                    <!-- FAQ 1 -->
+                    <div class="py-1">
+                        <button onclick="toggleFaq(1)" class="w-full min-h-[48px] py-2.5 flex items-center justify-between gap-3 text-left text-xs sm:text-sm font-bold text-slateNavy hover:text-royalBlue transition-colors">
+                            <span>Does MAESTRO work without an active internet connection?</span>
+                            <span id="faq-plus-1" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-royalBlue font-bold shrink-0">+</span>
+                        </button>
+                        <div id="faq-body-1" class="hidden pb-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                            Yes. MAESTRO runs locally on school computers or LAN with zero internet required during exams, and automatically syncs encrypted backups to the cloud once connectivity returns.
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="py-1">
+                        <button onclick="toggleFaq(2)" class="w-full min-h-[48px] py-2.5 flex items-center justify-between gap-3 text-left text-xs sm:text-sm font-bold text-slateNavy hover:text-royalBlue transition-colors">
+                            <span>Are both CBE Competency Rubrics and 8-4-4 KCSE supported?</span>
+                            <span id="faq-plus-2" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-royalBlue font-bold shrink-0">+</span>
+                        </button>
+                        <div id="faq-body-2" class="hidden pb-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                            Yes. Schools running Junior School (CBE) and Senior Secondary can configure strand/sub-strand rubrics (EE, ME, AE, BE) alongside 8-4-4 point systems within the same database.
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="py-1">
+                        <button onclick="toggleFaq(3)" class="w-full min-h-[48px] py-2.5 flex items-center justify-between gap-3 text-left text-xs sm:text-sm font-bold text-slateNavy hover:text-royalBlue transition-colors">
+                            <span>How fast can we migrate existing student and fee records?</span>
+                            <span id="faq-plus-3" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-royalBlue font-bold shrink-0">+</span>
+                        </button>
+                        <div id="faq-body-3" class="hidden pb-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                            Under 24 hours. Import your existing NEMIS/KEMIS Excel spreadsheets using our one-click importer, and our support team verifies your setup at no extra cost.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact / Demo Card (5 Cols) -->
+            <div id="contacts" class="lg:col-span-5 bg-white rounded-xl shadow-card border border-slate-100 overflow-hidden">
+                <div class="bg-slateNavy px-5 py-4 text-white">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Get Started</span>
+                    <h2 class="text-lg sm:text-xl font-bold mt-0.5">Request a School Demo</h2>
+                </div>
+                <div class="p-4 sm:p-6">
+                    <p class="text-xs sm:text-sm text-slate-600 mb-4 leading-relaxed">
+                        Schedule a live walkthrough for your Principal, Dean of Studies, and School Bursar.
+                    </p>
+                    <form onsubmit="submitDemoRequest(event)" class="space-y-3">
+                        <div>
+                            <label for="demo-school" class="sr-only">School Name</label>
+                            <input id="demo-school" type="text" required placeholder="School Name (e.g., St. Jude High School)" class="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-xs sm:text-sm text-slateNavy focus:outline-none focus:border-royalBlue">
+                        </div>
+                        <div>
+                            <label for="demo-contact" class="sr-only">Phone or Email</label>
+                            <input id="demo-contact" type="text" required placeholder="Official Phone or Email" class="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-xs sm:text-sm text-slateNavy focus:outline-none focus:border-royalBlue">
+                        </div>
+                        <button type="submit" class="w-full min-h-[44px] py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white text-xs sm:text-sm font-semibold shadow-xs transition-colors">
+                            Schedule Free Walkthrough
+                        </button>
+                    </form>
+                    <div id="demo-confirmation" class="hidden mt-3 p-3 rounded-lg bg-royalBlueLight text-royalBlueDark text-xs font-semibold"></div>
+                    <div id="contact-card" class="mt-4 pt-3 border-t border-slate-100 space-y-2 text-xs sm:text-sm">
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Or contact us directly</p>
+                        <a id="contact-phone" href="tel:0724743019" class="flex items-center justify-between gap-3 min-h-[44px] px-3.5 rounded-lg bg-canvas border border-slate-200 hover:border-royalBlue transition-colors"><span class="font-semibold text-slate-500">Call</span><strong class="text-slateNavy">0724743019</strong></a>
+                        <a id="contact-wa" href="https://wa.me/254724743019" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 min-h-[44px] px-3.5 rounded-lg bg-canvas border border-slate-200 hover:border-royalBlue transition-colors"><span class="font-semibold text-slate-500">WhatsApp</span><strong class="text-slateNavy">0724743019</strong></a>
+                        <a id="contact-email" href="mailto:bensonkerage@gmail.com" class="flex items-center justify-between gap-3 min-h-[44px] px-3.5 rounded-lg bg-canvas border border-slate-200 hover:border-royalBlue transition-colors"><span class="font-semibold text-slate-500">Email</span><strong class="text-slateNavy break-all text-right">bensonkerage@gmail.com</strong></a>
+                        <a id="contact-fb" href="https://www.facebook.com/search/top?q=Benson%20Oimeke" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 min-h-[44px] px-3.5 rounded-lg bg-canvas border border-slate-200 hover:border-royalBlue transition-colors"><span class="font-semibold text-slate-500">Facebook</span><strong class="text-slateNavy">Benson Oimeke</strong></a>
+                        <a id="dlApk" href="/api/android-apk" class="flex items-center justify-center gap-2 min-h-[46px] px-4 rounded-lg bg-slateNavy hover:bg-slateNavyDark text-white font-semibold transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7 11l5 5 5-5M5 20h14"/></svg>Download Android app</a>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- DEEP SLATE NAVY (#1E2D3D) FOOTER                                      -->
+    <!-- ===================================================================== -->
+    <footer class="bg-slateNavy text-slate-300 py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-royalBlue flex items-center justify-center text-white font-bold text-xs">M</div>
+                <span class="font-bold text-white tracking-wide">MAESTRO</span>
+                <span class="text-slate-400">Advanced School Management System</span>
+            </div>
+            <p class="text-slate-400 text-center sm:text-right">
+                <span id="footer-contact">bensonkerage@gmail.com &middot; 0724743019</span><br>
+                &copy; 2026 MAESTRO Education Technologies. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- NATIVE ANDROID BOTTOM NAVIGATION BAR (Mobile < 768px Only)            -->
+    <!-- ===================================================================== -->
+    <nav aria-label="Android Bottom Navigation" class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-bottomNav safe-bottom">
+        <div class="grid grid-cols-5 h-16">
+            <a href="#home" onclick="setActiveBottomNav(this)" class="bottom-nav-item flex flex-col items-center justify-center gap-1 text-royalBlue">
+                <span class="nav-pill px-3.5 py-1 rounded-full bg-royalBlueLight flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </span>
+                <span class="text-[10px] font-bold">Home</span>
+            </a>
+
+            <a href="#features" onclick="setActiveBottomNav(this)" class="bottom-nav-item flex flex-col items-center justify-center gap-1 text-slate-500">
+                <span class="nav-pill px-3.5 py-1 rounded-full flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                </span>
+                <span class="text-[10px] font-semibold">Modules</span>
+            </a>
+
+            <a href="#who-its-for" onclick="setActiveBottomNav(this)" class="bottom-nav-item flex flex-col items-center justify-center gap-1 text-slate-500">
+                <span class="nav-pill px-3.5 py-1 rounded-full flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </span>
+                <span class="text-[10px] font-semibold">Roles</span>
+            </a>
+
+            <a href="#faq" onclick="setActiveBottomNav(this)" class="bottom-nav-item flex flex-col items-center justify-center gap-1 text-slate-500">
+                <span class="nav-pill px-3.5 py-1 rounded-full flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </span>
+                <span class="text-[10px] font-semibold">FAQ</span>
+            </a>
+
+            <a href="#contacts" onclick="setActiveBottomNav(this)" class="bottom-nav-item flex flex-col items-center justify-center gap-1 text-slate-500">
+                <span class="nav-pill px-3.5 py-1 rounded-full flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </span>
+                <span class="text-[10px] font-semibold">Contact</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- ===================================================================== -->
+    <!-- ANDROID BOTTOM-SHEET / DESKTOP DIALOG: MODULE DETAILS                 -->
+    <!-- ===================================================================== -->
+    <div id="module-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slateNavy/70 backdrop-blur-xs sm:p-4">
+        <div class="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl safe-bottom">
+            <!-- Android Bottom-Sheet Drag Handle -->
+            <div class="sm:hidden flex justify-center pt-2.5 pb-1 bg-slateNavy">
+                <span class="w-10 h-1 rounded-full bg-white/30"></span>
+            </div>
+            <div class="bg-slateNavy px-5 py-3.5 flex items-center justify-between text-white">
+                <span id="modal-tag" class="text-xs font-bold uppercase tracking-wider text-sky-300">Module Overview</span>
+                <button onclick="closeModuleModal()" aria-label="Close modal" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-5 sm:p-6">
+                <h3 id="modal-title" class="text-lg sm:text-xl font-bold text-slateNavy">Module Title</h3>
+                <p id="modal-desc" class="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">Description</p>
+                <div class="mt-4 bg-canvas rounded-xl p-4 border border-slate-200/80">
+                    <div class="text-xs font-bold uppercase tracking-wider text-royalBlue mb-2.5">Key Capabilities</div>
+                    <ul id="modal-list" class="space-y-2 text-xs sm:text-sm text-slateNavy font-medium"></ul>
+                </div>
+                <div class="mt-5 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
+                    <button onclick="closeModuleModal()" class="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        Close
+                    </button>
+                    <button onclick="closeModuleModal(); openLoginModal();" class="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white text-xs sm:text-sm font-semibold">
+                        Open in Portal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- INTERACTIVE LOGIC                                                     -->
+    <!-- ===================================================================== -->
+    <script>
+        const modules = {
+            academics: {
+                tag: 'Academic & Exam Suite',
+                title: 'Academic & CBE Assessment Management',
+                desc: 'Automate marks entry, competency rubrics, and terminal report card generation across all classes.',
+                list: [
+                    'Supports both CBE (EE, ME, AE, BE) and 8-4-4 KCSE grading scales',
+                    'Multi-teacher marks entry over local LAN, web, or offline USB mode',
+                    'Batch PDF report cards complete with school crest, rank, and fee balance'
+                ]
+            },
+            nemis: {
+                tag: 'Ministry Registry',
+                title: 'NEMIS & KEMIS Student Registry',
+                desc: 'Keep student admission records accurate and export Ministry-compliant files in one click.',
+                list: [
+                    'Instant audit for missing UPI numbers or birth certificate entries',
+                    'One-click Excel/CSV templates formatted for NEMIS & KEMIS portals',
+                    'Automated year-end class promotion and alumni record archiving'
+                ]
+            },
+            timetable: {
+                tag: 'Automated Scheduling',
+                title: 'Smart Master Timetabling',
+                desc: 'Build clash-free master school timetables and individual teacher schedules in minutes.',
+                list: [
+                    'Smart constraints for double lessons, science labs, and PE slots',
+                    'Printable master wall charts and individual teacher lesson cards',
+                    'Quick relief teacher assignment for absent staff'
+                ]
+            },
+            fees: {
+                tag: 'School Finance',
+                title: 'Fee & Bursary Accounting Ledger',
+                desc: 'Manage termly vote-head billing, M-Pesa paybill receipts, and CDF/bursary allocations accurately.',
+                list: [
+                    'Automated termly invoicing by grade, boarding status, or transport',
+                    'Instant receipt printing and automated SMS payment confirmations',
+                    'Real-time fee arrears lists filterable by class or balance threshold'
+                ]
+            },
+            communication: {
+                tag: 'Guardian Connectivity',
+                title: 'Parent & Bulk SMS Connect',
+                desc: 'Send personalized exam results, fee balances, and school announcements directly to parents.',
+                list: [
+                    '1-click personalized exam result SMS sent to guardians',
+                    'Targeted broadcasts by class, stream, or boarding house',
+                    '24/7 Parent Portal for report card downloads and fee statements'
+                ]
+            },
+            portal: {
+                tag: 'Hybrid Infrastructure',
+                title: 'MAESTRO Unified Cloud & Offline Hub',
+                desc: 'Designed for uninterrupted school operations whether online or completely offline.',
+                list: [
+                    'Runs locally on school PCs or LAN with zero internet dependency',
+                    'Encrypted automatic cloud synchronization when internet is available',
+                    'Granular role-based access control and daily automated backups'
+                ]
+            }
+        };
+
+        const roles = {
+            admin: {
+                tag: 'Principals & School Directors',
+                heading: 'Complete Institutional Oversight in Real Time',
+                summary: 'Track termly academic performance trends across streams, monitor daily fee collections, audit NEMIS/KEMIS records, and oversee staff operations from one dashboard.',
+                points: [
+                    'Stream & Subject Mean Analytics',
+                    'Daily Fee & Bursary Summaries',
+                    'One-Click KNEC & NEMIS Exports',
+                    'Offline Desktop & Mobile Sync'
+                ],
+                kpi1Val: '100%',
+                kpi1Lbl: 'NEMIS Ready',
+                kpi2Val: '< 3 min',
+                kpi2Lbl: 'Report Forms'
+            },
+            teacher: {
+                tag: 'Deans & Teaching Staff',
+                heading: 'Fast Marks Entry & Clash-Free Timetables',
+                summary: 'Enter exam scores or CBE competency rubrics from your phone or staffroom PC, inspect subject analysis, and view your personalized weekly lesson schedule.',
+                points: [
+                    'Mobile & LAN Marks Entry',
+                    'Automated CBE & KCSE Grading',
+                    'Personal Teacher Timetable Cards',
+                    'Most-Improved Learner Reports'
+                ],
+                kpi1Val: 'Zero',
+                kpi1Lbl: 'Lesson Clashes',
+                kpi2Val: '1-Click',
+                kpi2Lbl: 'Merit Lists'
+            },
+            parent: {
+                tag: 'Parents & Guardians',
+                heading: 'Instant Report Cards & Fee Statements Anywhere',
+                summary: 'Receive instant SMS exam results as soon as exams are published, download official PDF report cards, and check M-Pesa fee receipts anytime.',
+                points: [
+                    'Instant SMS Exam Score Alerts',
+                    'Downloadable PDF Report Cards',
+                    'Real-Time Fee Balance & Receipts',
+                    'Direct School Announcements'
+                ],
+                kpi1Val: '24/7',
+                kpi1Lbl: 'Portal Access',
+                kpi2Val: 'Instant',
+                kpi2Lbl: 'SMS Alerts'
+            },
+            student: {
+                tag: 'Learners & Candidates',
+                heading: 'Track Personal Academic Growth & Timetables',
+                summary: 'Review termly subject performance graphs, download revision resources, and stay up to date with class timetables and co-curricular schedules.',
+                points: [
+                    'Term-by-Term Progress Charts',
+                    'Class & Exam Timetables',
+                    'Digital Assignment & Notes Hub',
+                    'Clearance & Library Status'
+                ],
+                kpi1Val: 'Clear',
+                kpi1Lbl: 'Grade Tracking',
+                kpi2Val: 'Always',
+                kpi2Lbl: 'Up to Date'
+            }
+        };
+
+        function openModuleModal(key) {
+            const m = modules[key];
+            if (!m) return;
+            document.getElementById('modal-tag').textContent = m.tag;
+            document.getElementById('modal-title').textContent = m.title;
+            document.getElementById('modal-desc').textContent = m.desc;
+            document.getElementById('modal-list').innerHTML = m.list.map(item => `
+                <li class="flex items-start gap-2">
+                    <span class="text-royalBlue font-bold">✓</span>
+                    <span>${item}</span>
+                </li>
+            `).join('');
+            const el = document.getElementById('module-modal');
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+
+        function closeModuleModal() {
+            const el = document.getElementById('module-modal');
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+
+        // "Log in" opens the app's real sign-in page (the app shows this page in a frame and listens for this message).
+        // Opened on its own (a plain web page), it goes to the app with #app so the sign-in page shows straight away.
+        function openLoginModal() {
+            try { if (window.parent && window.parent !== window) { window.parent.postMessage('masms-login', '*'); return; } } catch (e) {}
+            location.href = (location.protocol === 'file:') ? 'index.html#app' : '/#app';
+        }
+        function closeLoginModal() {}
+
+        function switchRole(key) {
+            const r = roles[key];
+            if (!r) return;
+            document.querySelectorAll('.role-chip').forEach(btn => {
+                btn.className = 'role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all';
+            });
+            document.getElementById(`role-btn-${key}`).className = 'role-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-royalBlue text-white text-xs sm:text-sm font-semibold transition-all';
+
+            document.getElementById('role-tag').textContent = r.tag;
+            document.getElementById('role-heading').textContent = r.heading;
+            document.getElementById('role-summary').textContent = r.summary;
+            document.getElementById('role-points').innerHTML = r.points.map(pt => `
+                <li class="flex items-center gap-2"><span class="text-royalBlue font-bold">✓</span> ${pt}</li>
+            `).join('');
+            document.getElementById('role-kpi1-val').textContent = r.kpi1Val;
+            document.getElementById('role-kpi1-lbl').textContent = r.kpi1Lbl;
+            document.getElementById('role-kpi2-val').textContent = r.kpi2Val;
+            document.getElementById('role-kpi2-lbl').textContent = r.kpi2Lbl;
+        }
+
+        function toggleFaq(id) {
+            const body = document.getElementById(`faq-body-${id}`);
+            const plus = document.getElementById(`faq-plus-${id}`);
+            body.classList.toggle('hidden');
+            plus.textContent = body.classList.contains('hidden') ? '+' : '−';
+        }
+
+        // The demo request opens the visitor's own email app with the details filled in, addressed to the contact email below.
+        // (Nothing is sent from this page, so the confirmation says what really happens.)
+        function submitDemoRequest(e) {
+            e.preventDefault();
+            const school = document.getElementById('demo-school').value.trim();
+            const contact = document.getElementById('demo-contact').value.trim();
+            const to = (document.getElementById('contact-email').getAttribute('href') || '').replace(/^mailto:/, '');
+            const box = document.getElementById('demo-confirmation');
+            const url = 'mailto:' + to + '?subject=' + encodeURIComponent('MAESTRO demo request: ' + school) +
+                '&body=' + encodeURIComponent('School: ' + school + '\nPhone or email: ' + contact + '\n\nPlease arrange a demo of MAESTRO for our Principal, Dean of Studies and Bursar.');
+            box.textContent = 'Opening your email app so you can send the request. You can also call or WhatsApp us below.';
+            box.classList.remove('hidden');
+            const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+            e.target.reset();
+        }
+
+        function setActiveBottomNav(el) {
+            document.querySelectorAll('.bottom-nav-item').forEach(item => {
+                item.classList.remove('text-royalBlue');
+                item.classList.add('text-slate-500');
+                const pill = item.querySelector('.nav-pill');
+                if (pill) pill.classList.remove('bg-royalBlueLight');
+            });
+            el.classList.remove('text-slate-500');
+            el.classList.add('text-royalBlue');
+            const activePill = el.querySelector('.nav-pill');
+            if (activePill) activePill.classList.add('bg-royalBlueLight');
+        }
+
+        // A picture that cannot load (no signal) becomes a plain coloured card with its title, drawn here, never fetched from anywhere.
+        function imgFb(img, bg, fg, text) {
+            img.onerror = null;
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520"><rect width="900" height="520" fill="#' + bg + '"/><text x="450" y="270" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="700" fill="#' + fg + '">' + String(text).replace(/[<>]/g, '').replace(/&/g, '&amp;') + '</text></svg>';
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        // ---- Cards: each card (data-card="key") can have its photo, title, text and "View more" link set from the app's Web Page tab.
+        // Empty "View more" link = open that card's own popup (modules) or the sign-in page. Links open in a new tab.
+        const CARD_DEFAULT_ACTION = { hero1: 'login', hero2: 'portal', academics: 'academics', nemis: 'nemis', timetable: 'timetable', fees: 'fees', portal: 'login', communication: 'communication' };
+        const safeUrl = u => { u = String(u || '').trim(); if (!u) return ''; if (/^(https?:|mailto:|tel:)/i.test(u)) return u; if (/^[\w-]+(\.[\w-]+)+(\/|$|\?)/.test(u)) return 'https://' + u; return ''; };
+        function cardDefault(key) { const a = CARD_DEFAULT_ACTION[key]; if (a === 'login') openLoginModal(); else if (a) openModuleModal(a); }
+        function cardOpen(key, ev) {   // whole-card tap on the two banner cards
+            const m = (window.__cardCfg || {})[key]; const u = m && safeUrl(m.link);
+            if (u) { window.open(u, '_blank', 'noopener'); return; }
+            cardDefault(key);
+        }
+        function cardMore(ev, key) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            const m = (window.__cardCfg || {})[key]; const u = m && safeUrl(m.link);
+            if (u) { window.open(u, '_blank', 'noopener'); return false; }
+            cardDefault(key); return false;
+        }
+        document.querySelectorAll('[data-card]').forEach(c => {
+            const k = c.getAttribute('data-card'), a = c.querySelector('[data-f="more"]');
+            if (a) a.addEventListener('click', ev => cardMore(ev, k));
+            const img = c.querySelector('[data-f="img"]');
+            if (img) img.setAttribute('data-orig', img.getAttribute('src') || '');
+            c.querySelectorAll('[data-f="title"],[data-f="text"]').forEach(e => e.setAttribute('data-orig', e.textContent.trim().replace(/\s+/g, ' ')));
+        });
+        function applyCards(cards) {
+            window.__cardCfg = cards = (cards && typeof cards === 'object') ? cards : {};
+            document.querySelectorAll('[data-card]').forEach(c => {
+                const k = c.getAttribute('data-card'), v = cards[k] || {};
+                const img = c.querySelector('[data-f="img"]'), t = c.querySelector('[data-f="title"]'), x = c.querySelector('[data-f="text"]'), a = c.querySelector('[data-f="more"]');
+                if (img) {
+                    const orig = img.getAttribute('data-orig') || '';
+                    if (v.img && /^data:image\//.test(v.img)) { img.onerror = null; img.src = v.img; img.classList.remove('hidden'); }
+                    else if (orig) { img.src = orig; } else { img.removeAttribute('src'); img.classList.add('hidden'); }
+                }
+                if (k !== 'hero1') {   // hero1's title and text come from the Home page fields
+                    if (t) t.textContent = v.title || t.getAttribute('data-orig');
+                    if (x) x.textContent = v.text || x.getAttribute('data-orig');
+                }
+                if (a) a.textContent = (v.linkLabel || '').trim() || 'View more';
+            });
+        }
+        applyCards({});
+
+        // Text and contacts the System Developer sets in the app's "Web Page" tab: saved on this device (maestroWebPage) and the copy
+        // published to the server (GET /api/web-page). The app calls MASMS_WEBPAGE_APPLY() after the tab is saved.
+        (function () {
+            const LS_KEY = 'maestroWebPage';
+            const waNumber = v => { let d = String(v || '').replace(/\D/g, ''); if (d.charAt(0) === '0') d = '254' + d.slice(1); return d; };
+            const setRow = (id, text, href) => { const a = document.getElementById(id); if (!a) return; if (href) a.setAttribute('href', href); const t = a.querySelector('strong'); if (t && text) t.textContent = text; };
+            function apply(c) {
+                c = c || {}; const hero = c.hero || {}, ct = c.contacts || {}; let e;
+                applyCards(c.cards);
+                if (hero.heading && (e = document.getElementById('hero-heading'))) e.textContent = hero.heading;
+                if (hero.text && (e = document.getElementById('hero-text'))) e.textContent = hero.text;
+                if (ct.phone) setRow('contact-phone', ct.phone, 'tel:' + String(ct.phone).replace(/\s+/g, ''));
+                if (ct.whatsapp) setRow('contact-wa', ct.whatsapp, 'https://wa.me/' + waNumber(ct.whatsapp));
+                if (ct.email) setRow('contact-email', ct.email, 'mailto:' + ct.email);
+                if (ct.facebookName || ct.facebookUrl) setRow('contact-fb', ct.facebookName || ct.facebookUrl, ct.facebookUrl || null);
+                if ((ct.email || ct.phone) && (e = document.getElementById('footer-contact'))) e.textContent = [ct.email, ct.phone].filter(Boolean).join(' \u00b7 ');
+            }
+            const readLocal = () => { try { const r = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); return r && r.c ? r : null; } catch (e) { return null; } };
+            const apiUrl = () => { let b = ''; try { b = (window.parent !== window && window.parent.MASMS_API_BASE) || window.MASMS_API_BASE || ''; } catch (e) { b = window.MASMS_API_BASE || ''; } return b + '/api/web-page'; };
+            window.MASMS_WEBPAGE_APPLY = function () { const l = readLocal(); apply(l && l.c); };
+            const local = readLocal(); apply(local && local.c);
+            try {   // the published copy never replaces edits on this device that have not been published yet
+                fetch(apiUrl(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+                    if (!j || !j.content) return;
+                    const l = readLocal(); if (l && l.pending) return;
+                    try { localStorage.setItem(LS_KEY, JSON.stringify({ c: j.content, pending: false, version: j.version || 0 })); } catch (e) {}
+                    apply(j.content);
+                }).catch(() => {});
+            } catch (e) {}
+            // "Download Android app" is for the website: hide it inside the Android app itself and when this page is opened as a plain file
+            try {
+                const d = document.getElementById('dlApk'), p = window.parent !== window ? window.parent : window;
+                const native = !!(p.Capacitor && p.Capacitor.isNativePlatform && p.Capacitor.isNativePlatform());
+                if (d && (native || p.location.protocol === 'file:')) d.style.display = 'none';
+                else if (d && window.parent !== window) d.target = '_blank';
+            } catch (e) {}
+        })();
+
+        // Close modals on backdrop click or Escape key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModuleModal();
+            }
+        });
+        document.getElementById('module-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'module-modal') closeModuleModal();
+        });
+    </script>
+</body>
+</html>

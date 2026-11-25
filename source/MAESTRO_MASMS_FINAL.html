@@ -4597,6 +4597,52 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     .login-cert-field{flex-direction:column;align-items:flex-start;gap:6px;}
     .login-cert-field label{flex:none;}
   }
+  /* ---- Sign-in redesign: matches the MAESTRO Portal Sign In card (landing-page look) ---- */
+  .login-page{background:#F4F7FA;padding:20px;overflow-y:auto;align-items:center}
+  .login-back{display:none}
+  .login-cert-frame{max-width:440px;background:#fff;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(30,45,61,.22);margin:auto}
+  .login-cert-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 20px;background:linear-gradient(120deg,#1E2D3D 0%,#1565C0 100%);color:#fff}
+  .login-cert-title{font-family:'Inter',sans-serif;font-weight:800;text-transform:none;text-align:left;font-size:20px;line-height:1.2;letter-spacing:0;margin:0;color:#fff;-webkit-text-stroke:0}
+  .login-cert-sub{margin-top:4px;font-size:13px;color:#90CAF9}
+  .login-cert-x{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#B7CCE6;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .login-cert-x:hover{background:rgba(255,255,255,.14);color:#fff}
+  .login-cert-body{padding:22px 24px 20px}
+  .login-cert-roles-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1E2D3D;margin-bottom:10px}
+  .login-cert-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+  .login-cert-role{min-height:48px;padding:4px 6px;line-height:1.2;border:0;border-radius:8px;background:#F1F5F9;color:#1E2D3D;font:600 13.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .login-cert-role:hover{background:#E2E8F0}
+  .login-cert-role.on{background:#1E88E5;color:#fff}
+  .login-cert-fields{margin-bottom:10px}
+  .login-cert-field{display:block;margin-bottom:16px}
+  .login-cert-field label{display:block;margin-bottom:8px;color:#1E2D3D;font:700 13.5px 'Inter',sans-serif}
+  .login-cert-field input{width:100%;min-height:46px;padding:11px 14px;font:400 15px 'Inter',sans-serif;border:1px solid #CBD5E1;border-radius:10px;background:#fff;color:#1E2D3D;box-sizing:border-box}
+  .login-cert-field input::placeholder{color:#94A3B8}
+  .login-cert-field input:focus{outline:2px solid #1E88E5;outline-offset:0;border-color:#1E88E5;background:#fff}
+  .login-cert-pwwrap{position:relative;display:block}
+  .login-cert-pwwrap input{padding-right:48px}
+  .login-cert-eye{position:absolute;right:4px;top:4px;bottom:4px;width:40px;border:0;border-radius:8px;background:transparent;color:#64748B}
+  .login-cert-eye:hover{background:#F1F5F9}
+  .login-cert-forgot-row{margin:0 0 16px}
+  .login-cert-remember{color:#475569;font-size:13px}
+  .login-cert-remember input{accent-color:#1E88E5;width:16px;height:16px}
+  .login-cert-forgot{color:#1E88E5;font-weight:600;font-size:13px}
+  .login-error-banner{border-radius:10px}
+  .login-cert-submit{max-width:none;width:100%;min-height:48px;border-radius:10px;background:#1E88E5;font:700 15px 'Inter',sans-serif;letter-spacing:0;transition:background .15s,transform .1s}
+  .login-cert-submit:hover{background:#1565C0}.login-cert-submit:active{transform:scale(.99)}
+  .fp-login-wrap{margin:18px 0 4px}
+  .fp-login-or{color:#94A3B8}.fp-login-or:before,.fp-login-or:after{background:#E2E8F0}
+  .fp-login-btn{width:60px;height:60px;border:2px solid #1E88E5;color:#1E88E5;background:#fff}
+  .fp-login-btn:hover,.fp-login-btn.fp-ready{background:#1E88E5;color:#fff}
+  .fp-login-label{color:#475569}
+  .login-cert-signup-row{color:#64748B}
+  .login-cert-signup{color:#1E88E5}
+  .login-cert-footnote{margin-top:14px}
+  .login-cert-body form a{color:#1E88E5;text-decoration:none}.login-cert-body form a:hover{text-decoration:underline}
+  @media(max-width:560px){
+    .login-page{padding:12px}
+    .login-cert-head{padding:18px 18px 16px}.login-cert-body{padding:18px 18px 16px}
+    .login-cert-field{display:block}
+  }
   /* Manage Classes: a card per Form/Grade with its streams as cells below it */
   .grade-group-list{
     display:flex;flex-direction:column;gap:16px;
@@ -5406,7 +5452,7 @@ html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
 
 </head>
 <body>
-<!-- ===== ANDROID APP START-UP SPLASH (native app only): wheel + transition reveal of the system name ===== -->
+<!-- ===== ANDROID APP START-UP SPLASH (every start: app + browser): wheel + transition reveal of the system name ===== -->
 <div id="appSplash" aria-hidden="true">
 <style>
 #appSplash{display:none;position:fixed;inset:0;z-index:2147483000;background:radial-gradient(circle at 50% 38%,#24488a 0%,#152c58 55%,#0b1a38 100%);color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Poppins,Inter,system-ui,sans-serif;overflow:hidden;transition:opacity .6s ease,transform .6s ease;}
@@ -5450,7 +5496,7 @@ html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
   try{
     var C=window.Capacitor, sp=document.getElementById('appSplash');
     if(!sp) return;
-    if(!(C&&typeof C.isNativePlatform==='function'&&C.isNativePlatform())){ sp.parentNode.removeChild(sp); return; }
+    /* wheel splash plays on every start: Android app, installed web app and plain browser alike */
     var n=0;
     Array.prototype.forEach.call(sp.querySelectorAll('.sp-line'),function(l){
       l.textContent=''; var t=l.getAttribute('data-t');
@@ -5871,6 +5917,22 @@ function fpIconClick(){
   else setTimeout(run, 400);
 })();
 
+// Portal role chips: they only tailor the wording of the form. Who is signed in (and as what) is still decided from the account itself.
+var LOGIN_ROLES = [
+  { key:"sysadmin", label:"Sys Admin",                  user:"Username",                              ph:"e.g., System Developer username",          btn:"Sign In to Sys Admin Portal" },
+  { key:"staff",    label:"Sch Admin, Teachers & Staff", user:"Staff ID / Phone / School Email",       ph:"e.g., ADM-2026-01, phone or school email", btn:"Sign In to School Staff Portal" },
+  { key:"family",   label:"Parent/Students",            user:"Phone / Adm No / Assessment No",        ph:"Phone, Adm No or Assessment No",           btn:"Sign In to Parent/Student Portal" }
+];
+var loginRoleSel = "staff";
+function loginRoleInfo(){ return LOGIN_ROLES.find(function(r){ return r.key === loginRoleSel; }) || LOGIN_ROLES[1]; }
+function setLoginRole(k){
+  loginRoleSel = k;
+  var i = loginRoleInfo();
+  document.querySelectorAll(".login-cert-role").forEach(function(b){ var on = b.getAttribute("data-role") === k; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  var l = document.getElementById("login_username_label"); if(l) l.textContent = i.user;
+  var u = document.getElementById("login_username"); if(u) u.placeholder = i.ph;
+  var b = document.getElementById("login_submit_btn"); if(b) b.textContent = i.btn;
+}
 function renderLoginPage(){
   const root = document.getElementById('loginPageRoot');
   if(!root) return;
@@ -5879,19 +5941,28 @@ function renderLoginPage(){
     <div class="login-page">
       ${window.MASMS_LANDING ? `<button type="button" class="login-back" aria-label="Back to home page" title="Back to home page" onclick="MASMS_LANDING.home()"><i class="fa-solid fa-arrow-left"></i><span>Home</span></button>` : ''}
       <div class="login-cert-frame">
-        <div class="login-cert-title">Maestro Advanced School<br>Management System</div>
-        <div class="login-cert-rule"></div>
-
+        <div class="login-cert-head">
+          <div class="login-cert-headtext">
+            <div class="login-cert-title">MAESTRO Portal Sign In</div>
+            <div class="login-cert-sub">Select your institutional role to continue</div>
+          </div>
+          ${window.MASMS_LANDING ? `<button type="button" class="login-cert-x" aria-label="Close and go back to home page" title="Close" onclick="MASMS_LANDING.home()"><i class="fa-solid fa-xmark"></i></button>` : ''}
+        </div>
+        <div class="login-cert-body">
         <form onsubmit="submitLogin(event)">
+          <div class="login-cert-roles-label">Portal role</div>
+          <div class="login-cert-roles" role="group" aria-label="Portal role">
+            ${LOGIN_ROLES.map(r => `<button type="button" class="login-cert-role${r.key === loginRoleSel ? ' on' : ''}" data-role="${r.key}" aria-pressed="${r.key === loginRoleSel}" onclick="setLoginRole('${r.key}')">${r.label}</button>`).join('')}
+          </div>
           <div class="login-cert-fields">
             <div class="login-cert-field">
-              <label for="login_username">User Name:</label>
-              <input id="login_username" type="text" placeholder="Username, phone or admission number" autocomplete="username">
+              <label for="login_username" id="login_username_label">${loginRoleInfo().user}</label>
+              <input id="login_username" type="text" placeholder="${loginRoleInfo().ph}" autocomplete="username">
             </div>
             <div class="login-cert-field">
-              <label for="login_password">Password:</label>
+              <label for="login_password">Password / Access PIN</label>
               <div class="login-cert-pwwrap">
-                <input id="login_password" type="password" placeholder="" autocomplete="current-password">
+                <input id="login_password" type="password" placeholder="••••••••" autocomplete="current-password">
                 <button type="button" class="login-cert-eye" aria-label="Show or hide password" title="Show / hide password" onclick="toggleResetPwVisibility('login_password', this)"><i class="fa-solid fa-eye"></i></button>
               </div>
             </div>
@@ -5905,16 +5976,13 @@ function renderLoginPage(){
           </div>
           ${loginError ? `<div class="login-error-banner"><i class="fa-solid fa-circle-exclamation"></i> ${loginError}</div>` : ''}
           <div class="login-cert-submit-row">
-            <button type="submit" class="login-cert-submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Log in</button>
+            <button type="submit" class="login-cert-submit" id="login_submit_btn">${loginRoleInfo().btn}</button>
           </div>
           ${fpLoginButtonHtml()}
-          <div style="text-align:center;margin:10px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
-          <div class="login-cert-signup-row">
-            New here?
-            <button type="button" class="login-cert-signup" disabled aria-disabled="true">Sign Up</button>
-          </div>
+          <div style="text-align:center;margin:12px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
         </form>
         <div class="login-cert-footnote">© MASMS 2026</div>
+        </div>
       </div>
     </div>
 
@@ -14639,8 +14707,20 @@ const SWP_KEY = "maestroWebPage";
 const SWP_DEFAULT = {
   hero: { heading: "Maestro School Management", text: "Maestro brings admissions, attendance, timetables, fees, exams and parent communication into one system, so your staff spend less time on paperwork and more time on students." },
   contacts: { phone: "0724743019", email: "bensonkerage@gmail.com", facebookName: "Benson Oimeke", facebookUrl: "https://www.facebook.com/search/top?q=Benson%20Oimeke", whatsapp: "0724743019" },
-  gallery: []
+  gallery: [],
+  cards: {}
 };
+// Cards on the landing page that the System Developer can edit (photo, title, text, "View more" link). Anything left empty keeps the original.
+const SWP_CARDS = [
+  ["hero1","Banner card 1 (left)","Heading and description of this card are edited in the Home page box above","",""],
+  ["hero2","Banner card 2 (right)","Seamless offline & cloud operations","Instant exam reports, M-Pesa fee reconciliation, and automated parent SMS alerts",""],
+  ["academics","Module: Academic & CBE Exams","Academic & CBE Exams","Automated merit lists, CBE competency rubrics (EE/ME/AE/BE), value-added progress, and batch PDF report forms.",""],
+  ["nemis","Module: NEMIS & KEMIS Registry","NEMIS & KEMIS Registry","Centralized learner profiles, instant UPI audit checks, and one-click Ministry of Education compliant Excel exports.",""],
+  ["timetable","Module: Smart Timetabling","Smart Timetabling","Conflict-free master timetable generator with automated double-lesson balancing, lab allocations, and teacher schedules.",""],
+  ["fees","Module: Fee & Bursary Ledger","Fee & Bursary Ledger","Vote-head billing, M-Pesa & bank paybill reconciliation, CDF bursary tracking, and real-time fee balance statements.",""],
+  ["portal","Module: Unified Cloud & Offline Hub","Unified Cloud & Offline Hub","Role-based access for Principals, Deans, Teachers, Bursars, and Parents\u2014working seamlessly online or offline.",""],
+  ["communication","Module: Parent & SMS Connect","Parent & SMS Connect","Dispatch personalized exam scores, fee reminders, and school announcements directly to parents via branded SMS.",""]
+];
 const SWP_MAX_PHOTOS = 12, SWP_MAX_CHARS = 3200000;
 let swpSaved = null, swpDraft = null, swpDirty = false, swpMsg = "", swpMsgOk = true, swpBusy = false, swpFetched = false;
 function swpEsc(v){ return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -14650,6 +14730,11 @@ function swpMerge(c){
   Object.keys(d.hero).forEach(k => { if(c.hero && typeof c.hero[k] === "string" && c.hero[k]) d.hero[k] = c.hero[k]; });
   Object.keys(d.contacts).forEach(k => { if(c.contacts && typeof c.contacts[k] === "string" && c.contacts[k]) d.contacts[k] = c.contacts[k]; });
   d.gallery = Array.isArray(c.gallery) ? c.gallery.filter(g => g && typeof g.src === "string").map(g => ({ id: g.id || ("p" + Math.random().toString(36).slice(2, 9)), title: g.title || "", caption: g.caption || "", src: g.src })) : [];
+  d.cards = {};
+  SWP_CARDS.forEach(([k]) => {
+    const v = c.cards && c.cards[k]; if(!v || typeof v !== "object") return;
+    d.cards[k] = { img: typeof v.img === "string" ? v.img : "", title: typeof v.title === "string" ? v.title : "", text: typeof v.text === "string" ? v.text : "", link: typeof v.link === "string" ? v.link : "", linkLabel: typeof v.linkLabel === "string" ? v.linkLabel : "" };
+  });
   return d;
 }
 function swpReadSaved(){ try{ const r = JSON.parse(localStorage.getItem(SWP_KEY) || "null"); return r && r.c ? r : null; }catch(_e){ return null; } }
@@ -14684,8 +14769,34 @@ function swpSet(path, val){
   swpDirty = true;
 }
 function swpSetPhoto(i, k, val){ swpEnsure(); if(swpDraft.gallery[i]) swpDraft.gallery[i][k] = val; swpDirty = true; }
-function swpSize(){ return swpDraft ? swpDraft.gallery.reduce((n, g) => n + g.src.length, 0) : 0; }
-function swpPhotoData(file){
+function swpSize(){ return swpDraft ? swpDraft.gallery.reduce((n, g) => n + g.src.length, 0) + Object.keys(swpDraft.cards || {}).reduce((n, k) => n + ((swpDraft.cards[k] && swpDraft.cards[k].img) || "").length, 0) : 0; }
+function swpCard(k){ swpEnsure(); if(!swpDraft.cards) swpDraft.cards = {}; return swpDraft.cards[k] || (swpDraft.cards[k] = { img: "", title: "", text: "", link: "", linkLabel: "" }); }
+function swpSetCard(k, f, val){ swpCard(k)[f] = val; swpDirty = true; }
+// "View more" links must start with https://, http://, mailto: or tel: (a bare address like www.school.ac.ke gets https:// added)
+function swpFixLink(k, input){
+  let v = String(input.value || "").trim();
+  if(v && !/^(https?:\/\/|mailto:|tel:)/i.test(v)){ if(/^[\w-]+(\.[\w-]+)+(\/|$|\?)/.test(v)) v = "https://" + v; else { swpFlash("The View more link \"" + v + "\" is not a web address. Use something like https://www.example.com", false); v = ""; } }
+  input.value = v; swpSetCard(k, "link", v);
+}
+async function swpCardPhoto(k, input){
+  const f = input.files && input.files[0]; input.value = ""; if(!f) return;
+  if(!/^image\//.test(f.type)) return swpFlash(f.name + " is not an image.", false);
+  try{
+    swpBusy = true; render();
+    const src = await swpPhotoData(f, 900, 0.72, 330000);
+    swpBusy = false;
+    const old = (swpCard(k).img || "").length;
+    if(swpSize() - old + src.length > SWP_MAX_CHARS) return swpFlash("The photos are too large to save. Remove a gallery photo or use a smaller picture.", false);
+    swpCard(k).img = src; swpDirty = true;
+    swpFlash("Photo changed — press Save to show it on the web page.", true);
+  }catch(_e){ swpBusy = false; swpFlash("That picture could not be read. Try a JPG or PNG.", false); }
+}
+function swpCardReset(k, what){
+  const c = swpCard(k);
+  if(what === "img") c.img = ""; else { c.title = ""; c.text = ""; c.link = ""; c.linkLabel = ""; }
+  swpDirty = true; render();
+}
+function swpPhotoData(file, maxSide, quality, maxChars){
   return new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onerror = () => rej(new Error("read"));
@@ -14699,8 +14810,9 @@ function swpPhotoData(file){
           const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
           return c.toDataURL("image/jpeg", q);
         };
-        let d = enc(1200, 0.78);
-        if(d.length > 600000) d = enc(900, 0.6);
+        let d = enc(maxSide || 1200, quality || 0.78);
+        if(d.length > (maxChars || 600000)) d = enc(Math.round((maxSide || 1200) * 0.75), (quality || 0.78) - 0.15);
+        if(d.length > (maxChars || 600000)) d = enc(Math.round((maxSide || 1200) * 0.55), 0.5);
         res(d);
       };
       im.src = fr.result;
@@ -14768,6 +14880,27 @@ function renderSdWebPage(){
     ? `<span style="color:#b45309;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Saved on this device only — not published yet</span>`
     : published ? `<span style="color:var(--green);font-weight:700;"><i class="fa-solid fa-circle-check"></i> Published</span>`
     : `<span style="color:#6b7a99;font-weight:700;"><i class="fa-solid fa-circle-info"></i> Showing the original web page</span>`;
+  const cardBoxes = SWP_CARDS.map(([k, label, defTitle, defText]) => {
+    const c = (d.cards && d.cards[k]) || {}, hero = k === "hero1";
+    return `<div style="border:2px solid var(--blue);border-radius:16px;overflow:hidden;background:#fff;display:flex;flex-direction:column;">
+      <div style="padding:8px 12px;background:#eef3ff;font-weight:800;font-size:13px;">${swpEsc(label)}</div>
+      <div style="position:relative;aspect-ratio:16/9;background:#e5e9f2;display:flex;align-items:center;justify-content:center;color:#6b7a99;font-size:12px;overflow:hidden;">
+        ${c.img ? `<img src="${c.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">` : `<span><i class="fa-solid fa-image"></i> Original photo</span>`}
+      </div>
+      <div style="padding:12px;display:grid;gap:8px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <label class="btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><i class="fa-solid fa-camera"></i> ${c.img ? "Change photo" : "Upload photo"}<input type="file" accept="image/*" style="display:none" onchange="swpCardPhoto('${k}',this)"></label>
+          ${c.img ? `<button type="button" class="btn-ghost" onclick="swpCardReset('${k}','img')"><i class="fa-solid fa-rotate-left"></i> Original photo</button>` : ""}
+        </div>
+        ${hero ? "" : `<input type="text" value="${swpEsc(c.title)}" placeholder="${swpEsc(defTitle)}" maxlength="80" oninput="swpSetCard('${k}','title',this.value)" style="font-weight:700;" aria-label="Card title">
+        <textarea rows="3" maxlength="300" placeholder="${swpEsc(defText)}" oninput="swpSetCard('${k}','text',this.value)" style="resize:vertical;" aria-label="Card description">${swpEsc(c.text)}</textarea>`}
+        <input type="text" value="${swpEsc(c.link)}" placeholder="View more link, e.g. https://www.example.com" maxlength="500" onchange="swpFixLink('${k}',this)" aria-label="View more link">
+        <input type="text" value="${swpEsc(c.linkLabel)}" placeholder="Link wording (default: View more)" maxlength="30" oninput="swpSetCard('${k}','linkLabel',this.value)" aria-label="View more wording">
+        <div style="font-size:13px;"><span style="color:#6b7a99;">Preview: </span><span style="color:#0000FF;font-weight:700;text-decoration:underline;">${swpEsc(c.linkLabel || "View more")} &rarr;</span></div>
+        ${(c.title || c.text || c.link || c.linkLabel) ? `<button type="button" class="btn-ghost" onclick="swpCardReset('${k}','text')"><i class="fa-solid fa-rotate-left"></i> Clear text and link</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
   const photos = d.gallery.map((g, i) => `
     <div style="border:2px solid var(--blue);border-radius:16px;overflow:hidden;background:#fff;display:flex;flex-direction:column;">
       <img src="${g.src}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#f0e1f7;">
@@ -14809,6 +14942,15 @@ function renderSdWebPage(){
           ${field("Facebook name", "contacts.facebookName", d.contacts.facebookName, "Page or person")}
           ${field("Facebook link", "contacts.facebookUrl", d.contacts.facebookUrl, "https://www.facebook.com/…", true)}
         </div></div>
+      </div>
+
+
+      <div class="panel">
+        <div class="panel-header"><h3><i class="fa-solid fa-id-card" style="color:var(--blue);"></i>&nbsp;Cards on the web page</h3></div>
+        <div style="padding:6px 20px 20px;display:grid;gap:14px;">
+          <div style="font-size:13px;color:#6b7a99;">Change the photo, title and description of each card. Add a <b>View more</b> link (shown in <b style="color:#0000FF;">true blue</b> on the card) to send visitors to any web page, WhatsApp chat or email. Leave a box empty to keep the original; with no link, View more opens the card's own details.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;">${cardBoxes}</div>
+        </div>
       </div>
 
       <div class="panel">
@@ -58978,7 +59120,7 @@ function renderSettingsProfileTab(){
             <div class="icon-input"><i class="fa-solid fa-mobile-screen"></i><input id="sp_phone" type="text" value="${profile.phone||''}" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this)"></div>
           </label>
           <label class="icon-field"><span>WhatsApp Number</span>
-            <div class="icon-input"><i class="fa-brands fa-whatsapp"></i><input id="sp_whatsapp" type="text" value="${profile.whatsapp||''}" inputmode="numeric" pattern="[0-9]*" placeholder="Shown on the app's &quot;WhatsApp us Now&quot; card" oninput="digitsOnlyInput(this)"></div>
+            <div class="icon-input"><i class="fa-brands fa-whatsapp"></i><input id="sp_whatsapp" type="text" value="${profile.whatsapp||''}" inputmode="numeric" pattern="[0-9]*" placeholder="The school's own WhatsApp (support chat always goes to the System Developer)" oninput="digitsOnlyInput(this)"></div>
           </label>
           <label class="icon-field"><span>Email Address&nbsp;<span class="req">*</span></span>
             <div class="icon-input"><i class="fa-solid fa-envelope"></i><input id="sp_email" type="text" value="${profile.email||''}"></div>
@@ -59590,8 +59732,23 @@ function renderPage(){
 let mNavHist = [], mNavPos = -1;
 let mSheet = null;            // null | 'account' | 'modules' | 'search' | 'menu'
 let mOnline = (typeof navigator === 'undefined') ? true : navigator.onLine !== false;
-window.addEventListener('online',  () => { mOnline = true;  try{ renderMobileChrome(); }catch(e){} });
-window.addEventListener('offline', () => { mOnline = false; try{ renderMobileChrome(); }catch(e){} });
+// Real connection check: ask the server (a failed/timed-out request = offline). navigator.onLine alone is unreliable in the Android WebView.
+// The same reply carries the System Developer's published WhatsApp number, saved for the "WhatsApp us Now" card.
+function mSetOnline(v){ if(v === mOnline) return; mOnline = v; try{ renderMobileChrome(); }catch(e){} }
+function mCheckNet(){
+  if(typeof navigator !== 'undefined' && navigator.onLine === false){ mSetOnline(false); return; }
+  if(typeof fetch !== 'function' || (location.protocol === 'file:' && !window.MASMS_API_BASE)) return;
+  var ctl = (typeof AbortController === 'function') ? new AbortController() : null, to = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, 6000);
+  fetch((window.MASMS_API_BASE || '') + '/api/web-page?_=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+    .then(function(r){ clearTimeout(to); mSetOnline(true); return r.ok ? r.json() : null; })
+    .then(function(j){ var w = j && j.content && j.content.contacts && String(j.content.contacts.whatsapp || '').trim(); if(w){ try{ localStorage.setItem('maestroSupportWa', w); }catch(e){} } })
+    .catch(function(){ clearTimeout(to); mSetOnline(false); });
+}
+window.addEventListener('online',  () => { mCheckNet(); });
+window.addEventListener('offline', () => { mSetOnline(false); });
+document.addEventListener('visibilitychange', () => { if(!document.hidden) mCheckNet(); });
+setInterval(mCheckNet, 10000);
+setTimeout(mCheckNet, 400);
 
 function mTrackNav(){
   if(mNavHist[mNavPos] === active) return;
@@ -59651,7 +59808,16 @@ function mRefresh(){ mSheet = null; render(); }
 
 // "WhatsApp us Now": always opens a WhatsApp chat with the System Developer / company. The number is taken from
 // System Developer > Account Information (Phone / WhatsApp number) and is deliberately not shown on the card.
-function waSupportNumber(){ const v = sdAccountEffective().phone; return whatsappNumber(v) ? v : SD_ACCOUNT_DEFAULTS.phone; }
+function waSupportNumber(){
+  // Always the System Developer's number: the one saved in System Developer > Account Information (on the developer's device),
+  // otherwise the one the System Developer published (Web page > WhatsApp number, fetched from the server), otherwise the built-in default.
+  // Never the school's own or a teacher's number.
+  let saved = ''; try{ saved = String((typeof sdAccountInfo === 'object' && sdAccountInfo && sdAccountInfo.phone) || '').trim(); }catch(_e){}
+  if(whatsappNumber(saved)) return saved;
+  let pub = ''; try{ pub = localStorage.getItem('maestroSupportWa') || ''; }catch(_e){}
+  if(whatsappNumber(pub)) return pub;
+  return SD_ACCOUNT_DEFAULTS.phone;
+}
 function waSupportUrl(){ return 'https://wa.me/' + whatsappNumber(waSupportNumber()) + '?text=' + encodeURIComponent('Hello Maestro, I am from ' + currentSchool + ' and I need help.'); }
 function changeWaSupportNumber(){
   mSheet = null;

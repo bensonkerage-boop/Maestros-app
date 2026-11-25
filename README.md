@@ -89,6 +89,7 @@ Limits: learners see only the quiz portal on their own phone (fees, results and 
 
 ## Layout
 - `source/MAESTRO_MASMS_FINAL.html` – the app (edit this, then rebuild)
+- `pwa/landing.src.html` / `pwa/landing.html` – the landing page (edit the `.src`, run `npm run landing:css`)
 - `scripts/build.js` – produces `public/` (images pulled out of the HTML, JS whitespace-minified, vendor libs + fonts copied from npm)
   - Web build only: the inline Font Awesome copy (1MB of base64) is dropped in favour of the linked `vendor/fa/all.min.css`, and `xlsx` / `exceljs` load right after the page has loaded instead of blocking it. `dist/MASMS_standalone.html` keeps everything inline.
 - `scripts/local-store.js` – browser module: on-device autosave/restore
@@ -188,11 +189,17 @@ The app checks for a newer version by itself (about 4 seconds after opening, whe
 
 Note: PDF/Excel downloads inside the APK need the Capacitor Filesystem/Share plugin (not included yet); they work in the installed web app (Option A).
 
-## Photo gallery (landing page)
-The landing page has a **Gallery** link that opens a page of photo cards. Add photos by putting the images (jpg/png/webp, about 1200px wide) in `pwa/gallery/` and listing them in `pwa/gallery.json`: `[{ "file": "open-day.jpg", "title": "Open day", "caption": "Parents touring the labs" }]`. Rebuild (`npm run build`, `npm run standalone`, `npm run build:android`); the photos are embedded in the page, so they work offline. Until photos are added, placeholder cards show. Tapping a photo opens it full size.
+## Landing page (first screen, web and Android app)
+The first screen is `pwa/landing.html`: a mobile-first page (hero cards, six module cards with an *Explore Module* popup, *Who MAESTRO is built for*, FAQ, demo request, contacts). It shows **both in the web browser and in the Android app**; every *Log in* / *Launch Portal* button hides it and reveals the app's own sign-in page (it posts `masms-login` to the app; opened on its own it goes to `/#app`). It is skipped when someone is already signed in or the address ends in `#app`, and shows again after logging out. The Android back button goes from a landing section to its top, then leaves the app; on the sign-in page the *Home* arrow comes back to it.
+- **Edit the page** in `pwa/landing.src.html`, then run `npm run landing:css` (compiles its Tailwind styles into `pwa/landing.html`, so the app never loads Tailwind or fonts from the internet) and rebuild.
+- The hero heading/text, the card photos/text/links and the contacts (phone, WhatsApp, email, Facebook) follow the System Developer's **Web Page** tab (`maestroWebPage` on the device and `GET /api/web-page`). The Web Page tab's **gallery and hero photo no longer show anywhere**, because the new page has no gallery.
+- **Request a school demo** opens the visitor's email app addressed to the contact email with the school name and phone/email filled in (the page itself sends nothing).
+- *Download Android app* (`/api/android-apk`) shows on the website only; it is hidden inside the app.
+- The six card photos are loaded from the internet (Unsplash); with no signal a plain coloured card with the title is drawn instead. Put your own pictures in the page (as `data:` images or files under `public/`) to remove that dependency.
 
 ## Web Page (System Developer)
 System Developer > **Web Page** edits what visitors see on the landing page before login: the home heading and description, the contacts (phone, email, WhatsApp, Facebook) and photo cards for the Gallery (add, retitle, caption, reorder, remove; photos are resized in the browser, up to 12).
 - **Save** keeps the changes on this device (key `maestroWebPage`; the landing page reads it straight away). When the cloud button (bottom-left) is signed in with the admin account, Save also **publishes** to the server (`PUT /api/web-page`, admin only), and every visitor's landing page loads it from `GET /api/web-page` (public). Without the cloud sign-in it shows "Saved on this device only"; sign in and press **Publish**.
 - Unpublished edits on a device are never overwritten by the published copy. Without a server (single HTML file) the changes show on that device only.
+- **Cards.** The *Cards on the web page* box lists every card on the landing page (the two banner cards and the six module cards). For each one the System Developer can **upload or change the photo** (resized in the browser), **edit the title and description**, and add a **View more link**: it shows on the card in true blue (`#0000FF`, underlined) and opens that address in a new tab (https://, mailto: or tel:; a bare address like `www.school.ac.ke` gets `https://`). The link wording can be changed too. An empty box keeps the original; with no link, View more opens the card's own details popup (or the sign-in page for the portal card). Stored under `cards` in the same setting (`maestroWebPage` / `PUT /api/web-page`); the server only keeps known cards, image data URLs up to 450KB and safe links. Test: `test/landing-page.test.js`, `test/api.test.js`.
 - The photos live in this setting, not in school backups. `pwa/gallery.json` is still the built-in default gallery; anything published replaces it.
