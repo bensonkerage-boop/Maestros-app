@@ -67,6 +67,7 @@
                     <a href="#who-its-for" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Who it’s For</a>
                     <a href="#faq" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">FAQ</a>
                     <a href="#contacts" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Contacts</a>
+                    <a href="#" onclick="openDemoShow();return false" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Demo</a>
                     <button onclick="openLoginModal()" class="ml-1 px-5 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white font-semibold text-sm shadow-sm transition-all active:scale-95">
                         Log in
                     </button>
@@ -74,6 +75,7 @@
 
                 <!-- Android Mobile Compact Action Pill -->
                 <div class="flex items-center gap-2 md:hidden">
+                    <button type="button" onclick="openDemoShow()" class="h-9 px-4 rounded-full bg-slate-100 text-slate-700 text-xs font-bold tracking-wide">Demo</button>
                     <button onclick="openLoginModal()" class="h-9 px-4 rounded-full bg-royalBlue active:bg-royalBlueDark text-white text-xs font-bold tracking-wide shadow-xs flex items-center gap-1.5 transition-transform active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -479,6 +481,7 @@
                     <p class="text-xs sm:text-sm text-slate-600 mb-4 leading-relaxed">
                         Schedule a live walkthrough for your Principal, Dean of Studies, and School Bursar.
                     </p>
+                    <button type="button" onclick="openDemoShow()" class="w-full min-h-[44px] py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slateNavy text-xs sm:text-sm font-semibold mb-4 transition-colors">Watch the 22-module demo and request modules</button>
                     <form onsubmit="submitDemoRequest(event)" class="space-y-3">
                         <div>
                             <label for="demo-school" class="sr-only">School Name</label>
@@ -925,5 +928,186 @@
             if (e.target.id === 'module-modal') closeModuleModal();
         });
     </script>
+<!-- ===== MODULES DEMO SLIDESHOW (opens from the "Demo" buttons; clients tick modules and send a request) ===== -->
+<style id="ds-css">
+#ds-root{position:fixed;inset:0;z-index:100;background:#12233F;color:#12233F;font-family:Inter,Roboto,system-ui,-apple-system,sans-serif;display:none;flex-direction:column}
+#ds-root.on{display:flex}
+#ds-stage{flex:1;min-height:0;position:relative;overflow:hidden}
+.ds-slide{position:absolute;inset:0;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ds-slide.on{display:flex;animation:dsin .35s ease both}
+@keyframes dsin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.ds-cover{background:#12233F;color:#F5F2EA;flex-direction:column;justify-content:space-between;padding:clamp(24px,6vw,96px)}
+.ds-cover .eb{color:#F2A93B;font-weight:600;font-size:clamp(14px,1.8vw,24px)}
+.ds-cover .rule{width:96px;height:8px;background:#F2A93B;margin-bottom:24px}
+.ds-cover h1{font-size:clamp(56px,13vw,180px);font-weight:700;line-height:1;margin:0 0 16px;letter-spacing:-1px}
+.ds-cover .sub{color:#C9D4E5;font-size:clamp(18px,2.8vw,40px);line-height:1.3;max-width:900px;margin:0}
+.ds-cover .meta{color:#C9D4E5;font-size:clamp(13px,1.6vw,22px);margin:0}
+.ds-start{margin-top:28px;background:#F2A93B;color:#12233F;border:0;border-radius:10px;padding:14px 28px;font-weight:700;font-size:clamp(15px,1.8vw,22px);cursor:pointer}
+.ds-ov{background:#F5F2EA;flex-direction:column;padding:clamp(20px,4vw,72px)}
+.ds-ov h2{font-size:clamp(26px,4.4vw,60px);font-weight:700;margin:0 0 6px;line-height:1.1}
+.ds-ov .lead{color:#4A5568;font-size:clamp(15px,2vw,26px);margin:0 0 22px}
+.ds-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
+.ds-chip{display:flex;align-items:center;gap:12px;background:#FBFAF6;border:0;border-left:6px solid #F2A93B;padding:12px 14px;text-align:left;cursor:pointer;font:inherit;color:#12233F;border-radius:4px}
+.ds-chip b{font-size:22px;color:#1F7A7A;width:34px;flex:none}
+.ds-chip span{font-weight:600;font-size:15px;line-height:1.2;flex:1}
+.ds-chip i{font-style:normal;color:#1F7A7A;font-weight:700}
+.ds-mod{background:#F5F2EA;flex-direction:row}
+.ds-side{width:36%;max-width:620px;flex:none;background:#12233F;color:#F5F2EA;padding:clamp(24px,5vw,96px) clamp(20px,3.5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:24px}
+.ds-side .eb{color:#F2A93B;font-weight:600;font-size:clamp(13px,1.5vw,22px)}
+.ds-side .num{color:#F2A93B;font-size:clamp(56px,9vw,140px);font-weight:700;line-height:1}
+.ds-side h2{font-size:clamp(26px,3.4vw,52px);font-weight:700;line-height:1.1;margin:0 0 14px}
+.ds-side .tag{color:#C9D4E5;font-size:clamp(15px,1.9vw,28px);line-height:1.35;margin:0}
+.ds-main{flex:1;padding:clamp(20px,4vw,80px);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.ds-main .k{color:#1F7A7A;font-weight:600;font-size:clamp(14px,1.6vw,24px);margin:0 0 16px}
+.ds-tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ds-tiles.g3{grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr))}
+.ds-tile{background:#FBFAF6;border-left:6px solid #1F7A7A;padding:14px 18px;border-radius:4px}
+.ds-tile h3{font-size:clamp(15px,1.9vw,26px);font-weight:700;margin:0 0 4px;line-height:1.15}
+.ds-tile p{font-size:clamp(13px,1.5vw,20px);color:#4A5568;margin:0;line-height:1.35}
+.ds-add{align-self:flex-start;margin-top:22px;background:#12233F;color:#F5F2EA;border:2px solid #12233F;border-radius:10px;padding:12px 22px;font-weight:700;font-size:clamp(14px,1.6vw,20px);cursor:pointer}
+.ds-add.on{background:#1F7A7A;border-color:#1F7A7A}
+.ds-req{background:#F2A93B;flex-direction:column;padding:clamp(20px,4vw,72px);gap:16px}
+.ds-req h2{font-size:clamp(28px,5vw,72px);font-weight:700;line-height:1.05;margin:0}
+.ds-req .lead{font-size:clamp(15px,2vw,26px);margin:0;max-width:900px}
+.ds-req form{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start}
+.ds-pick{background:#F5F2EA;border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:4px 12px}
+.ds-pick label{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600;padding:6px 4px;cursor:pointer}
+.ds-pick input{width:18px;height:18px;accent-color:#1F7A7A;flex:none}
+.ds-fields{background:#F5F2EA;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.ds-fields input[type=text]{height:46px;border:1px solid #94a3b8;border-radius:8px;padding:0 12px;font-size:16px;font-family:inherit;color:#12233F;background:#fff}
+.ds-fields button{min-height:48px;border:0;border-radius:8px;background:#12233F;color:#F5F2EA;font-weight:700;font-size:16px;cursor:pointer}
+.ds-fields .cnt{font-size:14px;color:#4A5568;margin:0}
+.ds-fields .ok{display:none;font-size:14px;font-weight:600;color:#1F7A7A;margin:0}
+.ds-fields .alt{font-size:14px;color:#4A5568;margin:4px 0 0}
+.ds-fields .alt a{color:#12233F;font-weight:700;text-decoration:underline}
+#ds-bar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0c1830;color:#C9D4E5;font-size:14px}
+#ds-bar button{background:transparent;border:1px solid #3b4d6b;color:#F5F2EA;border-radius:8px;min-width:44px;min-height:40px;font-size:16px;cursor:pointer;padding:0 12px}
+#ds-bar button:disabled{opacity:.35}
+#ds-bar .grow{flex:1;height:6px;background:#26395c;border-radius:3px;overflow:hidden}
+#ds-prog{height:100%;width:0;background:#F2A93B;transition:width .3s}
+#ds-pg{min-width:54px;text-align:center}
+@media (max-width:760px){
+ .ds-mod{flex-direction:column}
+ .ds-side{width:auto;max-width:none;flex-direction:column;gap:10px;padding:20px}
+ .ds-side .num{font-size:52px}
+ .ds-tiles{grid-template-columns:1fr}
+ .ds-req form{grid-template-columns:1fr}
+}
+</style>
+<div id="ds-root" role="dialog" aria-modal="true" aria-label="MASMS modules demo">
+  <div id="ds-stage"></div>
+  <div id="ds-bar">
+    <button type="button" id="ds-prev" aria-label="Previous slide">&#8592;</button>
+    <button type="button" id="ds-next" aria-label="Next slide">&#8594;</button>
+    <div class="grow"><div id="ds-prog"></div></div>
+    <span id="ds-pg">1 / 25</span>
+    <button type="button" id="ds-full" aria-label="Full screen">&#9974;</button>
+    <button type="button" id="ds-close" aria-label="Close demo">&#10005;</button>
+  </div>
+</div>
+<script id="ds-js">
+(function(){
+  var M=[
+  ['Core','Dashboard','Your school today, at a glance.',[['Key statistics','Headline figures for the school.'],['Events and announcements','What is happening this term.'],['Fee snapshot','Collection status for administrators.'],['Teacher home','My subjects, my class, subject sharing and reports.']]],
+  ['Core','My Profile','Every staff member keeps their own details.',[['Personal details','Name, contacts and basic information.'],['Own record','Each person fills in and updates their own profile.']]],
+  ['People','Student Management','Enroll and manage every learner.',[['Search student','Find any learner quickly.'],['Add student','Enroll a new learner.'],['Update profiles','Personal, residence, education and family details.'],['Update photos','Add or change learner photos.'],['Electives','Record optional subjects.'],['Medical information','Health details kept on the profile.']]],
+  ['People','Teacher & Non-Teaching Staff','Everyone who keeps the school running.',[['Teachers','Records for the teaching staff.'],['Non-teaching staff','Records for support staff.'],['BOM','Board of Management members.'],['Staff profiles','Each person’s details in one place.']]],
+  ['People','Classes','Classes and streams, organised.',[['Add new class','Set up a grade and its streams.'],['Manage classes','Edit classes and their subjects.'],['My classes','The classes a teacher handles.'],['Supportive programs','Groups outside the usual classes.'],['Move student','Shift a learner between classes or streams.'],['Class lists','Printable lists for each stream.']]],
+  ['Academics','Timetable','Class and teacher timetables.',[['My timetable','A teacher’s own week.'],['Stream timetable','The full timetable for a class teacher’s stream.'],['Class timetables','One timetable per class.'],['Teacher timetables','One timetable per teacher.']]],
+  ['Academics','Academics','Subjects, pathways and syllabus.',[['Compulsory subjects','The subjects every learner takes.'],['Pathways','Subject choices by pathway.'],['Departments','Group subjects into departments.'],['Syllabus coverage','Track how much each teacher has covered.']]],
+  ['Academics','Examinations & Analysis','Create exams, grade and analyse marks.',[['Create exam','Set up a new exam.'],['Manage exams','View, edit and publish.'],['Paper ratios','Configure subject papers.'],['Enter marks','Record student scores.'],['SBA score sheet','Print a class score sheet.'],['Reports & exports','Download exam reports.'],['Grading system','Set grading scales.'],['Online exams','Quizzes marked automatically.']]],
+  ['Finance and resources','Accounting & Finance','Fees, invoices and the school’s books.',[['Fee structure','Fees by class.'],['Receive payment','Record fees paid.'],['Fee accounts','Balance per learner.'],['Fee arrears','Who owes what.'],['Discounts & scholarships','Reduce fees.'],['Receipts','Issue and reprint.'],['Reconciliation','Match payments.'],['Budget & variance','Plan against actual.'],['Payroll','Pay staff.'],['General ledger','The full books.'],['Trial balance','Check totals agree.'],['Reports','Financial reports.']],1],
+  ['Finance and resources','Stores','Inventory, stock in and out, and requisitions.',[['Inventory','What is in stock.'],['Receive stock','Record deliveries.'],['Issue stock','Record items given out.'],['Requisitions','Request items from stores.'],['Suppliers','Who supplies what.'],['Reports','Stock reports.']]],
+  ['Finance and resources','Library','Books and borrowing.',[['Books','Your catalogue of titles and copies.'],['Issue books','Lend a book to a borrower.'],['Return books','Check books back in.'],['Reports','Catalogue, issued and available copies.']]],
+  ['Finance and resources','Laboratory','Apparatus, chemicals and lab safety.',[['Apparatus','Track lab equipment.'],['Chemicals','Track lab chemicals.'],['Lab safety','Keep safety information to hand.']]],
+  ['Campus life','Co-curricular','Clubs and sports.',[['Clubs','Manage school clubs and their members.'],['Sports','Manage sports and teams.']]],
+  ['Campus life','Attendance','Daily records for every class.',[['Daily records','Mark attendance each day.'],['Class register','Today’s attendance by student.'],['Parent view','Parents see attendance in the portal.']]],
+  ['Campus life','Boarding','Dormitories, roll call and exeats.',[['Dormitories','Set up houses and dorms.'],['Bed allocation','Assign boarders to beds.'],['Roll call','Check who is in the dorm.'],['Exeats & leave','Record permission to leave.'],['Reports','Boarders grouped by house.']]],
+  ['Campus life','Medical Alerts','Learner health recommendations, acknowledged by staff.',[['Health recommendations','Flag what a learner needs.'],['Acknowledgements','Confirm staff have seen each alert.']]],
+  ['Engagement','Parent / Student Portal','Self-service access for parents and students.',[['Fee statements','Balances and payment history.'],['Exam results','Published marks and report cards.'],['Attendance','Daily attendance records.'],['Announcements','School notices.'],['Messaging','Message teachers and the school office.'],['Online exams','Quizzes marked automatically.']]],
+  ['Campus life','Transport','Routes and vehicles.',[['Routes','Plan and manage school routes.'],['Vehicles','Keep a record of the school’s vehicles.']]],
+  ['Engagement','Communication','Parent and staff communication.',[['Parents','Reach guardians directly.'],['Staff','Keep teachers and staff informed.'],['Direct messages','Parents and learners can message teachers and the office.']]],
+  ['Engagement','Announcement','Post and manage school announcements.',[['Post','Publish a notice in seconds.'],['Manage','Edit or remove past announcements.'],['Reach everyone','Notices also show on the dashboard and in the portal.']]],
+  ['Insight and admin','Reports','Generate school reports in a click.',[['Admission register','Full roster.'],['Grade lists','Grouped by grade.'],['Stream lists','Grouped by stream.'],['Fee register','Payment status.'],['Attendance register','By class.'],['Boarding list','By house.'],['Exam analysis','By term and class.'],['Library analysis','Issued and available.'],['Gender distribution','Counts by grade.'],['Age list','Birth date and age.'],['Age analysis','By gender and grade.'],['Transfers','Students in and out.']],1],
+  ['Insight and admin','Settings','Set the school up once and keep it safe.',[['School profile','Name and details.'],['School accounts','Bank and payment accounts.'],['Grades','Levels you teach.'],['Streams','Class divisions.'],['Tracks','Learning tracks.'],['Academic term','Term dates.'],['Responsibility','Staff duties.'],['Users & roles','Who can do what.'],['Departments','Group staff.'],['Backup & restore','Export and import data.']],1]
+  ];
+  var root=document.getElementById('ds-root'),stage=document.getElementById('ds-stage'),prev=document.getElementById('ds-prev'),next=document.getElementById('ds-next'),
+      pg=document.getElementById('ds-pg'),prog=document.getElementById('ds-prog'),picked={},cur=0,slides=[],built=false;
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function pad(n){return (n<10?'0':'')+n}
+  function contact(k){var el=document.getElementById(k);return el?el.textContent.trim():''}
+  function phone(){var a=document.getElementById('contact-phone');return a?(a.getAttribute('href')||'').replace(/^tel:/,''):'0724743019'}
+  function email(){var a=document.getElementById('contact-email');return a?(a.getAttribute('href')||'').replace(/^mailto:/,''):'bensonkerage@gmail.com'}
+  function build(){
+    if(built)return;built=true;var h='';
+    h+='<div class="ds-slide ds-cover"><p class="eb">School management system</p><div><div class="rule"></div><h1>MASMS</h1><p class="sub">A guided tour of all 22 modules. Choose the ones your school needs and request them at the end.</p><button type="button" class="ds-start" data-go="1">Start the tour</button></div><p class="meta">Maestro · Benson Oimeke · '+esc(phone())+' · '+esc(email())+'</p></div>';
+    h+='<div class="ds-slide ds-ov"><h2>22 modules, one system</h2><p class="lead">Tap a module to see it. Add the ones you want to your request.</p><div class="ds-chips">';
+    M.forEach(function(m,i){h+='<button type="button" class="ds-chip" data-go="'+(i+2)+'"><b>'+pad(i+1)+'</b><span>'+esc(m[1])+'</span><i data-chk="'+i+'"></i></button>'});
+    h+='</div></div>';
+    M.forEach(function(m,i){
+      h+='<div class="ds-slide ds-mod"><div class="ds-side"><div><div class="eb">'+esc(m[0])+'</div><div class="num">'+pad(i+1)+'</div></div><div><h2>'+esc(m[1])+'</h2><p class="tag">'+esc(m[2])+'</p></div></div><div class="ds-main"><p class="k">What it covers</p><div class="ds-tiles'+(m[4]?' g3':'')+'">';
+      m[3].forEach(function(t){h+='<div class="ds-tile"><h3>'+esc(t[0])+'</h3><p>'+esc(t[1])+'</p></div>'});
+      h+='</div><button type="button" class="ds-add" data-add="'+i+'"></button></div></div>';
+    });
+    h+='<div class="ds-slide ds-req"><h2>Request your modules</h2><p class="lead">Tick the modules you want. We set up your school and get you started.</p><form id="ds-form" novalidate><div class="ds-pick">';
+    M.forEach(function(m,i){h+='<label><input type="checkbox" data-pick="'+i+'"> <span>'+pad(i+1)+' · '+esc(m[1])+'</span></label>'});
+    h+='</div><div class="ds-fields"><p class="cnt" id="ds-cnt"></p><input type="text" id="ds-school" placeholder="School name" autocomplete="organization"><input type="text" id="ds-contact" placeholder="Your phone or email" autocomplete="off"><button type="submit">Send my request</button><p class="ok" id="ds-ok"></p><p class="alt">Or call <a href="tel:'+esc(phone())+'">'+esc(phone())+'</a> or email <a href="mailto:'+esc(email())+'">'+esc(email())+'</a>.</p></div></form></div>';
+    stage.innerHTML=h;slides=[].slice.call(stage.children);
+    stage.addEventListener('click',function(e){
+      var t=e.target.closest?e.target.closest('[data-go],[data-add]'):null;if(!t)return;
+      if(t.hasAttribute('data-go'))go(+t.getAttribute('data-go'));
+      else{var i=+t.getAttribute('data-add');picked[i]=!picked[i];sync()}
+    });
+    stage.addEventListener('change',function(e){var i=e.target.getAttribute&&e.target.getAttribute('data-pick');if(i!==null&&i!==undefined){picked[+i]=e.target.checked;sync()}});
+    document.getElementById('ds-form').addEventListener('submit',submit);
+  }
+  function count(){var n=0;for(var k in picked)if(picked[k])n++;return n}
+  function sync(){
+    [].forEach.call(stage.querySelectorAll('[data-add]'),function(b){var i=+b.getAttribute('data-add'),on=!!picked[i];b.className='ds-add'+(on?' on':'');b.textContent=on?'✓ Added to my request':'+ Add to my request'});
+    [].forEach.call(stage.querySelectorAll('[data-chk]'),function(el){el.textContent=picked[+el.getAttribute('data-chk')]?'✓':''});
+    [].forEach.call(stage.querySelectorAll('[data-pick]'),function(c){c.checked=!!picked[+c.getAttribute('data-pick')]});
+    var n=count(),c=document.getElementById('ds-cnt');if(c)c.textContent=n?(n+' module'+(n>1?'s':'')+' selected'):'No modules selected yet';
+  }
+  function submit(e){
+    e.preventDefault();
+    var school=document.getElementById('ds-school').value.trim(),ct=document.getElementById('ds-contact').value.trim(),ok=document.getElementById('ds-ok'),list=[];
+    M.forEach(function(m,i){if(picked[i])list.push(pad(i+1)+' '+m[1])});
+    if(!list.length||!school||!ct){ok.style.display='block';ok.style.color='#9b1c1c';ok.textContent=!list.length?'Tick at least one module.':'Add your school name and phone or email.';return}
+    var url='mailto:'+email()+'?subject='+encodeURIComponent('MASMS module request: '+school)+'&body='+encodeURIComponent('School: '+school+'\nPhone or email: '+ct+'\n\nModules requested:\n- '+list.join('\n- ')+'\n\nPlease contact us to set these up.');
+    ok.style.display='block';ok.style.color='#1F7A7A';ok.textContent='Opening your email app so you can send the request. You can also call or WhatsApp us.';
+    var a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+  }
+  function go(n){
+    if(n<0||n>=slides.length)return;cur=n;
+    slides.forEach(function(s,i){s.classList.toggle('on',i===n)});
+    slides[n].scrollTop=0;
+    pg.textContent=(n+1)+' / '+slides.length;prog.style.width=((n+1)/slides.length*100)+'%';
+    prev.disabled=n===0;next.disabled=n===slides.length-1;
+  }
+  function open(at){
+    build();sync();root.classList.add('on');document.documentElement.style.overflow='hidden';go(typeof at==='number'?at:0);
+    try{root.setAttribute('tabindex','-1');root.focus()}catch(x){}
+  }
+  function close(){
+    root.classList.remove('on');document.documentElement.style.overflow='';
+    try{if(document.fullscreenElement)document.exitFullscreen()}catch(x){}
+  }
+  prev.onclick=function(){go(cur-1)};next.onclick=function(){go(cur+1)};document.getElementById('ds-close').onclick=close;
+  document.getElementById('ds-full').onclick=function(){try{if(document.fullscreenElement)document.exitFullscreen();else root.requestFullscreen()}catch(x){}};
+  document.addEventListener('keydown',function(e){
+    if(!root.classList.contains('on'))return;
+    var tag=(e.target&&e.target.tagName)||'';if(/INPUT|TEXTAREA/.test(tag)&&e.key!=='Escape')return;
+    if(e.key==='ArrowRight'||e.key==='PageDown'||(e.key===' '&&!/BUTTON/.test(tag))){e.preventDefault();go(cur+1)}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(cur-1)}
+    else if(e.key==='Home')go(0);else if(e.key==='End')go(slides.length-1);
+    else if(e.key==='Escape')close();
+  });
+  var sx=null;
+  stage.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+  stage.addEventListener('touchend',function(e){if(sx===null)return;var d=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(d)>70)go(cur+(d<0?1:-1))},{passive:true});
+  window.openDemoShow=function(){open(0)};
+  window.openDemoRequest=function(){open(24)};
+})();
+</script>
 </body>
 </html>

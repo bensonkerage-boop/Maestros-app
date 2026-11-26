@@ -12,7 +12,7 @@ function slim(rec) {
   if (!isObj(rec)) return null;
   const out = {};
   for (const [k, v] of Object.entries(rec)) {
-    if (k === 'pw' && isObj(v)) { if (typeof v.s === 'string' && typeof v.h === 'string' && v.s.length < 100 && v.h.length < 200) out.pw = { s: v.s, h: v.h }; continue; }
+    if ((k === 'pw' || k === 'parentPw') && isObj(v)) { if (typeof v.s === 'string' && typeof v.h === 'string' && v.s.length < 100 && v.h.length < 200) out[k] = { s: v.s, h: v.h }; continue; }
     if (typeof v === 'string') { if (v.length <= MAX_STR) out[k] = v; }
     else if (typeof v === 'number' || typeof v === 'boolean') out[k] = v;
     else if (Array.isArray(v) && v.length <= MAX_ITEMS && v.every(x => (typeof x === 'string' && x.length <= MAX_STR) || typeof x === 'number')) out[k] = v;

@@ -9,6 +9,8 @@ const { saveDirectory, getDirectory } = require('./directory');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { findStaffLogin } = require('./staff');
+const crypto = require('crypto');
+const { pwHash } = require('./recover');
 const { getStore } = require('./store');
 
 const app = express();
@@ -94,6 +96,7 @@ app.locals.auth = auth;
 app.locals.snapKey = snapKey;
 app.use('/api', require('./comms').router);
 app.use('/api', require('./recover').router);
+app.use('/api', require('./ai-mark').router);
 
 app.get('/api/health', wrap(async (req, res) => { await getStore(); res.json({ ok: true }); }));
 
@@ -394,20 +397,43 @@ function mergeAttempts(into, from) {
 // (admission number + "welcome", or guardian phone + admission number). The token it gets is limited to that one learner:
 // it can read the quizzes published to the learner's class and save that learner's own quiz attempts, nothing else.
 const portalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: Number(process.env.PORTAL_RATE_LIMIT) || 300, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts, try again later' } });
-const portalSign = (tenant, adm, school) => jwt.sign({ portal: true, tenant, adm, school }, SECRET, { expiresIn: '12h' });
+const portalSign = (tenant, adm, school, who) => jwt.sign({ portal: true, tenant, adm, school, who: who === 'parent' ? 'parent' : 'learner' }, SECRET, { expiresIn: '12h' });
 const digitsOf = v => String(v == null ? '' : v).replace(/\D/g, '');
 const phoneMatch = (stored, typed) => { const a = digitsOf(stored), b = digitsOf(typed); return !!a && !!b && (a === b || (a.length >= 9 && b.length >= 9 && a.slice(-9) === b.slice(-9))); };
 const arr = v => (Array.isArray(v) ? v : []);
+// A learner signs in with the admission number + a password, a parent with a guardian phone + a password. Until they choose one
+// the DEFAULT works (learner: "welcome"; parent: the learner's admission number) and the sign-in says mustChange, so the app shows
+// the "choose your own password" card. A chosen password is a salted hash on the learner's record (pw = learner, parentPw = parent);
+// once set, the default stops working.
+const pwOk = (rec, raw) => !!(rec && rec.s && rec.h) && pwHash(rec.s, raw) === rec.h;
 function matchPortalStudent(data, userRaw, pass) {
   const sd = (data && data.schoolData) || {}, adm = userRaw.toLowerCase(), welcome = pass.toLowerCase() === 'welcome';
   for (const school of Object.keys(sd)) {
     for (const st of arr(sd[school] && sd[school].students)) {
       const a = String(st.admissionNumber == null ? '' : st.admissionNumber).trim();
       if (!a) continue;
-      if ((welcome && a.toLowerCase() === adm) || (a === pass && arr(st.guardianPhones).some(p => phoneMatch(p, userRaw)))) return { school, student: st };
+      if (a.toLowerCase() === adm) {
+        if (st.pw && st.pw.h) { if (pwOk(st.pw, pass)) return { school, student: st, who: 'learner', mustChange: false }; }
+        else if (welcome) return { school, student: st, who: 'learner', mustChange: true };
+      }
+      if (arr(st.guardianPhones).some(p => phoneMatch(p, userRaw))) {
+        if (st.parentPw && st.parentPw.h) { if (pwOk(st.parentPw, pass)) return { school, student: st, who: 'parent', mustChange: false }; }
+        else if (a === pass) return { school, student: st, who: 'parent', mustChange: true };
+      }
     }
   }
   return null;
+}
+// Same rules as the app's passwordProblems(): 8+ characters, letters and numbers, not the default, not the person's own name / phone / admission number
+function portalPasswordProblems(pw, st, who) {
+  const out = [], low = pw.toLowerCase();
+  if (pw.length < 8) out.push('at least 8 characters');
+  if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) out.push('both letters and numbers');
+  if (low === 'welcome') out.push('different from the welcome password');
+  const mine = [String(st.admissionNumber || '').trim(), ...String(st.firstName || '').split(/\s+/), ...String(st.surname || st.lastName || '').split(/\s+/), ...(who === 'parent' ? arr(st.guardianPhones).map(p => digitsOf(p).slice(-9)) : [])]
+    .map(x => String(x).toLowerCase()).filter(x => x.length >= 3);
+  if (mine.includes(low) || (who === 'parent' && arr(st.guardianPhones).some(p => digitsOf(p) && digitsOf(p) === digitsOf(pw)))) out.push('not just your name, phone number or admission number');
+  return out;
 }
 // Quiz types: mcq (default), short (typed, marked here against the accepted answers), structured (typed, marked by the teacher)
 const qzType = q => (q && (q.type === 'short' || q.type === 'structured')) ? q.type : 'mcq';
@@ -527,6 +553,9 @@ function qzMarkTyped(x, resp, max, implied, opts){
 // </qz-scheme>
 // accepted answers, worked answers and marking schemes of typed quizzes never leave the server (the server does the marking).
 // `autoMark` only tells the learner's phone that the server will mark a structured quiz at once (every question has a scheme).
+// Claude's per-point notes quote the marking scheme, so they stay with the teacher and never go to the learner's phone.
+// teacher-only fields: Claude's notes quote the marking scheme, and its suggested marks for photo working are for the teacher to confirm
+const attemptForLearner = a => { if (!a || (!a.aiNotes && !a.aiSuggest)) return a; const { aiNotes, aiSuggest, aiSuggestedOn, ...rest } = a; return rest; };
 const forLearner = q => qzType(q) === 'mcq' ? q : { ...q, ...(qzType(q) === 'structured' ? { autoMark: arr(q.questions).length > 0 && arr(q.questions).every(x => !!qzPoints(x, qzMarksOf(q, x))) } : {}),
   questions: arr(q.questions).map(({ accepted, modelAnswer, points, explanation, ...rest }) => rest) };
 // Same rule as studentTakesSubject() in the app: a paper reaches only the learners who take its subject. Subjects every learner sits
@@ -545,7 +574,8 @@ function portalPayload(data, school, adm) {
   const ds = (data.schoolData || {})[school] || {};
   const st = arr(ds.students).find(x => String(x.admissionNumber).trim() === adm);
   if (!st) return null;
-  return { school, student: st, quizzes: quizzesFor(ds, st).map(forLearner), attempts: arr(ds.quizAttempts).filter(a => a && a.adm === adm) };
+  const { pw, parentPw, ...safe } = st;   // password hashes never leave the server
+  return { school, student: safe, quizzes: quizzesFor(ds, st).map(forLearner), attempts: arr(ds.quizAttempts).filter(a => a && a.adm === adm).map(attemptForLearner) };
 }
 const portalAuth = async (req, res, next) => {
   let c;
@@ -576,7 +606,7 @@ app.post('/api/portal/login', portalLimiter, wrap(async (req, res) => {
   if (hits.length > 1) return res.status(409).json({ error: 'More than one school has this admission number. Type it with your school code, e.g. ' + userRaw + '@' + hits[0].t.code });
   const { t, snap, m } = hits[0], adm = String(m.student.admissionNumber).trim();
   res.set('Cache-Control', 'no-store');
-  res.json({ token: portalSign(t.code, adm, m.school), schoolName: m.school, ...portalPayload(snap.data, m.school, adm) });
+  res.json({ token: portalSign(t.code, adm, m.school, m.who), schoolName: m.school, who: m.who, mustChange: m.mustChange, ...portalPayload(snap.data, m.school, adm) });
 }));
 
 // current quizzes + this learner's attempts (also used to resume after a page refresh)
@@ -588,8 +618,40 @@ app.get('/api/portal/quizzes', portalAuth, wrap(async (req, res) => {
   res.json({ schoolName: req.portal.school, ...p });
 }));
 
+// Learner / parent chooses their own password (after signing in with the default). Saved on the learner's record in the school's data
+// (and in its sign-in directory), so it works from any phone. Only the person who signed in as that learner / parent can set it.
+app.post('/api/portal/password', portalAuth, portalLimiter, wrap(async (req, res) => {
+  const pw = req.body && req.body.newPassword, { tenant, school, adm, who } = req.portal;
+  if (typeof pw !== 'string' || !pw || pw.length > 80) return res.status(400).json({ error: 'Enter a new password.' });
+  const s = await getStore(), key = snapKey(tenant), field = who === 'parent' ? 'parentPw' : 'pw';
+  const salt = crypto.randomBytes(12).toString('hex'), rec = { s: salt, h: pwHash(salt, pw) };
+  const apply = data => {
+    const st = arr(data && data.schoolData && data.schoolData[school] && data.schoolData[school].students).find(x => x && String(x.admissionNumber).trim() === adm);
+    if (st) st[field] = rec;
+    return st;
+  };
+  let done = false;
+  for (let i = 0; i < 6 && !done; i++) {
+    const snap = await s.getSnapshot(key);
+    if (!snap || !snap.data) break;
+    const st = apply(snap.data);
+    if (!st) return res.status(404).json({ error: 'Your record was not found. Ask your school.' });
+    const bad = portalPasswordProblems(pw, st, who);
+    if (bad.length) return res.status(400).json({ error: 'Password needs: ' + bad.join('; ') + '.' });
+    done = (await s.saveSnapshot(key, snap.data, snap.version, 'portal:' + adm, true)).ok;
+  }
+  const dir = await getDirectory(s, tenant).catch(() => null);
+  if (dir) {
+    const dst = apply(dir);
+    if (dst) { if (!done) { const bad = portalPasswordProblems(pw, dst, who); if (bad.length) return res.status(400).json({ error: 'Password needs: ' + bad.join('; ') + '.' }); } await saveDirectory(s, tenant, dir); done = true; }
+  }
+  if (!done) return res.status(409).json({ error: 'Busy, try again' });
+  res.json({ ok: true });
+}));
+
 // save this learner's quiz attempt into the school's data. The server owns the marking: a submitted attempt is final and its
 // score is worked out here from the teacher's answers, so a modified phone cannot post a better score.
+const ai_ = require('./ai-mark');
 const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
 // Photos of written working (structured quizzes whose teacher switched it on). The school's whole data is one document, so photos are small
 // (the app shrinks them), few per question, and limited in total per school: QUIZ_PHOTO_BUDGET characters (default about 6 MB).
@@ -612,6 +674,7 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
   const a = (req.body && req.body.attempt) || null, { tenant, school, adm } = req.portal;
   if (!a || typeof a !== 'object' || typeof a.quizId !== 'string') return res.status(400).json({ error: 'attempt required' });
   const s = await getStore(), key = snapKey(tenant);
+  let aiMemo;   // Claude's marks, asked for once even if the save below has to be retried
   for (let i = 0; i < 6; i++) {
     const snap = await s.getSnapshot(key);
     const ds = snap && snap.data && snap.data.schoolData && snap.data.schoolData[school];
@@ -621,7 +684,7 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
     if (!quiz) return res.status(404).json({ error: 'That quiz is not available to you' });
     ds.quizAttempts = arr(ds.quizAttempts);
     const idx = ds.quizAttempts.findIndex(x => x && x.quizId === quiz.id && x.adm === adm), cur = idx >= 0 ? ds.quizAttempts[idx] : null;
-    if (cur && cur.submittedAt) return res.json({ attempt: cur });                      // already submitted: final
+    if (cur && cur.submittedAt) return res.json({ attempt: attemptForLearner(cur) });                      // already submitted: final
     const qids = new Set(arr(quiz.questions).map(q => q.id)), answers = {}, saved = {}, qt = qzType(quiz);
     const totalMarks = qt === 'structured' ? arr(quiz.questions).reduce((t, q) => t + qzMarksOf(quiz, q), 0) : arr(quiz.questions).length;
     for (const [k, v] of Object.entries(a.answers && typeof a.answers === 'object' ? a.answers : {})) {
@@ -661,14 +724,46 @@ app.put('/api/portal/attempt', portalAuth, portalLimiter, wrap(async (req, res) 
         const handMarked = Object.keys(photos).length > 0;   // written working in a photo is read and marked by the teacher
         for (const q of qs) { const r = qzMarkTyped(q, answers[q.id], qzMarksOf(quiz, q), qzImpliedOn(quiz), qzMarkOpts(quiz)); if (!r) break; got[q.id] = r.marks; }
         if (!handMarked && qs.length && Object.keys(got).length === qs.length) {
+          // Claude AI marks by meaning (different wording, implied steps); the word-matching result above stays as the fallback
+          let ai = null;
+          if (ai_.configured() && quiz.aiMarking !== false) {
+            if (aiMemo === undefined) {
+              aiMemo = null;
+              try {
+                const items = qs.map(q => ({ id: q.id, text: q.text, marks: qzMarksOf(quiz, q), modelAnswer: q.modelAnswer, response: answers[q.id], points: qzPoints(q, qzMarksOf(quiz, q)) || [] }));
+                aiMemo = await ai_.aiMark({ subject: quiz.subject, grade: quiz.grade, implied: qzImpliedOn(quiz) }, items);
+              } catch (e) { console.warn('AI marking failed, using the marking scheme:', e && e.message); }
+            }
+            ai = aiMemo;
+          }
+          const notes = {};
+          for (const q of qs) { const r = ai && ai[q.id]; if (r) { got[q.id] = r.marks; notes[q.id] = { points: r.points, feedback: r.feedback }; } }
           att.marks = got; att.score = Object.values(got).reduce((t, m) => t + m, 0); att.marked = true; att.autoMarked = true;
-          att.markedBy = 'Marking scheme'; att.markedOn = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
+          att.markedBy = Object.keys(notes).length ? 'Claude AI (marking scheme)' : 'Marking scheme'; att.markedOn = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
+          if (Object.keys(notes).length) { att.aiMarked = true; att.aiNotes = notes; }
+        } else if (handMarked && ai_.configured() && quiz.aiMarking !== false) {
+          // Photos of written working: Claude reads them and only SUGGESTS marks. Nothing is marked here, the teacher confirms or
+          // changes every mark, and the suggestions never reach the learner (attemptForLearner).
+          if (aiMemo === undefined) {
+            aiMemo = null;
+            try {
+              let room = 3000000;
+              const items = qs.map(q => {
+                const images = ai_.cleanImages(photos[q.id], room); room -= images.reduce((t, u) => t + u.length, 0);
+                return { id: q.id, text: q.text, marks: qzMarksOf(quiz, q), modelAnswer: q.modelAnswer, response: answers[q.id], images, points: qzPoints(q, qzMarksOf(quiz, q)) || [] };
+              }).filter(it => it.points.length && (it.response || it.images.length));
+              if (items.length) aiMemo = await ai_.aiMark({ subject: quiz.subject, grade: quiz.grade, implied: qzImpliedOn(quiz) }, items);
+            } catch (e) { console.warn('AI photo marking failed, the teacher marks by hand:', e && e.message); }
+          }
+          const sug = {};
+          for (const q of qs) { const r = aiMemo && aiMemo[q.id]; if (r) sug[q.id] = { marks: r.marks, max: r.max, points: r.points, feedback: r.feedback, ...(r.read ? { read: r.read } : {}) }; }
+          if (Object.keys(sug).length) { att.aiSuggest = sug; att.aiSuggestedOn = Date.now(); }
         }
       }
     }
     if (idx >= 0) ds.quizAttempts[idx] = att; else ds.quizAttempts.push(att);
     const r = await s.saveSnapshot(key, snap.data, snap.version, 'portal:' + adm, true);
-    if (r.ok) return res.json({ attempt: att });
+    if (r.ok) return res.json({ attempt: attemptForLearner(att) });
   }
   res.status(409).json({ error: 'Busy, try again' });
 }));

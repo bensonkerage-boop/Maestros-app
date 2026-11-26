@@ -1,4 +1,5 @@
-// Landing page shown before login, in the web browser AND in the Android app (the same page in both).
+// Landing page shown before login in the WEB BROWSER only. In the Android app (bundled or live-URL) there is no landing page:
+// the app opens straight on the sign-in card.
 // injectLanding(html) puts pwa/landing.html (embedded as an iframe srcdoc, so it also works offline, in the APK and as a
 // single file) at the start of <body>. Its "Log in" button hides it and reveals the app's own login page.
 // It is skipped when someone is already signed in (saved session), when the address ends in #app, and for the rest of the
@@ -8,6 +9,9 @@ const fs = require('fs'), path = require('path');
 const RUNTIME = `(function(){
   var f=document.getElementById('masms-landing');
   if(!f) return;
+  // Android app (Capacitor): no landing page at all, go straight to the sign-in card. window.MASMS_LANDING stays undefined, so the
+  // sign-in card shows no Home/close buttons either.
+  try{var C0=window.Capacitor;if(C0&&C0.isNativePlatform&&C0.isNativePlatform()){f.parentNode.removeChild(f);return}}catch(e){}
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}
   function ls(){try{return window.localStorage}catch(e){return null}}
@@ -98,7 +102,7 @@ function injectLanding(html, root) {
   if (html.includes('id="masms-landing"')) return html;   // already there
   const block = '<!-- ===== LANDING PAGE (shown first; its Log in button reveals the app login) ===== -->\n' +
     '<style>#masms-landing{position:fixed;top:0;left:0;width:100%;height:100%;border:0;z-index:2147482000;background:#7ba4fb}#masms-landing[hidden]{display:none}</style>\n' +
-    '<iframe id="masms-landing" title="Maestro Advanced School Management System" hidden></iframe>\n' +
+    '<iframe id="masms-landing" title="Maestro Advanced School Management System" allowfullscreen hidden></iframe>\n' +
     '<script>window.__MASMS_LANDING_HTML__=' + js(landingHtml(root)) + ';\n' + RUNTIME + '</script>\n' +
     '<!-- ===== END LANDING PAGE ===== -->\n';
   const m = /<body[^>]*>/.exec(html);

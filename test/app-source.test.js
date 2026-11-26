@@ -136,7 +136,7 @@ test('module title bar shows only the module name (no descriptive note after it)
 describe('phone and ID number fields accept digits only', () => {
   const inputTag = id => (src.match(new RegExp('<input[^>]*id="' + id + '"[^>]*>')) || [''])[0];
   test('every phone / ID input filters through digitsOnlyInput', () => {
-    ['signup_phone','reset_pw_phone','portalPreviewPhone','waBotPhoneInput','contactEditPhoneInput','sa_phone',
+    ['signup_phone','portalPreviewPhone','waBotPhoneInput','contactEditPhoneInput','sa_phone',
      'guardianPhone','guardianIdNumber','exp_payeePhone','sup_phone','buySmsPhoneInput','sp_phone'
     ].forEach(id => expect(inputTag(id)).toMatch(/digitsOnlyInput\(this\)/));
   });

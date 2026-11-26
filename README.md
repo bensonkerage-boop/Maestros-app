@@ -87,6 +87,13 @@ Limits: learners see only the quiz portal on their own phone (fees, results and 
 | GET | `/api/portal/quizzes` | learner token: refresh quizzes/attempts |
 | PUT | `/api/portal/attempt` | learner token: `{attempt}` saved and marked on the server |
 
+## Claude AI marking of online exams
+Set `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`) in the server environment to switch it on (`src/ai-mark.js`). Structured (written) answers are then marked by Claude against the teacher's marking scheme **by meaning**: a correct answer in different words is marked right, and working the learner skipped or only implied is credited when a later step or the final answer is correct ("Must be shown" points are never implied). The learner's answer is treated as data only. Marks are clamped to what the scheme allows, and each mark comes with a one-line reason the teacher sees under *Review marks*.
+- **Learner submits:** the server marks at once with Claude. If Claude is unavailable (no key, timeout, error) the built-in word-matching marker is used, so nothing breaks. A teacher can switch it off per quiz (*Mark with Claude AI* tick in the quiz editor).
+- **Teacher:** the results page has *Mark with Claude AI* to (re)mark every unreviewed attempt (`POST /api/ai/mark`, signed-in staff only, rate limited). A teacher's own saved marks and answers with photos of written working are never touched.
+- **Photos of handwritten working (suggest, then confirm):** attempts with photos are never marked automatically. When a learner submits, Claude reads the photos and typed answers and stores *suggested* marks (what it read, per-point reasons) on the attempt as `aiSuggest`, visible to teachers only and stripped from every learner response. The results page also has *Suggest marks for photos* for attempts that have none. In *Review marks* the teacher sees each suggestion with *Use suggested marks* (or *Fill in all suggested marks*); that only fills the marks boxes, and nothing counts until the teacher presses *Save marks*. Turn it off per quiz with the same AI marking switch.
+- Marks stay suggestions until the teacher presses *Save marks* / posts them, as before.
+
 ## Layout
 - `source/MAESTRO_MASMS_FINAL.html` – the app (edit this, then rebuild)
 - `pwa/landing.src.html` / `pwa/landing.html` – the landing page (edit the `.src`, run `npm run landing:css`)
@@ -126,6 +133,7 @@ Limits: learners see only the quiz portal on their own phone (fees, results and 
 Messages and M-Pesa prompts are sent **by the server**, so provider keys never reach the browser. Staff must be signed in with the cloud button (bottom-left). Set these in `.env` or Vercel's Environment Variables (see `.env.example`); each feature shows a clear "not set up" message until its variables exist:
 - **SMS:** `AT_USERNAME`, `AT_API_KEY`, optional `AT_SENDER_ID` (Africa's Talking; `AT_USERNAME=sandbox` for testing).
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (Gmail: use an App Password).
+- **WhatsApp (forgot-password codes):** `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` (Meta WhatsApp Business Cloud API), `WHATSAPP_OTP_TEMPLATE` (name of an approved *authentication* template with the code as `{{1}}`; optional `WHATSAPP_OTP_LANG` default `en_US`, `WHATSAPP_OTP_BUTTON=0` if the template has no copy-code button). WhatsApp only lets a business start a chat with an approved template; without `WHATSAPP_OTP_TEMPLATE` a plain text is sent, which reaches only people who messaged the school's number in the last 24 hours. The login page's Forgot Password then offers *Send the code on WhatsApp*; with no channel chosen the server tries SMS, then WhatsApp, then email.
 - **M-Pesa (Daraja STK push):** `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_SECRET` (any long random string), `PUBLIC_URL` (your deployed https address), `MPESA_ENV=production` when live.
 ### Staff sign-in and "Forgot Password"
 - Staff sign in with their **phone number** (any format; the last 9 digits are compared) and the password **`welcome`** the first time. They are then made to choose their own password (8+ characters, letters and numbers). An administrator can send anyone back to `welcome` in Settings > Users & Roles.

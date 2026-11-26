@@ -65,7 +65,7 @@ describe('Send code', () => {
     setup(); useServer(); fill({ phone: '0712 345 678' });
     window.sendResetCode(); await flush();
     expect(calls[0].url).toMatch(/\/api\/auth\/recover\/send$/); expect(calls[0].body.phone).toBe('0712 345 678');
-    expect(msg()).toMatch(/If a staff account has that number/); expect(msg()).toMatch(/10 minutes/);
+    expect(msg()).toMatch(/If an account matches/); expect(msg()).toMatch(/10 minutes/);
     expect($('reset_pw_send').disabled).toBe(true);                    // one code a minute
     await jest.advanceTimersByTimeAsync(61000);
     expect($('reset_pw_send').disabled).toBe(false); expect($('reset_pw_send').textContent).toBe('Send code');
@@ -73,7 +73,7 @@ describe('Send code', () => {
   test('works on a device that is not signed in to the cloud', async () => {
     setup({ cloud: 'out' }); useServer(); fill({ phone: '0712345678' });
     window.sendResetCode(); await flush();
-    expect(calls).toHaveLength(1); expect(msg()).toMatch(/If a staff account has that number/);
+    expect(calls).toHaveLength(1); expect(msg()).toMatch(/If an account matches/);
   });
   test('"send to my email instead" asks for email delivery', async () => {
     setup(); useServer(); fill({ phone: '0712345678' });
@@ -81,9 +81,9 @@ describe('Send code', () => {
     expect(calls[0].body.via).toBe('email');
   });
   test('a missing or short phone number is refused without calling the server', () => {
-    setup(); useServer(); fill({ phone: '07' });
+    setup(); useServer(); fill({ phone: '' });
     window.sendResetCode();
-    expect(calls).toHaveLength(0); expect(msg()).toMatch(/phone number/);
+    expect(calls).toHaveLength(0); expect(msg()).toMatch(/phone number, email/);
   });
   test('a server refusal is shown and the button stays usable', async () => {
     setup(); useServer({ error: 'Too many attempts, try again later' }, 429); fill({ phone: '0712345678' });

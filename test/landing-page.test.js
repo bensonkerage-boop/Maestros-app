@@ -25,12 +25,12 @@ test('the System Developer\'s Web Page tab still reaches the page', () => {
   for (const id of ['hero-heading', 'hero-text', 'contact-phone', 'contact-wa', 'contact-email', 'contact-fb', 'footer-contact']) expect(page).toContain('id="' + id + '"');
   expect(page).toContain('window.MASMS_WEBPAGE_APPLY');
 });
-test('the landing page is built into the app for the Android build too, and is not removed when running natively', () => {
+test('the landing page is for the web browser only: the Android app goes straight to the sign-in card', () => {
   const out = injectLanding('<html><body><p>app</p></body></html>', root);
   expect(out).toContain('id="masms-landing"');
   const build = fs.readFileSync(path.join(root, 'scripts', 'build.js'), 'utf8'), land = fs.readFileSync(path.join(root, 'scripts', 'landing.js'), 'utf8');
-  expect(build).not.toMatch(/if \(!androidBuild\) html = injectLanding/);
-  expect(land).not.toMatch(/removeChild\(f\)/);
+  expect(build).toMatch(/if \(!androidBuild\) html = injectLanding/);   // the bundled Android build has no landing page
+  expect(land).toMatch(/isNativePlatform\(\)\)\{f\.parentNode\.removeChild\(f\);return\}/);   // a live-URL Android app drops it at run time
 });
 test('every card can be edited from the Web Page tab and carries a true-blue View more link', () => {
   for (const k of ['hero1', 'hero2', 'academics', 'nemis', 'timetable', 'fees', 'portal', 'communication']) expect(page).toContain('data-card="' + k + '"');
@@ -39,4 +39,10 @@ test('every card can be edited from the Web Page tab and carries a true-blue Vie
   expect(page).toContain('function applyCards');
   const app = fs.readFileSync(path.join(root, 'source', 'MAESTRO_MASMS_FINAL.html'), 'utf8');
   for (const f of ['swpCardPhoto', 'swpSetCard', 'swpFixLink', 'Cards on the web page']) expect(app).toContain(f);
+});
+test('the landing page carries the 22-module demo slideshow with a module request', () => {
+  expect(page).toContain('id="ds-root"');
+  expect(page).toContain('openDemoShow()');
+  expect(page).toContain('MASMS module request');
+  expect((page.match(/\['(Core|People|Academics|Finance and resources|Campus life|Engagement|Insight and admin)','/g) || []).length).toBe(22);
 });

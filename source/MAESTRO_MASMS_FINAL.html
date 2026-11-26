@@ -1141,6 +1141,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   .dash2-analysis .dash2-legend-val{font-size:10.5px;}
   .dash2-analysis .dash2-donut-flex{gap:12px;}
   .dash2-analysis .dash2-an-table td,.dash2-analysis .dash2-an-table th{padding:5px 6px;}
+  /* Phone width: the donut sits above its key (so the key gets the full card width). Pass / Fail: "Failed" sits directly under "Passed".
+     Grade distribution (B+ ... D-): two columns with a smaller bracketed percentage so every row fits. */
+  @media(max-width:640px){
+    .dash2-analysis .dash2-an-card{min-width:0;overflow:hidden;}
+    .dash2-analysis .dash2-donut-flex{flex-direction:column;align-items:stretch;gap:10px;}
+    .dash2-analysis .dash2-donut-wrap{align-self:center;}
+    .dash2-analysis .dash2-legend{width:100%;min-width:0;}
+    .dash2-analysis .dash2-legend-pf{display:flex;flex-direction:column;gap:6px;}
+    .dash2-analysis .dash2-legend-grades{grid-template-columns:1fr 1fr;gap:5px 12px;}
+    .dash2-analysis .dash2-legend-row{min-width:0;gap:5px;}
+    .dash2-analysis .dash2-legend-grades .dash2-legend-row{font-size:11.5px;}
+    .dash2-analysis .dash2-legend-grades .dash2-legend-val{font-size:9.5px;letter-spacing:-.2px;}
+  }
   .dash2-rep-group{margin-bottom:14px;}
   .dash2-rep-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
   .dash2-rep-title i{color:var(--blue);margin-right:6px;}
@@ -4597,52 +4610,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     .login-cert-field{flex-direction:column;align-items:flex-start;gap:6px;}
     .login-cert-field label{flex:none;}
   }
-  /* ---- Sign-in redesign: matches the MAESTRO Portal Sign In card (landing-page look) ---- */
-  .login-page{background:#F4F7FA;padding:20px;overflow-y:auto;align-items:center}
-  .login-back{display:none}
-  .login-cert-frame{max-width:440px;background:#fff;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(30,45,61,.22);margin:auto}
-  .login-cert-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 20px;background:linear-gradient(120deg,#1E2D3D 0%,#1565C0 100%);color:#fff}
-  .login-cert-title{font-family:'Inter',sans-serif;font-weight:800;text-transform:none;text-align:left;font-size:20px;line-height:1.2;letter-spacing:0;margin:0;color:#fff;-webkit-text-stroke:0}
-  .login-cert-sub{margin-top:4px;font-size:13px;color:#90CAF9}
-  .login-cert-x{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#B7CCE6;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .login-cert-x:hover{background:rgba(255,255,255,.14);color:#fff}
-  .login-cert-body{padding:22px 24px 20px}
-  .login-cert-roles-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1E2D3D;margin-bottom:10px}
-  .login-cert-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
-  .login-cert-role{min-height:48px;padding:4px 6px;line-height:1.2;border:0;border-radius:8px;background:#F1F5F9;color:#1E2D3D;font:600 13.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s}
-  .login-cert-role:hover{background:#E2E8F0}
-  .login-cert-role.on{background:#1E88E5;color:#fff}
-  .login-cert-fields{margin-bottom:10px}
-  .login-cert-field{display:block;margin-bottom:16px}
-  .login-cert-field label{display:block;margin-bottom:8px;color:#1E2D3D;font:700 13.5px 'Inter',sans-serif}
-  .login-cert-field input{width:100%;min-height:46px;padding:11px 14px;font:400 15px 'Inter',sans-serif;border:1px solid #CBD5E1;border-radius:10px;background:#fff;color:#1E2D3D;box-sizing:border-box}
-  .login-cert-field input::placeholder{color:#94A3B8}
-  .login-cert-field input:focus{outline:2px solid #1E88E5;outline-offset:0;border-color:#1E88E5;background:#fff}
-  .login-cert-pwwrap{position:relative;display:block}
-  .login-cert-pwwrap input{padding-right:48px}
-  .login-cert-eye{position:absolute;right:4px;top:4px;bottom:4px;width:40px;border:0;border-radius:8px;background:transparent;color:#64748B}
-  .login-cert-eye:hover{background:#F1F5F9}
-  .login-cert-forgot-row{margin:0 0 16px}
-  .login-cert-remember{color:#475569;font-size:13px}
-  .login-cert-remember input{accent-color:#1E88E5;width:16px;height:16px}
-  .login-cert-forgot{color:#1E88E5;font-weight:600;font-size:13px}
-  .login-error-banner{border-radius:10px}
-  .login-cert-submit{max-width:none;width:100%;min-height:48px;border-radius:10px;background:#1E88E5;font:700 15px 'Inter',sans-serif;letter-spacing:0;transition:background .15s,transform .1s}
-  .login-cert-submit:hover{background:#1565C0}.login-cert-submit:active{transform:scale(.99)}
-  .fp-login-wrap{margin:18px 0 4px}
-  .fp-login-or{color:#94A3B8}.fp-login-or:before,.fp-login-or:after{background:#E2E8F0}
-  .fp-login-btn{width:60px;height:60px;border:2px solid #1E88E5;color:#1E88E5;background:#fff}
-  .fp-login-btn:hover,.fp-login-btn.fp-ready{background:#1E88E5;color:#fff}
-  .fp-login-label{color:#475569}
-  .login-cert-signup-row{color:#64748B}
-  .login-cert-signup{color:#1E88E5}
-  .login-cert-footnote{margin-top:14px}
-  .login-cert-body form a{color:#1E88E5;text-decoration:none}.login-cert-body form a:hover{text-decoration:underline}
-  @media(max-width:560px){
-    .login-page{padding:12px}
-    .login-cert-head{padding:18px 18px 16px}.login-cert-body{padding:18px 18px 16px}
-    .login-cert-field{display:block}
-  }
   /* Manage Classes: a card per Form/Grade with its streams as cells below it */
   .grade-group-list{
     display:flex;flex-direction:column;gap:16px;
@@ -5917,22 +5884,6 @@ function fpIconClick(){
   else setTimeout(run, 400);
 })();
 
-// Portal role chips: they only tailor the wording of the form. Who is signed in (and as what) is still decided from the account itself.
-var LOGIN_ROLES = [
-  { key:"sysadmin", label:"Sys Admin",                  user:"Username",                              ph:"e.g., System Developer username",          btn:"Sign In to Sys Admin Portal" },
-  { key:"staff",    label:"Sch Admin, Teachers & Staff", user:"Staff ID / Phone / School Email",       ph:"e.g., ADM-2026-01, phone or school email", btn:"Sign In to School Staff Portal" },
-  { key:"family",   label:"Parent/Students",            user:"Phone / Adm No / Assessment No",        ph:"Phone, Adm No or Assessment No",           btn:"Sign In to Parent/Student Portal" }
-];
-var loginRoleSel = "staff";
-function loginRoleInfo(){ return LOGIN_ROLES.find(function(r){ return r.key === loginRoleSel; }) || LOGIN_ROLES[1]; }
-function setLoginRole(k){
-  loginRoleSel = k;
-  var i = loginRoleInfo();
-  document.querySelectorAll(".login-cert-role").forEach(function(b){ var on = b.getAttribute("data-role") === k; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
-  var l = document.getElementById("login_username_label"); if(l) l.textContent = i.user;
-  var u = document.getElementById("login_username"); if(u) u.placeholder = i.ph;
-  var b = document.getElementById("login_submit_btn"); if(b) b.textContent = i.btn;
-}
 function renderLoginPage(){
   const root = document.getElementById('loginPageRoot');
   if(!root) return;
@@ -5941,28 +5892,19 @@ function renderLoginPage(){
     <div class="login-page">
       ${window.MASMS_LANDING ? `<button type="button" class="login-back" aria-label="Back to home page" title="Back to home page" onclick="MASMS_LANDING.home()"><i class="fa-solid fa-arrow-left"></i><span>Home</span></button>` : ''}
       <div class="login-cert-frame">
-        <div class="login-cert-head">
-          <div class="login-cert-headtext">
-            <div class="login-cert-title">MAESTRO Portal Sign In</div>
-            <div class="login-cert-sub">Select your institutional role to continue</div>
-          </div>
-          ${window.MASMS_LANDING ? `<button type="button" class="login-cert-x" aria-label="Close and go back to home page" title="Close" onclick="MASMS_LANDING.home()"><i class="fa-solid fa-xmark"></i></button>` : ''}
-        </div>
-        <div class="login-cert-body">
+        <div class="login-cert-title">Maestro Advanced School<br>Management System</div>
+        <div class="login-cert-rule"></div>
+
         <form onsubmit="submitLogin(event)">
-          <div class="login-cert-roles-label">Portal role</div>
-          <div class="login-cert-roles" role="group" aria-label="Portal role">
-            ${LOGIN_ROLES.map(r => `<button type="button" class="login-cert-role${r.key === loginRoleSel ? ' on' : ''}" data-role="${r.key}" aria-pressed="${r.key === loginRoleSel}" onclick="setLoginRole('${r.key}')">${r.label}</button>`).join('')}
-          </div>
           <div class="login-cert-fields">
             <div class="login-cert-field">
-              <label for="login_username" id="login_username_label">${loginRoleInfo().user}</label>
-              <input id="login_username" type="text" placeholder="${loginRoleInfo().ph}" autocomplete="username">
+              <label for="login_username">User Name:</label>
+              <input id="login_username" type="text" placeholder="Username, phone or admission number" autocomplete="username">
             </div>
             <div class="login-cert-field">
-              <label for="login_password">Password / Access PIN</label>
+              <label for="login_password">Password:</label>
               <div class="login-cert-pwwrap">
-                <input id="login_password" type="password" placeholder="••••••••" autocomplete="current-password">
+                <input id="login_password" type="password" placeholder="" autocomplete="current-password">
                 <button type="button" class="login-cert-eye" aria-label="Show or hide password" title="Show / hide password" onclick="toggleResetPwVisibility('login_password', this)"><i class="fa-solid fa-eye"></i></button>
               </div>
             </div>
@@ -5976,13 +5918,16 @@ function renderLoginPage(){
           </div>
           ${loginError ? `<div class="login-error-banner"><i class="fa-solid fa-circle-exclamation"></i> ${loginError}</div>` : ''}
           <div class="login-cert-submit-row">
-            <button type="submit" class="login-cert-submit" id="login_submit_btn">${loginRoleInfo().btn}</button>
+            <button type="submit" class="login-cert-submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Log in</button>
           </div>
           ${fpLoginButtonHtml()}
-          <div style="text-align:center;margin:12px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
+          <div style="text-align:center;margin:10px 0 2px;"><a href="#" onclick="openMaestroLegalOverlay();return false;" style="font-size:12.5px;"><i class="fa-solid fa-scale-balanced"></i> Maestro Legal: terms, privacy &amp; licence</a></div>
+          <div class="login-cert-signup-row">
+            New here?
+            <button type="button" class="login-cert-signup" disabled aria-disabled="true">Sign Up</button>
+          </div>
         </form>
         <div class="login-cert-footnote">© MASMS 2026</div>
-        </div>
       </div>
     </div>
 
@@ -6017,11 +5962,11 @@ function renderLoginPage(){
         <div class="reset-pw-title">Reset password</div>
 
         <div class="reset-pw-row">
-          <label for="reset_pw_phone">Enter phone number</label>
-          <input id="reset_pw_phone" type="text" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" oninput="digitsOnlyInput(this)">
+          <label for="reset_pw_phone">Phone, email or Adm No</label>
+          <input id="reset_pw_phone" type="text" autocomplete="username" placeholder="Phone, email or admission number">
           <button type="button" class="reset-pw-send" id="reset_pw_send" onclick="sendResetCode()">Send code</button>
         </div>
-        <div style="margin:-8px 0 14px 164px;font-size:12.5px;"><a href="#" id="reset_pw_email_link" onclick="sendResetCode('email');return false;">Send the code to my email instead</a></div>
+        <div style="margin:-8px 0 14px 164px;font-size:12.5px;"><a href="#" id="reset_pw_wa_link" onclick="sendResetCode('whatsapp');return false;"><i class="fa-brands fa-whatsapp"></i> Send the code on WhatsApp</a> &middot; <a href="#" id="reset_pw_email_link" onclick="sendResetCode('email');return false;">Send the code to my email instead</a> &middot; <span style="color:#64748b;">Learners: type your admission number; the code goes to your parent/guardian's phone or email on file.</span></div>
 
         <div class="reset-pw-row">
           <label for="reset_pw_code">Enter code</label>
@@ -6151,14 +6096,13 @@ function resetPwApi(path, body){
 }
 let resetPwWaitTimer = null;
 function sendResetCode(via){
-  const key = loginPhoneKey(document.getElementById('reset_pw_phone').value);
-  if(!key){ resetPwSay('Enter the phone number you sign in with.', true); return; }
+  if(!document.getElementById('reset_pw_phone').value.trim()){ resetPwSay('Enter your phone number, email address or admission number.', true); return; }
   const btn = document.getElementById('reset_pw_send');
   if(btn && btn.disabled) return;
   resetPwSay('Sending the code…');
   if(btn) btn.disabled = true;
-  resetPwApi('/auth/recover/send', { phone: document.getElementById('reset_pw_phone').value.trim(), via: via === 'email' ? 'email' : undefined }).then(r => {
-    resetPwSay('If a staff account has that number, a code has been sent to the phone or email on file. It is valid for ' + (r.minutes || 10) + ' minutes.');
+  resetPwApi('/auth/recover/send', { phone: document.getElementById('reset_pw_phone').value.trim(), via: (via === 'email' || via === 'whatsapp' || via === 'sms') ? via : undefined }).then(r => {
+    resetPwSay('If an account matches, a code has been sent to the phone, WhatsApp or email on file. It is valid for ' + (r.minutes || 10) + ' minutes.');
     const code = document.getElementById('reset_pw_code'); if(code) code.focus();
     let left = 60; clearInterval(resetPwWaitTimer);
     resetPwWaitTimer = setInterval(() => {
@@ -6174,7 +6118,6 @@ function submitResetPassword(){
   const pw1 = document.getElementById('reset_pw_new').value;
   const pw2 = document.getElementById('reset_pw_confirm').value;
   if(!phone || !code || !pw1 || !pw2){ resetPwSay('Please fill in all fields.', true); return; }
-  if(!loginPhoneKey(phone)){ resetPwSay('Enter the phone number you sign in with.', true); return; }
   // check the new password BEFORE the code is used up, so a weak password does not cost the person their code
   const bad = passwordProblems(pw1, null);
   if(bad.length){ resetPwSay('Password needs: ' + bad.join('; ').toLowerCase() + '.', true); return; }
@@ -6269,7 +6212,7 @@ function passwordProblems(pw, user){
   if(!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) out.push("Both letters and numbers");
   if(pw.toLowerCase() === WELCOME_PASSWORD) out.push("Different from the welcome password");
   const low = pw.toLowerCase();
-  const personal = user ? [userFirstName(user.name), userLastName(user.name), loginPhoneKey(staffPhoneForUser(user))].map(x => String(x || "").toLowerCase()).filter(x => x.length >= 3) : [];
+  const personal = user ? [userFirstName(user.name), userLastName(user.name), loginPhoneKey(staffPhoneForUser(user)), user.adm].map(x => String(x || "").toLowerCase()).filter(x => x.length >= 3) : [];
   if(personal.some(x => low === x)) out.push("Not just your name or phone number");
   return out;
 }
@@ -6334,9 +6277,11 @@ function closeForcedPasswordChange(){
   if(ov) ov.remove();
   pwChangePending = false;
 }
-function openForcedPasswordChange(user, loginName){
+// opts (learner / parent portal): { portal:true, onSave(pw) -> Promise<{ok,error}>, what:'default' }. The card is the same one teachers see.
+function openForcedPasswordChange(user, loginName, opts){
   closeForcedPasswordChange();
   pwChangePending = true;
+  opts = opts || {};
   const ov = document.createElement('div');
   ov.id = 'pwChangeOverlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -6361,7 +6306,7 @@ function openForcedPasswordChange(user, loginName){
     <form class="pwc-box" role="dialog" aria-modal="true" aria-labelledby="pwcTitle" onsubmit="submitForcedPasswordChange(event)" novalidate>
       <div class="pwc-head"><i class="fa-solid fa-key" style="font-size:20px;"></i><div id="pwcTitle" style="font-weight:800;font-size:17px;">Choose your own password</div></div>
       <div class="pwc-body">
-        <p style="margin:0 0 12px;">Welcome, <b>${dpEsc(userFirstName(user.name))}</b>. You signed in with the welcome password, so you need to set a password of your own before you continue.</p>
+        <p style="margin:0 0 12px;">Welcome, <b>${dpEsc(userFirstName(user.name))}</b>. You signed in with the ${opts.portal ? 'default' : 'welcome'} password, so you need to set a password of your own before you continue.</p>
         <label for="pwc_new">New password</label>
         <div class="pwc-field"><input id="pwc_new" type="password" autocomplete="new-password" oninput="updatePasswordRules()">${eye('pwc_new')}</div>
         <ul class="pwc-rules" id="pwcRules" aria-live="polite"></ul>
@@ -6375,7 +6320,7 @@ function openForcedPasswordChange(user, loginName){
       </div>
     </form>`;
   document.body.appendChild(ov);
-  ov._user = user; ov._loginName = loginName || "";
+  ov._user = user; ov._loginName = loginName || ""; ov._portal = !!opts.portal; ov._onSave = opts.onSave || null;
   updatePasswordRules();
   setTimeout(() => { const f = document.getElementById('pwc_new'); if(f) f.focus(); }, 0);
 }
@@ -6395,6 +6340,16 @@ function submitForcedPasswordChange(e){
   const bad = passwordProblems(pw, ov._user);
   if(bad.length){ err.textContent = "Password needs: " + bad.join("; ").toLowerCase() + "."; document.getElementById('pwc_new').focus(); return; }
   if(pw !== pw2){ err.textContent = "The two passwords do not match."; document.getElementById('pwc_confirm').focus(); return; }
+  if(ov._portal){
+    // learner / parent: the new password is saved (on the server, or on this device) before the portal opens
+    if(ov._saving) return; ov._saving = true; err.textContent = "Saving...";
+    Promise.resolve(ov._onSave ? ov._onSave(pw) : { ok:false, error:"Could not save the password." }).then(r => {
+      ov._saving = false;
+      if(!r || !r.ok){ err.textContent = (r && r.error) || "Could not save the password. Check your connection and try again."; return; }
+      closeForcedPasswordChange();
+    }).catch(() => { ov._saving = false; err.textContent = "Could not save the password. Check your connection and try again."; });
+    return;
+  }
   const upd = setUserPassword(ov._user, pw);
   const loginName = ov._loginName;
   closeForcedPasswordChange();
@@ -6717,7 +6672,11 @@ function submitLoginCore0(e){
   // is unreachable or does not know the learner, fall back to the data on this device.
   if(!prStaffCloudIn() && usernameRaw && passwordRaw && typeof fetch === 'function'){
     prLogin(usernameRaw, passwordRaw).then(r => {
-      if(r && r.ok){ prBegin(r.data); const stu = studentByAdmissionNumber(String(r.data.student.admissionNumber).trim()); if(stu){ portalSessionStart(stu, usernameRaw.toLowerCase(), digitsOnly(usernameRaw)); return; } }
+      if(r && r.ok){
+        const go = () => { prBegin(r.data); const stu = studentByAdmissionNumber(String(r.data.student.admissionNumber).trim()); if(stu){ portalSessionStart(stu, usernameRaw.toLowerCase(), digitsOnly(usernameRaw)); return true; } return false; };
+        if(r.data.mustChange){ portalForcePassword(r.data.student, r.data.who, usernameRaw, pw => prSetPassword(r.data.token, pw).then(x => { if(x.ok) go(); return x; })); return; }
+        if(go()) return;
+      }
       if(r && r.status === 409 && r.error){ loginError = r.error; renderLoginPage(); return; }
       loginLearnerLocal(usernameRaw);
     }).catch(() => loginLearnerLocal(usernameRaw));
@@ -6744,13 +6703,30 @@ function loginLearnerLocal(usernameRaw){
   const admInput = document.getElementById('login_password').value.trim();
   // Learner login: admission number as user name, "welcome" as password (checked first); the guardian phone + admission number login still works.
   const admKey = usernameRaw.toLowerCase();
-  const matchedStudent = (portalEnabled && admKey && admInput.toLowerCase() === 'welcome' ? students.find(s =>
-    String(s.admissionNumber).trim().toLowerCase() === admKey
-  ) : null) || (portalEnabled && phoneDigits ? students.find(s =>
-    s.admissionNumber === admInput && (s.guardianPhones || []).some(p => guardianPhoneMatches(p, phoneDigits))
-  ) : null);
-
+  // Default passwords: learner = "welcome", parent = the learner's admission number. Once a learner / parent has chosen a password
+  // (student.pw / student.parentPw) only that one works, and the default no longer does.
+  const pwOk = (rec, raw, dflt) => rec && rec.h ? pwHashWithSalt(rec.s, raw) === rec.h : String(raw).trim().toLowerCase() === String(dflt).trim().toLowerCase();
+  let who = "", matchedStudent = null;
+  if(portalEnabled && admKey){
+    matchedStudent = students.find(s => String(s.admissionNumber).trim().toLowerCase() === admKey && pwOk(s.pw, admInput, "welcome")) || null;
+    if(matchedStudent) who = "learner";
+  }
+  if(!matchedStudent && portalEnabled && phoneDigits){
+    matchedStudent = students.find(s => (s.guardianPhones || []).some(p => guardianPhoneMatches(p, phoneDigits)) && (s.parentPw && s.parentPw.h ? pwHashWithSalt(s.parentPw.s, admInput) === s.parentPw.h : s.admissionNumber === admInput)) || null;
+    if(matchedStudent) who = "parent";
+  }
   if(matchedStudent){
+    const defaultPw = who === "parent" ? !(matchedStudent.parentPw && matchedStudent.parentPw.h) : !(matchedStudent.pw && matchedStudent.pw.h);
+    if(defaultPw){
+      // signed in with the default password: choose a new one first (the card teachers see), then the portal opens
+      portalForcePassword(matchedStudent, who, usernameRaw, pw => {
+        const salt = pwNewSalt(), rec = { s: salt, h: pwHashWithSalt(salt, pw) };
+        if(who === "parent") matchedStudent.parentPw = rec; else matchedStudent.pw = rec;
+        portalSessionStart(matchedStudent, admKey, phoneDigits);   // the device's autosave / cloud sync carry the new password
+        return Promise.resolve({ ok:true });
+      });
+      return;
+    }
     portalSessionStart(matchedStudent, admKey, phoneDigits);
   } else {
     loginError = "Incorrect username or password.";
@@ -10650,8 +10626,9 @@ function renderQuizEditor(){
             <label><input type="checkbox" ${q.shuffle?'checked':''} onchange="qzSet('shuffle',this.checked)"> Shuffle questions &amp; options</label>
             <label><input type="checkbox" ${q.allowRetake?'checked':''} onchange="qzSet('allowRetake',this.checked)"> Allow students to retake</label>
             ${qt === 'structured' ? `<label title="When a later step or the final answer is correct, steps the learner skipped or only implied are credited."><input type="checkbox" ${qzImpliedOn(q)?'checked':''} onchange="qzSet('impliedSteps',this.checked)"> Credit skipped / implied working</label>` : ''}
+            ${qt === 'structured' ? `<label title="Claude AI reads each answer against your marking scheme and marks by meaning: a correct answer in different words is marked right, and steps the learner skipped are credited when later working is correct. Needs the school server to be set up for AI marking. If it is off or unavailable, the word-matching marker is used."><input type="checkbox" ${q.aiMarking !== false ? 'checked' : ''} onchange="qzSet('aiMarking',this.checked)"> Mark with Claude AI (different wording accepted)</label>` : ''}
             ${qt === 'structured' ? `<label title="Science, geography and mathematics key words (photosynthesis, hypotenuse, ...) must be spelled exactly. Key terms you list on a marking point are always exact."><input type="checkbox" ${q.strictTerms?'checked':''} onchange="qzSet('strictTerms',this.checked)"> Key terms must be spelled exactly</label>` : ''}
-            ${qt === 'structured' ? `<label title="Each question gets an Add photo button, so a learner can show handwritten working. Answers with photos are marked by you, not automatically."><input type="checkbox" ${q.allowPhotos?'checked':''} onchange="qzSet('allowPhotos',this.checked)"> Learners may attach a photo of written working</label>` : ''}
+            ${qt === 'structured' ? `<label title="Each question gets an Add photo button, so a learner can show handwritten working. Answers with photos are never marked automatically: Claude AI can read them and suggest marks, and you confirm every mark."><input type="checkbox" ${q.allowPhotos?'checked':''} onchange="qzSet('allowPhotos',this.checked)"> Learners may attach a photo of written working</label>` : ''}
           </div>
         </div>
 
@@ -10774,7 +10751,9 @@ function renderQuizResults(){
         <label class="field" style="margin:0;min-width:260px;"><span>Post marks to exam (scaled to ${max})</span>
           <select onchange="qzSetResultsExam(this.value)"><option value="">— choose exam —</option>${exams.map(e => `<option value="${qzEsc(e.term+'||'+e.exam)}" ${e.term===q.term&&e.exam===q.exam?'selected':''}>${qzEsc(e.exam)} (${qzEsc(e.term)})</option>`).join('')}</select></label>
         <button class="btn-primary auto" onclick="qzPostMarks()" ${(!qzCanManage())?'disabled':''}><i class="fa-solid fa-check-double"></i>&nbsp;Approve &amp; post marks</button>
-        ${qzType(q) === 'structured' ? `<button class="btn-ghost" style="width:auto;" onclick="qzAutoMarkAll()" title="Compare every unreviewed answer with the marking scheme and award proportional marks"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Auto-mark with scheme</button>` : ''}
+        ${qzType(q) === 'structured' ? `<button class="btn-ghost" style="width:auto;" onclick="qzAutoMarkAll()" title="Compare every unreviewed answer with the marking scheme and award proportional marks"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Auto-mark with scheme</button>
+        <button class="btn-ghost" style="width:auto;" onclick="qzAiMarkAll()" title="Claude AI reads every unreviewed answer against your marking scheme and marks by meaning: different wording is accepted and skipped steps are credited. Your own marks are kept."><i class="fa-solid fa-robot"></i>&nbsp;Mark with Claude AI</button>${qzSubmitted(q.id).some(a => qzHasPhotos(a)) ? `
+        <button class="btn-ghost" style="width:auto;" onclick="qzSuggestPhotos()" title="Claude reads the photos of written working and suggests marks. Nothing is marked: you open each learner, check the suggestions and confirm."><i class="fa-solid fa-camera"></i>&nbsp;Suggest marks for photos</button>` : ''}` : ''}
         <button class="btn-ghost" style="width:auto;" onclick="qzDownloadResults()"><i class="fa-solid fa-download"></i>&nbsp;Download CSV</button>
       </div>
       <div class="streams-scroll"><table style="min-width:760px;">
@@ -10798,7 +10777,109 @@ function qzAutoMarkAll(){
   if(n) qzCloudNow();
   render();
 }
+// Claude AI marking (needs the school server set up for AI marking). Marks by meaning against each question's marking scheme.
+let qzAiBusy = false;
+async function qzAiMarkAll(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || qzType(q) !== 'structured' || qzAiBusy) return;
+  if(!(typeof commsSignedIn === 'function' && commsSignedIn())){ quizMsg = { type:'error', text:'Claude AI marking runs on the school server. Sign in to the school server (cloud) first.' }; render(); return; }
+  const todo = qzSubmitted(q.id).filter(a => !(a.marked && !a.autoMarked) && !qzHasPhotos(a));   // a teacher's own marks and photo working are left alone
+  const photo = qzSubmitted(q.id).filter(a => qzHasPhotos(a) && !(a.marked && !a.autoMarked)).length;
+  if(!todo.length){ quizMsg = { type:'error', text: photo ? 'Nothing to mark: the remaining answers have photos of written working, which you mark by hand.' : 'No attempts need marking.' }; render(); return; }
+  qzAiBusy = true; let n = 0, failed = 0, firstErr = '';
+  for(let k = 0; k < todo.length; k++){
+    const a = todo[k];
+    quizMsg = { type:'ok', text:`Claude is marking… ${k} of ${todo.length} done.` }; render();
+    const items = q.questions.map(x => { const max = qzQMarks(q, x); return { id:x.id, text:x.text, marks:max, modelAnswer:x.modelAnswer || '', response:(a.answers && a.answers[x.id]) || '', points:(qzPoints(x, max) || []).map(p => ({ text:p.text, alt:p.alt, marks:p.marks, shown:p.shown })) }; });
+    try{
+      const r = await commsApi('POST', '/ai/mark', { quiz:{ subject:q.subject, grade:q.grade, implied:qzImpliedOn(q) }, items });
+      const res = r && r.results || {}, marks = {}, notes = {};
+      let all = true;
+      for(const x of q.questions){
+        const m = res[x.id];
+        if(m){ marks[x.id] = m.marks; notes[x.id] = { points:m.points, feedback:m.feedback }; }
+        else { const t = qzMarkTyped(x, a.answers && a.answers[x.id], qzQMarks(q, x), qzImpliedOn(q), qzMarkOpts(q)); if(t) marks[x.id] = t.marks; else all = false; }
+      }
+      if(!all){ failed++; continue; }
+      a.marks = marks; a.aiNotes = notes; a.aiMarked = true; a.marked = true; a.autoMarked = true; a.markedBy = 'Claude AI (marking scheme)'; a.markedOn = todayDDMMYYYY();
+      a.score = qzScoreAttempt(q, a); a.total = qzTotal(q); n++;
+    }catch(e){ failed++; if(!firstErr) firstErr = String(e && e.message || e); if(/not set up|Not signed in|Too many/i.test(firstErr)) break; }
+  }
+  qzAiBusy = false;
+  quizMsg = n ? { type:'ok', text:`Claude marked ${n} attempt${n===1?'':'s'}. Open each one with Review marks to see why each mark was given, then approve and post.` + (failed ? ` ${failed} could not be marked${firstErr ? ' (' + firstErr + ')' : ''}.` : '') + (photo ? ` ${photo} with photos of written working ${photo===1?'was':'were'} left for you (use Suggest marks for photos to have Claude read them).` : '') }
+              : { type:'error', text:'Nothing was marked. ' + (firstErr || 'Some questions have no marking scheme or worked answer.') };
+  if(n) qzCloudNow();
+  render();
+}
 // ---------- Teacher: one learner's answers (structured: mark them) ----------
+// ---------- Photographed working: Claude reads it and SUGGESTS marks; the teacher confirms ----------
+function qzSuggestBlock(a, x, max){
+  const sg = a && a.aiSuggest && a.aiSuggest[x.id]; if(!sg) return '';
+  const pts = (sg.points || []).map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.reason ? ` <span style="color:var(--muted);font-size:11.5px;">— ${qzEsc(p.reason)}</span>` : ''}</td><td style="padding:3px 6px;text-align:center;font-weight:700;">${qzEsc(p.got)}/${qzEsc(p.max)}</td></tr>`).join('');
+  return `<div style="margin-top:8px;padding:10px 12px;border:1px dashed var(--blue);border-radius:8px;background:#f6f9ff;font-size:12.5px;">
+    <div style="font-weight:700;"><i class="fa-solid fa-robot"></i>&nbsp;Claude's suggestion <span style="font-weight:400;color:var(--muted);">(not saved until you confirm)</span></div>
+    ${sg.read ? `<div style="margin-top:6px;white-space:pre-wrap;"><strong>Claude read:</strong> ${qzEsc(sg.read)}</div>` : ''}
+    ${pts ? `<table style="margin-top:6px;width:100%;border-collapse:collapse;"><tbody>${pts}</tbody></table>` : ''}
+    ${sg.feedback ? `<div style="margin-top:6px;color:var(--muted);">${qzEsc(sg.feedback)}</div>` : ''}
+    <div style="margin-top:8px;"><button type="button" class="btn-ghost" style="width:auto;" onclick="qzUseSuggestion('${qzEsc(x.id)}')"><i class="fa-solid fa-check"></i>&nbsp;Use suggested marks (${qzEsc(sg.marks)}/${qzEsc(max)})</button></div>
+  </div>`;
+}
+function qzSuggestNote(a){
+  if(!a || !a.aiSuggest || !Object.keys(a.aiSuggest).length) return '';
+  return ' Claude has read them and suggested marks under each answer; nothing is saved until you press <strong>Save marks</strong>. <button type="button" class="link-btn" onclick="qzUseAllSuggestions()"><i class="fa-solid fa-check-double"></i>&nbsp;Fill in all suggested marks</button>';
+}
+// Puts a suggested mark into the marks box. The teacher still checks it and presses Save marks.
+function qzUseSuggestion(qid, quiet){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
+  const sg = a && a.aiSuggest && a.aiSuggest[qid], x = q && q.questions.find(z => z.id === qid); if(!x || !sg) return false;
+  const v = Math.round((Number(sg.marks) || 0) * 2) / 2;
+  quizMarking.draft = quizMarking.draft || {}; quizMarking.draft[qid] = Math.min(qzQMarks(q, x), Math.max(0, v));
+  if(!quiet) render();
+  return true;
+}
+function qzUseAllSuggestions(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || !quizMarking) return;
+  let n = 0; q.questions.forEach(x => { if(qzUseSuggestion(x.id, true)) n++; });
+  quizMsg = n ? { type:'ok', text:`Claude's suggested marks are in ${n} marks box${n===1?'':'es'}. Check them against the photos, then press Save marks.` } : { type:'error', text:'There are no suggestions to fill in.' };
+  render();
+}
+// Groups questions so one request carries about 2.8 MB of photos at most
+function qzPhotoBatches(items){
+  const out = []; let cur = [], size = 0;
+  items.forEach(it => { const sz = (it.images || []).reduce((t, u) => t + String(u).length, 0); if(cur.length && size + sz > 2800000){ out.push(cur); cur = []; size = 0; } cur.push(it); size += sz; });
+  if(cur.length) out.push(cur);
+  return out;
+}
+let qzSugBusy = false;
+// Asks Claude to read every unmarked attempt that has photos and stores its answers as suggestions only (a.aiSuggest), never as marks
+async function qzSuggestPhotos(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || qzType(q) !== 'structured' || qzSugBusy) return;
+  if(!(typeof commsSignedIn === 'function' && commsSignedIn())){ quizMsg = { type:'error', text:'Claude AI runs on the school server. Sign in to the school server (cloud) first.' }; render(); return; }
+  const todo = qzSubmitted(q.id).filter(a => qzHasPhotos(a) && !(a.marked && !a.autoMarked) && !a.aiSuggest);
+  if(!todo.length){ quizMsg = { type:'error', text: qzSubmitted(q.id).some(a => qzHasPhotos(a) && a.aiSuggest) ? 'Claude has already read these photos. Open each learner with Review marks to see its suggestions.' : 'No attempts with photos need suggestions.' }; render(); return; }
+  qzSugBusy = true; let n = 0, failed = 0, firstErr = '';
+  for(let k = 0; k < todo.length; k++){
+    const a = todo[k];
+    quizMsg = { type:'ok', text:`Claude is reading photos… ${k} of ${todo.length} done.` }; render();
+    const items = q.questions.map(x => { const max = qzQMarks(q, x), pts = qzPoints(x, max) || []; return { id:x.id, text:x.text, marks:max, modelAnswer:x.modelAnswer || '', response:(a.answers && a.answers[x.id]) || '', images:qzPhotosOf(a, x.id).slice(0, 2), points:pts.map(p => ({ text:p.text, alt:p.alt, marks:p.marks, shown:p.shown })) }; })
+      .filter(it => it.points.length && (it.response || it.images.length));
+    if(!items.length){ failed++; continue; }
+    try{
+      const sug = {};
+      for(const batch of qzPhotoBatches(items)){
+        const r = await commsApi('POST', '/ai/mark', { quiz:{ subject:q.subject, grade:q.grade, implied:qzImpliedOn(q) }, items:batch });
+        const res = r && r.results || {};
+        Object.keys(res).forEach(id => { const m = res[id]; if(m) sug[id] = { marks:m.marks, max:m.max, points:m.points, feedback:m.feedback, ...(m.read ? { read:m.read } : {}) }; });
+      }
+      if(!Object.keys(sug).length){ failed++; continue; }
+      a.aiSuggest = sug; a.aiSuggestedOn = Date.now(); n++;   // suggestions only: marked/marks/score are untouched
+    }catch(e){ failed++; if(!firstErr) firstErr = String(e && e.message || e); if(/not set up|Not signed in|Too many/i.test(firstErr)) break; }
+  }
+  qzSugBusy = false;
+  quizMsg = n ? { type:'ok', text:`Claude read the photos for ${n} attempt${n===1?'':'s'} and suggested marks. Nothing is marked yet: open each one with Review marks, check the suggestions against the photos and press Save marks.` + (failed ? ` ${failed} could not be read${firstErr ? ' (' + firstErr + ')' : ''}.` : '') }
+              : { type:'error', text:'No suggestions were made. ' + (firstErr || 'The questions need a marking scheme or worked answer.') };
+  if(n) qzCloudNow();
+  render();
+}
 function qzClearPhotos(){
   const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
   if(!a || !qzHasPhotos(a)) return;
@@ -10831,7 +10912,7 @@ function renderQuizMarking(){
   const draft = quizMarking.draft || {};
   const rows = q.questions.map((x, n) => {
     const mine = a.answers[x.id], has = mine !== undefined && String(mine).trim() !== '', max = qzQMarks(q, x);
-    let mineHtml, keyHtml = '', markHtml = '';
+    let mineHtml, keyHtml = '', markHtml = '', sugHtml = '';
     if(t === 'mcq'){
       mineHtml = mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine]) + (mine === x.answer ? ' ✔' : ' ✘');
       keyHtml = (mine === x.answer ? '' : `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Correct: <strong>${qzEsc(x.options[x.answer])}</strong></div>`) + (x.explanation ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.explanation)}</div>` : '');
@@ -10840,16 +10921,17 @@ function renderQuizMarking(){
       keyHtml = `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Accepted: ${(x.accepted || []).map(z => `<strong>${qzEsc(z)}</strong>`).join(', ') || '—'}</div>` + (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '');
     } else {
       mineHtml = has ? qzEsc(mine) : '<em>none</em>';
-      const auto = qzMarkTyped(x, mine, max, qzImpliedOn(q), qzMarkOpts(q));   // the answer compared with the marking scheme
+      const aiN = a.aiNotes && a.aiNotes[x.id], auto = aiN ? { marks:Math.min(max, aiN.points.reduce((t, p) => t + p.got, 0)), points:aiN.points } : qzMarkTyped(x, mine, max, qzImpliedOn(q), qzMarkOpts(q));   // Claude's marks when it marked this answer, else the answer compared with the marking scheme
       keyHtml = (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '') + (auto ? `
-        <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.implied ? ' <span style="color:var(--muted);font-size:11.5px;">(implied by later working)</span>' : ''}${(p.misspelt || []).map(m => ` <span style="color:var(--rose);font-size:11.5px;">(key term <strong>${qzEsc(m.term)}</strong> written as “${qzEsc(m.wrote)}”)</span>`).join('')}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
+        <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.implied ? ' <span style="color:var(--muted);font-size:11.5px;">(implied by later working)</span>' : ''}${p.reason ? ` <span style="color:var(--muted);font-size:11.5px;">— ${qzEsc(p.reason)}</span>` : ''}${(p.misspelt || []).map(m => ` <span style="color:var(--rose);font-size:11.5px;">(key term <strong>${qzEsc(m.term)}</strong> written as “${qzEsc(m.wrote)}”)</span>`).join('')}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>${aiN && aiN.feedback ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;"><i class="fa-solid fa-robot"></i>&nbsp;${qzEsc(aiN.feedback)}</div>` : ''}` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
+      sugHtml = qzSuggestBlock(a, x, max);   // Claude's reading of photographed working: shown to the teacher, never saved as marks until confirmed
       const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : (auto ? auto.marks : ''));
-      markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)">${auto ? `<span style="font-weight:400;color:var(--muted);margin-left:8px;">suggested from the scheme: ${auto.marks}</span>` : ''}</label>`;
+      markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)">${auto ? `<span style="font-weight:400;color:var(--muted);margin-left:8px;">suggested ${aiN ? 'by Claude AI' : 'from the scheme'}: ${auto.marks}</span>` : ''}</label>`;
     }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${isStruct ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${max} mark${max===1?'':'s'}]</span>` : ''}</div>
       ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
-      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}${keyHtml}${markHtml}</div>`;
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}${keyHtml}${sugHtml}${markHtml}</div>`;
   }).join('');
   return `
     <div class="panel" style="overflow:hidden;">
@@ -10859,8 +10941,8 @@ function renderQuizMarking(){
       </div>
       <div style="padding:14px 24px;">
         ${quizMsg ? `<div style="margin-bottom:10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
-        ${isStruct ? `<div style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">${a.autoMarked ? '<strong style="color:var(--green);">Marked automatically</strong> against the marking scheme. Check each answer, change any marks you disagree with, then press <strong>Save marks</strong> to confirm.' : 'Each answer is compared with its marking scheme; the marks box is filled with the suggestion. Adjust where needed, then press <strong>Save marks</strong>.'}</div>` : ''}
-        ${qzHasPhotos(a) ? `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;"><i class="fa-solid fa-camera" style="color:var(--blue);"></i>&nbsp;This learner attached photos of written working. Read them under each answer and give the marks yourself. <button type="button" class="link-btn danger" onclick="qzClearPhotos()"><i class="fa-solid fa-trash"></i>&nbsp;Delete the photos after marking</button><span style="color:var(--muted);"> (frees the school's data space)</span></div>` : ''}
+        ${isStruct ? `<div style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">${a.autoMarked ? (a.aiMarked ? '<strong style="color:var(--green);">Marked by Claude AI</strong> against the marking scheme (different wording accepted, skipped steps credited).' : '<strong style="color:var(--green);">Marked automatically</strong> against the marking scheme.') + ' Check each answer, change any marks you disagree with, then press <strong>Save marks</strong> to confirm.' : 'Each answer is compared with its marking scheme; the marks box is filled with the suggestion. Adjust where needed, then press <strong>Save marks</strong>.'}</div>` : ''}
+        ${qzHasPhotos(a) ? `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;"><i class="fa-solid fa-camera" style="color:var(--blue);"></i>&nbsp;This learner attached photos of written working. Read them under each answer and give the marks yourself.${qzSuggestNote(a)} <button type="button" class="link-btn danger" onclick="qzClearPhotos()"><i class="fa-solid fa-trash"></i>&nbsp;Delete the photos after marking</button><span style="color:var(--muted);"> (frees the school's data space)</span></div>` : ''}
         ${rows}
         ${isStruct ? `<button class="btn-primary auto" onclick="qzSaveMarking()"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save marks</button>${a.marked ? `<span style="margin-left:10px;font-size:12px;color:var(--muted);">Last marked ${qzEsc(a.markedOn || '')}${a.markedBy ? ' by ' + qzEsc(a.markedBy) : ''}</span>` : ''}` : ''}
       </div>
@@ -10888,6 +10970,16 @@ function prApi(method, path, body, token){
   return fetch(prBase() + path, { method, headers:Object.assign({ 'Content-Type':'application/json' }, (token || MASMS_PR.token) ? { Authorization:'Bearer ' + (token || MASMS_PR.token) } : {}), body: body ? JSON.stringify(body) : undefined })
     .then(r => r.json().catch(() => ({})).then(j => ({ ok:r.ok, status:r.status, error:j && j.error, data:j })));
 }
+// Learner / parent signed in with the DEFAULT password: they must choose their own (same card as teachers) before the portal opens.
+function prSetPassword(token, pw){
+  return prApi('POST', '/portal/password', { newPassword:pw }, token).then(r => r.ok ? { ok:true } : { ok:false, error:r.error || 'Could not save the password.' });
+}
+function portalForcePassword(stu, who, loginName, onSave){
+  const parent = who === 'parent';
+  const user = { name: parent ? (stu.guardian || 'Parent/Guardian') : fullName(stu), role:'Parent/Student', phone: parent ? loginName : '', adm: String(stu.admissionNumber || '').trim().toLowerCase() };
+  loginError = "";
+  openForcedPasswordChange(user, loginName, { portal:true, onSave });
+}
 function prLogin(user, pass){
   return prApi('POST', '/portal/login', { username:user, password:pass }).then(r => {
     if(r.ok && r.data && r.data.token && r.data.student) return { ok:true, data:r.data };
@@ -10913,7 +11005,7 @@ function prPush(a){
     if(r.ok && r.data && r.data.attempt){
       delete MASMS_PR.unsynced[a.id];
       const srv = r.data.attempt;
-      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; a.autoMarked = !!srv.autoMarked; if(a.photos){ a.photos = srv.photos || {}; } if(srv.photoNote) a.photoNote = srv.photoNote; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
+      if(srv.submittedAt){ a.submittedAt = srv.submittedAt; a.score = srv.score; a.total = srv.total; a.right = srv.right; a.marks = srv.marks; a.marked = !!srv.marked; a.autoMarked = !!srv.autoMarked; if(srv.aiNotes){ a.aiNotes = srv.aiNotes; a.aiMarked = true; } if(srv.markedBy) a.markedBy = srv.markedBy; if(a.photos){ a.photos = srv.photos || {}; } if(srv.photoNote) a.photoNote = srv.photoNote; delete a._scoring; try{ if(portalQuiz && portalQuiz.mode === 'review') renderPortalApp(); }catch(_e){} }
     } else if(r.status === 401){ prSessionLost(); }
     else if(r.status === 404){ delete MASMS_PR.unsynced[a.id]; }   // quiz withdrawn or retake granted: nothing to save
     else { MASMS_PR.unsynced[a.id] = a; }
@@ -15344,6 +15436,8 @@ function saveSchoolProfile(){
     academicYear, timezone: tzSelect.value, logo: prev.logo || "", watermark: prev.watermark || "",
     shortName: document.getElementById('sp_shortName').value.trim(),
     address: document.getElementById('sp_address').value.trim(),
+    postalCode: (document.getElementById('sp_postalCode') ? document.getElementById('sp_postalCode').value.trim() : (prev.postalCode || "")),
+    town: (document.getElementById('sp_town') ? document.getElementById('sp_town').value.trim() : (prev.town || "")),
     phone: document.getElementById('sp_phone').value.trim(),
     whatsapp: (document.getElementById('sp_whatsapp') ? document.getElementById('sp_whatsapp').value.trim() : (prev.whatsapp || "")),
     email: document.getElementById('sp_email').value.trim(),
@@ -17121,7 +17215,22 @@ function renderDashboard(){
 // ---- Dashboard: Exam Analysis card (sits under the main dashboard grid) ----
 // Built from the same published-exam data as Academics > Reports & Exports >
 // Analysis, so the numbers always agree with those reports.
-const DASH_ANALYSIS_PASS_MARK = 40; // a learner passes when their mean mark is at least this
+const DASH_ANALYSIS_PASS_MARK = 40; // only used to pick the DEFAULT pass grade (the grade whose band holds this mark)
+// Pass / fail comes from the grades the entered subject scores give, not from a fixed mark. Each score is graded with the class's grading system
+// (scoreToGrade); a learner's mean grade comes from their subject points (gradeFromMeanPoints). They pass when that grade reaches the PASS GRADE of the
+// grading system (set on the Exam Analysis page: "Pass grade"; until chosen it is the grade whose band holds 40%, i.e. D+ for KCSE, AE1 for CBE).
+function dashAnPassInfo(gradeLabel){
+  const gs = gradingSystemForGrade(gradeLabel), bands = gs ? gs.bands.filter(b => b.low >= 0 && b.points > 0) : [];
+  if(!bands.length) return { grade:'-', points:1, options:[] };
+  const pick = (gs.passGrade && bands.find(b => b.grade === gs.passGrade)) || bands.find(b => DASH_ANALYSIS_PASS_MARK >= b.low && DASH_ANALYSIS_PASS_MARK <= b.high) || bands[bands.length - 1];
+  const seen = [], options = bands.slice().sort((a,b) => b.points - a.points).filter(b => !seen.includes(b.grade) && seen.push(b.grade));
+  return { grade: pick.grade, points: pick.points, options };
+}
+function dashAnMeanPassed(row, info){ return row.meanGrade !== '-' && Math.floor(Math.round(row.meanPoints * 10000) / 10000 + 0.5) >= info.points; }
+function dashAnSetPassGrade(gradeLabel, g){
+  const gs = gradingSystemForGrade(gradeLabel); if(!gs) return;
+  gs.passGrade = g; render();
+}
 const DASH_AN_COLORS = ["#2f5fa8","#10b981","#f59e0b","#f43f5e","#7c5cf0","#06b6d4","#f97316","#64748b"];
 let dashAnalysisSel = ""; // "grade||exam"
 let dashAnalysisOpen = false; // false: per-grade summary cards, true: the full analysis for dashAnalysisSel
@@ -17720,13 +17829,15 @@ function dashAnalysisOptions(){
   Object.keys(map).sort().forEach(g => dashAnExamsChrono(g).forEach(e => { if(!dashExamGraduated(g, e)) out.push({ grade:g, exam:e, key:g + "||" + e }); }));
   return out;
 }
-function dashAnPassPct(rows){
-  return rows.length ? (rows.filter(r => r.mean >= DASH_ANALYSIS_PASS_MARK).length / rows.length) * 100 : 0;
+function dashAnPassPct(rows, gradeLabel){
+  const info = dashAnPassInfo(gradeLabel);
+  return rows.length ? (rows.filter(r => dashAnMeanPassed(r, info)).length / rows.length) * 100 : 0;
 }
 function dashAnalysisCompute(grade, exam){
   const data = computeMeritListData(grade, exam), rows = data.rows, n = rows.length;
   if(!n) return null;
-  const passed = rows.filter(r => r.mean >= DASH_ANALYSIS_PASS_MARK).length;
+  const passInfo = dashAnPassInfo(grade);
+  const passed = rows.filter(r => dashAnMeanPassed(r, passInfo)).length;
   const avg = rows.reduce((s,r) => s + r.mean, 0) / n;
   const highest = Math.max(...rows.map(r => r.mean));
 
@@ -17741,31 +17852,31 @@ function dashAnalysisCompute(grade, exam){
 
   // Subject performance
   const subjects = data.subjects.map(subject => {
-    const marks = rows.map(r => r.subjectCells.find(c => c.subject === subject)).filter(c => c && c.mark !== null).map(c => c.mark);
+    const cells = rows.map(r => r.subjectCells.find(c => c.subject === subject)).filter(c => c && c.mark !== null), marks = cells.map(c => c.mark);
     return { subject, entries: marks.length, avg: marks.length ? marks.reduce((a,b) => a + b, 0) / marks.length : 0,
-             passPct: marks.length ? marks.filter(m => m >= DASH_ANALYSIS_PASS_MARK).length / marks.length * 100 : 0 };
+             passPct: cells.length ? cells.filter(c => (c.points || 0) >= passInfo.points).length / cells.length * 100 : 0 };
   }).filter(s => s.entries > 0);
 
   // Pass % by stream
   const byStream = {};
   rows.forEach(r => { const k = r.student.stream || ""; (byStream[k] || (byStream[k] = [])).push(r); });
-  const classes = Object.keys(byStream).sort().map(k => ({ label: (grade + " " + k).trim(), pct: dashAnPassPct(byStream[k]), n: byStream[k].length }));
+  const classes = Object.keys(byStream).sort().map(k => ({ label: (grade + " " + k).trim(), pct: dashAnPassPct(byStream[k], grade), n: byStream[k].length }));
 
   // Pass rate across this grade's published exams (oldest -> newest)
   const examList = dashAnExamsChrono(grade).slice(-8);
   const trend = examList.map(e => {
     let pct = null;
-    try{ const d = e === exam ? data : computeMeritListData(grade, e); if(d.rows.length) pct = dashAnPassPct(d.rows); }catch(_e){}
+    try{ const d = e === exam ? data : computeMeritListData(grade, e); if(d.rows.length) pct = dashAnPassPct(d.rows, grade); }catch(_e){}
     return { exam: e, pct };
   }).filter(t => t.pct !== null);
 
   const top = rows.slice().sort((a,b) => b.mean - a.mean).slice(0, 5);
-  return { grade, exam, n, passed, failed: n - passed, passPct: passed / n * 100, avg, highest, gradeDist, subjects, classes, trend, top };
+  return { grade, exam, passInfo, n, passed, failed: n - passed, passPct: passed / n * 100, avg, highest, gradeDist, subjects, classes, trend, top };
 }
 function dashAnInsights(a){
   const out = [];
   const tone = a.passPct >= 75 ? "which is good" : a.passPct >= 50 ? "which is fair" : "which needs attention";
-  out.push(`Overall pass percentage is <b>${a.passPct.toFixed(2)}%</b> ${tone}.`);
+  out.push(`Overall pass percentage is <b>${a.passPct.toFixed(2)}%</b> ${tone} (a learner passes with a mean grade of <b>${dashAnEsc(a.passInfo.grade)}</b> or better, from the grades of the entered subject scores).`);
   if(a.subjects.length){
     const best = a.subjects.slice().sort((x,y) => y.avg - x.avg)[0];
     out.push(`<b>${dashAnEsc(best.subject)}</b> has the highest average marks (${best.avg.toFixed(1)}%).`);
@@ -17795,6 +17906,7 @@ function renderDashExamAnalysis(){
         <div>
           <h3><i class="fa-solid fa-square-poll-vertical" style="color:var(--blue);margin-right:8px;"></i>Exam Analysis</h3>
           ${sel ? `<div class="dash2-an-sub">${dashAnEsc(sel.exam)} &middot; ${dashAnEsc(sel.grade)}</div>` : ''}
+          ${sel ? (() => { const pi = dashAnPassInfo(sel.grade); return pi.options.length ? `<div class="dash2-an-sub" style="margin-top:4px;"><label>Pass grade (mean grade or better): <select onchange="dashAnSetPassGrade('${dashAnJs(sel.grade)}', this.value)" style="font:inherit;padding:2px 4px;">${pi.options.map(o => `<option value="${dashAnEsc(o.grade)}"${o.grade === pi.grade ? ' selected' : ''}>${dashAnEsc(o.grade)}</option>`).join('')}</select></label></div>` : ''; })() : ''}
         </div>
         ${sel ? `<div class="dash2-an-tools">
           <button class="view-all-link" onclick="closeDashAnalysis()"><i class="fa-solid fa-arrow-left"></i> Back</button>
@@ -17831,7 +17943,7 @@ function renderDashExamAnalysis(){
     <div class="dash2-an-card"><h4>Pass / Fail Distribution</h4>
       <div class="dash2-donut-flex">
         <div class="dash2-donut-wrap">${pfDonut}<div class="dash2-donut-center"><div class="num">${a.n}</div><div class="lbl">Total</div></div></div>
-        <div class="dash2-legend">
+        <div class="dash2-legend dash2-legend-pf">
           <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:#10b981;"></span><span class="dash2-legend-name">Passed</span><span class="dash2-legend-val">${a.passed} (${(a.passed/a.n*100).toFixed(2)}%)</span></div>
           <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:#f43f5e;"></span><span class="dash2-legend-name">Failed</span><span class="dash2-legend-val">${a.failed} (${(a.failed/a.n*100).toFixed(2)}%)</span></div>
         </div>
@@ -17850,7 +17962,7 @@ function renderDashExamAnalysis(){
     <div class="dash2-an-card"><h4>Grade Distribution</h4>
       <div class="dash2-donut-flex">
         <div class="dash2-donut-wrap">${svgDonutChart(gradeSegs, { size:116, strokeWidth:20 })}<div class="dash2-donut-center"><div class="num">${a.n}</div><div class="lbl">Total</div></div></div>
-        <div class="dash2-legend">${a.gradeDist.map((g,i) => `
+        <div class="dash2-legend dash2-legend-grades">${a.gradeDist.map((g,i) => `
           <div class="dash2-legend-row"><span class="dash2-legend-dot" style="background:${gradeSegs[i].color};"></span><span class="dash2-legend-name">${dashAnEsc(g.grade)}</span><span class="dash2-legend-val">${g.count} (${(g.count/a.n*100).toFixed(1)}%)</span></div>`).join('')}
         </div>
       </div></div>`;
@@ -17915,7 +18027,7 @@ function renderDashExamAnalysis(){
       return `<button class="dash2-an-chip${e === a.exam ? ' on' : ''}" onclick="openDashAnalysis('${dashAnJs(a.grade)}','${dashAnJs(e)}')">
         <div class="dash2-an-chip-top"><b>${dashAnEsc(e)}</b>${d}</div>
         <div class="dash2-an-chip-val">${mm.toFixed(2)}%</div>
-        <div class="dash2-an-chip-sub">${mp.toFixed(2)} pts &middot; ${rows.length ? dashAnPassPct(rows).toFixed(0) : 0}% pass</div>
+        <div class="dash2-an-chip-sub">${mp.toFixed(2)} pts &middot; ${rows.length ? dashAnPassPct(rows, a.grade).toFixed(0) : 0}% pass</div>
       </button>`;
     }).join('')}</div>`;
   }
@@ -18035,7 +18147,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   const recentCard = `<div class="hm-card" style="margin-bottom:14px;"><div class="hm-card-head"><h3>${recentTitle}</h3><button class="hm-link" onclick="${recentGo}">View All &rarr;</button></div>
     <div class="hm-table-wrap">${recentRows ? `<table class="hm-table" data-pdf-btn="1"><thead><tr>${recentHead.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${recentRows}</tbody></table>` : '<div class="hm-empty">Nothing to show yet.</div>'}</div></div>`;
 
-  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><button type="button" class="hm-link" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>&nbsp;Viewing as ${previewingAsTeacher?'Teacher':'Administrator'}</button></div>` : '';
+  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><span class="hm-link" style="cursor:default;"><i class="fa-solid fa-user-shield"></i>&nbsp;Administrator</span></div>` : '';
   const hasMore = dCfg.events || dCfg.ann || showFee;
 
   return `
@@ -59128,6 +59240,12 @@ function renderSettingsProfileTab(){
 
           <label class="icon-field"><span>Postal Address&nbsp;<span class="req">*</span></span>
             <div class="icon-input"><i class="fa-solid fa-location-dot"></i><input id="sp_address" type="text" inputmode="numeric" pattern="[0-9]*" value="${profile.address||''}"></div>
+          </label>
+          <label class="icon-field"><span>Postal Code</span>
+            <div class="icon-input"><i class="fa-solid fa-hashtag"></i><input id="sp_postalCode" type="text" inputmode="numeric" pattern="[0-9]*" value="${profile.postalCode||''}"></div>
+          </label>
+          <label class="icon-field"><span>Town</span>
+            <div class="icon-input"><i class="fa-solid fa-city"></i><input id="sp_town" type="text" oninput="nameOnly(this)" value="${profile.town||''}"></div>
           </label>
           <label class="icon-field"><span>Website</span>
             <div class="icon-input"><i class="fa-solid fa-globe"></i><input id="sp_website" type="text" value="${profile.website||''}"></div>

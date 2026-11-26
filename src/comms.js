@@ -1,4 +1,4 @@
-// Server-side messaging + payments: SMS (Africa's Talking), email (SMTP) and M-Pesa STK push (Daraja).
+// Server-side messaging + payments: SMS (Africa's Talking), WhatsApp (Meta Cloud API, used for password-recovery codes), email (SMTP) and M-Pesa STK push (Daraja).
 // Secrets live in environment variables, never in the browser. Every route needs a signed-in user,
 // except the M-Pesa callback which Safaricom calls (protected by a secret path segment).
 const express = require('express');
@@ -23,6 +23,7 @@ const mpesaPhone = raw => { const p = normalizePhone(raw); return p && /^\+254/.
 const configured = {
   sms: () => !!(env().AT_USERNAME && env().AT_API_KEY),
   email: () => !!(env().SMTP_HOST && env().SMTP_USER && env().SMTP_PASS),
+  whatsapp: () => !!(env().WHATSAPP_TOKEN && env().WHATSAPP_PHONE_ID),
   mpesa: () => !!(env().MPESA_CONSUMER_KEY && env().MPESA_CONSUMER_SECRET && env().MPESA_SHORTCODE && env().MPESA_PASSKEY && env().PUBLIC_URL && env().MPESA_CALLBACK_SECRET),
 };
 const notConfigured = (res, what, vars) => res.status(503).json({ error: `${what} is not set up on the server. Add ${vars} to the server environment.` });
@@ -41,6 +42,28 @@ async function sendSms(phones, message) {
 }
 // number of 160-char SMS segments (153 when concatenated), matching what providers bill
 const smsUnits = m => (m.length <= 160 ? 1 : Math.ceil(m.length / 153));
+
+// ---------- WhatsApp (Meta WhatsApp Business Cloud API) ----------
+// Used to send a one-time code. WhatsApp only lets a business start a chat with an approved TEMPLATE, so set WHATSAPP_OTP_TEMPLATE to
+// the name of an approved "authentication" template (one {{1}} in the body for the code; WHATSAPP_OTP_LANG, default en_US; the template's
+// copy-code button also gets the code). Without a template name a plain text message is sent, which WhatsApp delivers only to people who
+// messaged the school's number in the last 24 hours. Throws if WhatsApp refuses the message.
+async function sendWhatsAppCode(phone, code, text) {
+  const to = String(normalizePhone(phone) || '').replace(/\D/g, '');
+  if (!to) throw new Error('whatsapp: bad number');
+  const tpl = env().WHATSAPP_OTP_TEMPLATE;
+  const message = tpl
+    ? { type: 'template', template: { name: tpl, language: { code: env().WHATSAPP_OTP_LANG || 'en_US' }, components: [
+        { type: 'body', parameters: [{ type: 'text', text: code }] },
+        ...(env().WHATSAPP_OTP_BUTTON === '0' ? [] : [{ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] }]) ] } }
+    : { type: 'text', text: { body: text } };
+  const r = await fetch('https://graph.facebook.com/' + (env().WHATSAPP_API_VERSION || 'v20.0') + '/' + env().WHATSAPP_PHONE_ID + '/messages', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + env().WHATSAPP_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', to, ...message }),
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j || !(j.messages && j.messages.length)) throw new Error('WhatsApp error (' + r.status + ')');
+}
 
 // ---------- Email ----------
 let transport;
@@ -184,4 +207,4 @@ router.get('/mpesa/recent', auth, wrap(async (req, res) => {
   res.json({ payments: list });
 }));
 
-module.exports = { router, normalizePhone, smsUnits, sendSms, sendEmail, validEmail, configured };
+module.exports = { router, normalizePhone, smsUnits, sendSms, sendWhatsAppCode, sendEmail, validEmail, configured };

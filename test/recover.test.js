@@ -62,7 +62,7 @@ test('the answer is the same for a number nobody has, so numbers cannot be probe
   const none = await send('0700 000 000');
   expect(none.s).toBe(200); expect(none.j).toEqual(real.j);
   expect(sms).toHaveLength(1);
-  expect((await send('12')).s).toBe(400);
+  expect((await send('!!')).s).toBe(400);
 });
 
 test('an inactive account, the System Developer and a person with no phone cannot be recovered this way (same answer, nothing sent)', async () => {
