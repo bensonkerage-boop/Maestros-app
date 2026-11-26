@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colour of the window Android shows for a moment before the app draws. It matches the start-up wheel page so there is no separate first page. -->
+    <color name="launch_background">#152C58</color>
+</resources>

@@ -5463,6 +5463,9 @@ html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
   try{
     var C=window.Capacitor, sp=document.getElementById('appSplash');
     if(!sp) return;
+    /* The wheel plays ONCE per start (Android app, installed web app and browser tab alike). A reload during the same start, such as
+       the app switching to a newly loaded version, must not play it a second time: the first play leaves a flag for this session. */
+    try{ if(sessionStorage.getItem('masms_splash_played')==='1'){ if(sp.parentNode) sp.parentNode.removeChild(sp); return; } sessionStorage.setItem('masms_splash_played','1'); }catch(_s){}
     /* wheel splash plays on every start: Android app, installed web app and plain browser alike */
     var n=0;
     Array.prototype.forEach.call(sp.querySelectorAll('.sp-line'),function(l){

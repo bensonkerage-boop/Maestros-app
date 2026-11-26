@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plain background for the moment before the app draws (same look as the start of the wheel page, no logo). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:type="radial" android:centerX="0.5" android:centerY="0.38" android:gradientRadius="75%p"
+        android:startColor="#24488A" android:centerColor="#152C58" android:endColor="#0B1A38" />
+</shape>

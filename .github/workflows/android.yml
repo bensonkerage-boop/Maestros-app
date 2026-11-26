@@ -23,9 +23,11 @@ jobs:
       - run: npm run build:android
         env:
           API_BASE: ${{ vars.API_BASE }}
-          # The APK always loads the live MASMS site (API_BASE), so it is identical to the website and updates with every deploy.
-          # Set repository variable LIVE_UPDATES=0 only if you want a self-contained offline APK instead.
-          LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}
+          # The APK is built INSIDE the app (self-contained): the start-up wheel appears at once, with no wait for the network.
+          # It talks to API_BASE for sign-in and data, and changes to the app reach phones with a new APK.
+          # Set repository variable LIVE_UPDATES=1 to make the APK load the live site instead (updates with every deploy, but the
+          # start-up screen waits for the network before the wheel can show).
+          LIVE_URL: ${{ vars.LIVE_UPDATES == '1' && vars.API_BASE || '' }}
       - name: Pre-download Gradle (tries gradle.org, then mirrors)
         run: |
           V=8.14.3

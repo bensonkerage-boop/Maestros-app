@@ -16,7 +16,10 @@
     </style>
 
 
+    <!-- The window Android shows before the app draws: no logo, no image, same colour as the start-up wheel page. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@drawable/launch_background</item>
+        <item name="windowSplashScreenBackground">@color/launch_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/launch_icon_blank</item>
     </style>
 </resources>
