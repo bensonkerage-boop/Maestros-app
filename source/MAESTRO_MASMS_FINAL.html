@@ -16242,7 +16242,7 @@ function renderNav(){
 function renderAppFooter(){
   const f = document.getElementById('appFooter'); if(!f) return;
   const school = isSalesAgentRole() ? 'MASMS Sales' : (currentSchool || 'MASMS');
-  f.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${dpEsc(school)}. All rights reserved.</span><span>${canAccessModule('legal') ? `<a onclick="go('legal')">Terms &amp; Privacy</a>` : ''}<a onclick="window.open('privacy.html','_blank')">Privacy</a><span style="margin-left:14px;opacity:.7;">MASMS v1.0</span></span>`;
+  f.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${dpEsc(school)}. All rights reserved.</span><span>${canAccessModule('legal') ? `<a onclick="go('legal')">Terms &amp; Privacy</a>` : ''}<span style="margin-left:14px;opacity:.7;">MASMS v1.0</span></span>`;
 }
 // hamburger: icons-only sidebar, remembered on this device
 function toggleNavCollapse(){
@@ -16516,7 +16516,7 @@ function renderTeacherHomeDashboard(){
 
   const viewModeBadge = previewingAsTeacher ? `
     <div class="dash2-topline-right" style="justify-content:flex-end;margin-bottom:14px;">
-      <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
+      <div class="dash2-date" title="Click to switch back to Administrator" onclick="setViewMode(previewingAsTeacher?'admin':'teacher');try{window.scrollTo(0,0)}catch(e){}"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
     </div>
   ` : '';
   // Opening one section hides the other section cards; a back button returns to the dashboard.
@@ -18150,7 +18150,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   const recentCard = `<div class="hm-card" style="margin-bottom:14px;"><div class="hm-card-head"><h3>${recentTitle}</h3><button class="hm-link" onclick="${recentGo}">View All &rarr;</button></div>
     <div class="hm-table-wrap">${recentRows ? `<table class="hm-table" data-pdf-btn="1"><thead><tr>${recentHead.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${recentRows}</tbody></table>` : '<div class="hm-empty">Nothing to show yet.</div>'}</div></div>`;
 
-  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><span class="hm-link" style="cursor:default;"><i class="fa-solid fa-user-shield"></i>&nbsp;Administrator</span></div>` : '';
+  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><button type="button" class="hm-link" id="roleChipAdmin" style="cursor:pointer;" title="Click to switch to Teacher and open the teacher dashboard" aria-label="Administrator: click to switch to Teacher" onclick="setViewMode('teacher');try{window.scrollTo(0,0)}catch(e){}"><i class="fa-solid fa-user-shield"></i>&nbsp;Administrator</button></div>` : '';
   const hasMore = dCfg.events || dCfg.ann || showFee;
 
   return `

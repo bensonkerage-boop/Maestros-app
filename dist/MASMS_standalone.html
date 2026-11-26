@@ -5719,7 +5719,12 @@ html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
   if(!f) return;
   // Android app (Capacitor): no landing page at all, go straight to the sign-in card. window.MASMS_LANDING stays undefined, so the
   // sign-in card shows no Home/close buttons either.
-  try{var C0=window.Capacitor;if(C0&&C0.isNativePlatform&&C0.isNativePlatform()){f.parentNode.removeChild(f);return}}catch(e){}
+  // Detected two ways, so it can never depend on timing: the Capacitor bridge, or the "MASMSApp" tag the Android app adds to its user agent
+  // (capacitor.config.js android.appendUserAgent). The browser version has neither and keeps the landing page, its Log in button and Home arrow.
+  var isApp=false;
+  try{var C0=window.Capacitor;isApp=!!(C0&&C0.isNativePlatform&&C0.isNativePlatform())}catch(e){}
+  if(!isApp){try{isApp=/MASMSApp/.test(navigator.userAgent)}catch(e){}}
+  if(isApp){f.parentNode.removeChild(f);return}
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}
   function ls(){try{return window.localStorage}catch(e){return null}}
@@ -5812,6 +5817,9 @@ html[data-theme="dark"]:not(.is-mobile) .app{background:#f1f2f6;}
   try{
     var C=window.Capacitor, sp=document.getElementById('appSplash');
     if(!sp) return;
+    /* The wheel plays ONCE per start (Android app, installed web app and browser tab alike). A reload during the same start, such as
+       the app switching to a newly loaded version, must not play it a second time: the first play leaves a flag for this session. */
+    try{ if(sessionStorage.getItem('masms_splash_played')==='1'){ if(sp.parentNode) sp.parentNode.removeChild(sp); return; } sessionStorage.setItem('masms_splash_played','1'); }catch(_s){}
     /* wheel splash plays on every start: Android app, installed web app and plain browser alike */
     var n=0;
     Array.prototype.forEach.call(sp.querySelectorAll('.sp-line'),function(l){
@@ -10977,7 +10985,7 @@ function renderQuizEditor(){
             ${qt === 'structured' ? `<label title="When a later step or the final answer is correct, steps the learner skipped or only implied are credited."><input type="checkbox" ${qzImpliedOn(q)?'checked':''} onchange="qzSet('impliedSteps',this.checked)"> Credit skipped / implied working</label>` : ''}
             ${qt === 'structured' ? `<label title="Claude AI reads each answer against your marking scheme and marks by meaning: a correct answer in different words is marked right, and steps the learner skipped are credited when later working is correct. Needs the school server to be set up for AI marking. If it is off or unavailable, the word-matching marker is used."><input type="checkbox" ${q.aiMarking !== false ? 'checked' : ''} onchange="qzSet('aiMarking',this.checked)"> Mark with Claude AI (different wording accepted)</label>` : ''}
             ${qt === 'structured' ? `<label title="Science, geography and mathematics key words (photosynthesis, hypotenuse, ...) must be spelled exactly. Key terms you list on a marking point are always exact."><input type="checkbox" ${q.strictTerms?'checked':''} onchange="qzSet('strictTerms',this.checked)"> Key terms must be spelled exactly</label>` : ''}
-            ${qt === 'structured' ? `<label title="Each question gets an Add photo button, so a learner can show handwritten working. Answers with photos are marked by you, not automatically."><input type="checkbox" ${q.allowPhotos?'checked':''} onchange="qzSet('allowPhotos',this.checked)"> Learners may attach a photo of written working</label>` : ''}
+            ${qt === 'structured' ? `<label title="Each question gets an Add photo button, so a learner can show handwritten working. Answers with photos are never marked automatically: Claude AI can read them and suggest marks, and you confirm every mark."><input type="checkbox" ${q.allowPhotos?'checked':''} onchange="qzSet('allowPhotos',this.checked)"> Learners may attach a photo of written working</label>` : ''}
           </div>
         </div>
 
@@ -11101,7 +11109,8 @@ function renderQuizResults(){
           <select onchange="qzSetResultsExam(this.value)"><option value="">— choose exam —</option>${exams.map(e => `<option value="${qzEsc(e.term+'||'+e.exam)}" ${e.term===q.term&&e.exam===q.exam?'selected':''}>${qzEsc(e.exam)} (${qzEsc(e.term)})</option>`).join('')}</select></label>
         <button class="btn-primary auto" onclick="qzPostMarks()" ${(!qzCanManage())?'disabled':''}><i class="fa-solid fa-check-double"></i>&nbsp;Approve &amp; post marks</button>
         ${qzType(q) === 'structured' ? `<button class="btn-ghost" style="width:auto;" onclick="qzAutoMarkAll()" title="Compare every unreviewed answer with the marking scheme and award proportional marks"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;Auto-mark with scheme</button>
-        <button class="btn-ghost" style="width:auto;" onclick="qzAiMarkAll()" title="Claude AI reads every unreviewed answer against your marking scheme and marks by meaning: different wording is accepted and skipped steps are credited. Your own marks are kept."><i class="fa-solid fa-robot"></i>&nbsp;Mark with Claude AI</button>` : ''}
+        <button class="btn-ghost" style="width:auto;" onclick="qzAiMarkAll()" title="Claude AI reads every unreviewed answer against your marking scheme and marks by meaning: different wording is accepted and skipped steps are credited. Your own marks are kept."><i class="fa-solid fa-robot"></i>&nbsp;Mark with Claude AI</button>${qzSubmitted(q.id).some(a => qzHasPhotos(a)) ? `
+        <button class="btn-ghost" style="width:auto;" onclick="qzSuggestPhotos()" title="Claude reads the photos of written working and suggests marks. Nothing is marked: you open each learner, check the suggestions and confirm."><i class="fa-solid fa-camera"></i>&nbsp;Suggest marks for photos</button>` : ''}` : ''}
         <button class="btn-ghost" style="width:auto;" onclick="qzDownloadResults()"><i class="fa-solid fa-download"></i>&nbsp;Download CSV</button>
       </div>
       <div class="streams-scroll"><table style="min-width:760px;">
@@ -11153,12 +11162,81 @@ async function qzAiMarkAll(){
     }catch(e){ failed++; if(!firstErr) firstErr = String(e && e.message || e); if(/not set up|Not signed in|Too many/i.test(firstErr)) break; }
   }
   qzAiBusy = false;
-  quizMsg = n ? { type:'ok', text:`Claude marked ${n} attempt${n===1?'':'s'}. Open each one with Review marks to see why each mark was given, then approve and post.` + (failed ? ` ${failed} could not be marked${firstErr ? ' (' + firstErr + ')' : ''}.` : '') + (photo ? ` ${photo} with photos of written working ${photo===1?'was':'were'} left for you.` : '') }
+  quizMsg = n ? { type:'ok', text:`Claude marked ${n} attempt${n===1?'':'s'}. Open each one with Review marks to see why each mark was given, then approve and post.` + (failed ? ` ${failed} could not be marked${firstErr ? ' (' + firstErr + ')' : ''}.` : '') + (photo ? ` ${photo} with photos of written working ${photo===1?'was':'were'} left for you (use Suggest marks for photos to have Claude read them).` : '') }
               : { type:'error', text:'Nothing was marked. ' + (firstErr || 'Some questions have no marking scheme or worked answer.') };
   if(n) qzCloudNow();
   render();
 }
 // ---------- Teacher: one learner's answers (structured: mark them) ----------
+// ---------- Photographed working: Claude reads it and SUGGESTS marks; the teacher confirms ----------
+function qzSuggestBlock(a, x, max){
+  const sg = a && a.aiSuggest && a.aiSuggest[x.id]; if(!sg) return '';
+  const pts = (sg.points || []).map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.reason ? ` <span style="color:var(--muted);font-size:11.5px;">— ${qzEsc(p.reason)}</span>` : ''}</td><td style="padding:3px 6px;text-align:center;font-weight:700;">${qzEsc(p.got)}/${qzEsc(p.max)}</td></tr>`).join('');
+  return `<div style="margin-top:8px;padding:10px 12px;border:1px dashed var(--blue);border-radius:8px;background:#f6f9ff;font-size:12.5px;">
+    <div style="font-weight:700;"><i class="fa-solid fa-robot"></i>&nbsp;Claude's suggestion <span style="font-weight:400;color:var(--muted);">(not saved until you confirm)</span></div>
+    ${sg.read ? `<div style="margin-top:6px;white-space:pre-wrap;"><strong>Claude read:</strong> ${qzEsc(sg.read)}</div>` : ''}
+    ${pts ? `<table style="margin-top:6px;width:100%;border-collapse:collapse;"><tbody>${pts}</tbody></table>` : ''}
+    ${sg.feedback ? `<div style="margin-top:6px;color:var(--muted);">${qzEsc(sg.feedback)}</div>` : ''}
+    <div style="margin-top:8px;"><button type="button" class="btn-ghost" style="width:auto;" onclick="qzUseSuggestion('${qzEsc(x.id)}')"><i class="fa-solid fa-check"></i>&nbsp;Use suggested marks (${qzEsc(sg.marks)}/${qzEsc(max)})</button></div>
+  </div>`;
+}
+function qzSuggestNote(a){
+  if(!a || !a.aiSuggest || !Object.keys(a.aiSuggest).length) return '';
+  return ' Claude has read them and suggested marks under each answer; nothing is saved until you press <strong>Save marks</strong>. <button type="button" class="link-btn" onclick="qzUseAllSuggestions()"><i class="fa-solid fa-check-double"></i>&nbsp;Fill in all suggested marks</button>';
+}
+// Puts a suggested mark into the marks box. The teacher still checks it and presses Save marks.
+function qzUseSuggestion(qid, quiet){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
+  const sg = a && a.aiSuggest && a.aiSuggest[qid], x = q && q.questions.find(z => z.id === qid); if(!x || !sg) return false;
+  const v = Math.round((Number(sg.marks) || 0) * 2) / 2;
+  quizMarking.draft = quizMarking.draft || {}; quizMarking.draft[qid] = Math.min(qzQMarks(q, x), Math.max(0, v));
+  if(!quiet) render();
+  return true;
+}
+function qzUseAllSuggestions(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || !quizMarking) return;
+  let n = 0; q.questions.forEach(x => { if(qzUseSuggestion(x.id, true)) n++; });
+  quizMsg = n ? { type:'ok', text:`Claude's suggested marks are in ${n} marks box${n===1?'':'es'}. Check them against the photos, then press Save marks.` } : { type:'error', text:'There are no suggestions to fill in.' };
+  render();
+}
+// Groups questions so one request carries about 2.8 MB of photos at most
+function qzPhotoBatches(items){
+  const out = []; let cur = [], size = 0;
+  items.forEach(it => { const sz = (it.images || []).reduce((t, u) => t + String(u).length, 0); if(cur.length && size + sz > 2800000){ out.push(cur); cur = []; size = 0; } cur.push(it); size += sz; });
+  if(cur.length) out.push(cur);
+  return out;
+}
+let qzSugBusy = false;
+// Asks Claude to read every unmarked attempt that has photos and stores its answers as suggestions only (a.aiSuggest), never as marks
+async function qzSuggestPhotos(){
+  const q = onlineQuizzes.find(x => x.id === quizResultsId); if(!q || qzType(q) !== 'structured' || qzSugBusy) return;
+  if(!(typeof commsSignedIn === 'function' && commsSignedIn())){ quizMsg = { type:'error', text:'Claude AI runs on the school server. Sign in to the school server (cloud) first.' }; render(); return; }
+  const todo = qzSubmitted(q.id).filter(a => qzHasPhotos(a) && !(a.marked && !a.autoMarked) && !a.aiSuggest);
+  if(!todo.length){ quizMsg = { type:'error', text: qzSubmitted(q.id).some(a => qzHasPhotos(a) && a.aiSuggest) ? 'Claude has already read these photos. Open each learner with Review marks to see its suggestions.' : 'No attempts with photos need suggestions.' }; render(); return; }
+  qzSugBusy = true; let n = 0, failed = 0, firstErr = '';
+  for(let k = 0; k < todo.length; k++){
+    const a = todo[k];
+    quizMsg = { type:'ok', text:`Claude is reading photos… ${k} of ${todo.length} done.` }; render();
+    const items = q.questions.map(x => { const max = qzQMarks(q, x), pts = qzPoints(x, max) || []; return { id:x.id, text:x.text, marks:max, modelAnswer:x.modelAnswer || '', response:(a.answers && a.answers[x.id]) || '', images:qzPhotosOf(a, x.id).slice(0, 2), points:pts.map(p => ({ text:p.text, alt:p.alt, marks:p.marks, shown:p.shown })) }; })
+      .filter(it => it.points.length && (it.response || it.images.length));
+    if(!items.length){ failed++; continue; }
+    try{
+      const sug = {};
+      for(const batch of qzPhotoBatches(items)){
+        const r = await commsApi('POST', '/ai/mark', { quiz:{ subject:q.subject, grade:q.grade, implied:qzImpliedOn(q) }, items:batch });
+        const res = r && r.results || {};
+        Object.keys(res).forEach(id => { const m = res[id]; if(m) sug[id] = { marks:m.marks, max:m.max, points:m.points, feedback:m.feedback, ...(m.read ? { read:m.read } : {}) }; });
+      }
+      if(!Object.keys(sug).length){ failed++; continue; }
+      a.aiSuggest = sug; a.aiSuggestedOn = Date.now(); n++;   // suggestions only: marked/marks/score are untouched
+    }catch(e){ failed++; if(!firstErr) firstErr = String(e && e.message || e); if(/not set up|Not signed in|Too many/i.test(firstErr)) break; }
+  }
+  qzSugBusy = false;
+  quizMsg = n ? { type:'ok', text:`Claude read the photos for ${n} attempt${n===1?'':'s'} and suggested marks. Nothing is marked yet: open each one with Review marks, check the suggestions against the photos and press Save marks.` + (failed ? ` ${failed} could not be read${firstErr ? ' (' + firstErr + ')' : ''}.` : '') }
+              : { type:'error', text:'No suggestions were made. ' + (firstErr || 'The questions need a marking scheme or worked answer.') };
+  if(n) qzCloudNow();
+  render();
+}
 function qzClearPhotos(){
   const q = onlineQuizzes.find(x => x.id === quizResultsId), a = q && quizMarking && qzAttempt(q.id, quizMarking.adm);
   if(!a || !qzHasPhotos(a)) return;
@@ -11191,7 +11269,7 @@ function renderQuizMarking(){
   const draft = quizMarking.draft || {};
   const rows = q.questions.map((x, n) => {
     const mine = a.answers[x.id], has = mine !== undefined && String(mine).trim() !== '', max = qzQMarks(q, x);
-    let mineHtml, keyHtml = '', markHtml = '';
+    let mineHtml, keyHtml = '', markHtml = '', sugHtml = '';
     if(t === 'mcq'){
       mineHtml = mine === undefined ? '<em>none</em>' : qzEsc(x.options[mine]) + (mine === x.answer ? ' ✔' : ' ✘');
       keyHtml = (mine === x.answer ? '' : `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Correct: <strong>${qzEsc(x.options[x.answer])}</strong></div>`) + (x.explanation ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.explanation)}</div>` : '');
@@ -11203,13 +11281,14 @@ function renderQuizMarking(){
       const aiN = a.aiNotes && a.aiNotes[x.id], auto = aiN ? { marks:Math.min(max, aiN.points.reduce((t, p) => t + p.got, 0)), points:aiN.points } : qzMarkTyped(x, mine, max, qzImpliedOn(q), qzMarkOpts(q));   // Claude's marks when it marked this answer, else the answer compared with the marking scheme
       keyHtml = (x.modelAnswer ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;"><strong>Worked answer:</strong> ${qzEsc(x.modelAnswer)}</div>` : '') + (auto ? `
         <table style="margin-top:8px;font-size:12.5px;width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:3px 6px;">Marking point</th><th style="padding:3px 6px;width:90px;text-align:center;">Awarded</th></tr></thead><tbody>${auto.points.map(p => `<tr style="border-top:1px solid var(--border);"><td style="padding:3px 6px;">${qzEsc(p.text)}${p.implied ? ' <span style="color:var(--muted);font-size:11.5px;">(implied by later working)</span>' : ''}${p.reason ? ` <span style="color:var(--muted);font-size:11.5px;">— ${qzEsc(p.reason)}</span>` : ''}${(p.misspelt || []).map(m => ` <span style="color:var(--rose);font-size:11.5px;">(key term <strong>${qzEsc(m.term)}</strong> written as “${qzEsc(m.wrote)}”)</span>`).join('')}</td><td style="padding:3px 6px;text-align:center;font-weight:700;color:${p.got >= p.max ? 'var(--green)' : p.got > 0 ? '#b45309' : 'var(--rose)'};">${p.got}/${p.max}</td></tr>`).join('')}</tbody></table>${aiN && aiN.feedback ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;"><i class="fa-solid fa-robot"></i>&nbsp;${qzEsc(aiN.feedback)}</div>` : ''}` : `<div style="font-size:12px;color:#b45309;margin-top:6px;">No marking scheme for this question — mark it yourself.</div>`);
+      sugHtml = qzSuggestBlock(a, x, max);   // Claude's reading of photographed working: shown to the teacher, never saved as marks until confirmed
       const cur = draft[x.id] !== undefined ? draft[x.id] : (a.marks && a.marks[x.id] !== undefined ? a.marks[x.id] : (auto ? auto.marks : ''));
       markHtml = `<label style="display:block;margin-top:8px;font-size:12.5px;font-weight:700;">Marks (out of ${max}) <input type="number" min="0" max="${max}" step="0.5" value="${qzEsc(cur)}" style="width:90px;padding:6px 8px;margin-left:6px;" oninput="qzMarkInput('${qzEsc(x.id)}',this.value)">${auto ? `<span style="font-weight:400;color:var(--muted);margin-left:8px;">suggested ${aiN ? 'by Claude AI' : 'from the scheme'}: ${auto.marks}</span>` : ''}</label>`;
     }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="font-weight:700;">${n+1}. ${qzEsc(x.text)}${isStruct ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">[${max} mark${max===1?'':'s'}]</span>` : ''}</div>
       ${x.image ? `<img src="${qzEsc(x.image)}" alt="Diagram" style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px;margin-top:8px;background:#fff;">` : ''}
-      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}${keyHtml}${markHtml}</div>`;
+      <div style="font-size:13px;margin-top:6px;white-space:pre-wrap;">Answer: ${mineHtml}</div>${qzPhotoImgs(qzPhotosOf(a, x.id))}${keyHtml}${sugHtml}${markHtml}</div>`;
   }).join('');
   return `
     <div class="panel" style="overflow:hidden;">
@@ -11220,7 +11299,7 @@ function renderQuizMarking(){
       <div style="padding:14px 24px;">
         ${quizMsg ? `<div style="margin-bottom:10px;color:${quizMsg.type==='error'?'var(--rose)':'var(--green)'};font-size:13px;font-weight:600;">${qzEsc(quizMsg.text)}</div>` : ''}
         ${isStruct ? `<div style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">${a.autoMarked ? (a.aiMarked ? '<strong style="color:var(--green);">Marked by Claude AI</strong> against the marking scheme (different wording accepted, skipped steps credited).' : '<strong style="color:var(--green);">Marked automatically</strong> against the marking scheme.') + ' Check each answer, change any marks you disagree with, then press <strong>Save marks</strong> to confirm.' : 'Each answer is compared with its marking scheme; the marks box is filled with the suggestion. Adjust where needed, then press <strong>Save marks</strong>.'}</div>` : ''}
-        ${qzHasPhotos(a) ? `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;"><i class="fa-solid fa-camera" style="color:var(--blue);"></i>&nbsp;This learner attached photos of written working. Read them under each answer and give the marks yourself. <button type="button" class="link-btn danger" onclick="qzClearPhotos()"><i class="fa-solid fa-trash"></i>&nbsp;Delete the photos after marking</button><span style="color:var(--muted);"> (frees the school's data space)</span></div>` : ''}
+        ${qzHasPhotos(a) ? `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;"><i class="fa-solid fa-camera" style="color:var(--blue);"></i>&nbsp;This learner attached photos of written working. Read them under each answer and give the marks yourself.${qzSuggestNote(a)} <button type="button" class="link-btn danger" onclick="qzClearPhotos()"><i class="fa-solid fa-trash"></i>&nbsp;Delete the photos after marking</button><span style="color:var(--muted);"> (frees the school's data space)</span></div>` : ''}
         ${rows}
         ${isStruct ? `<button class="btn-primary auto" onclick="qzSaveMarking()"><i class="fa-solid fa-floppy-disk"></i>&nbsp;Save marks</button>${a.marked ? `<span style="margin-left:10px;font-size:12px;color:var(--muted);">Last marked ${qzEsc(a.markedOn || '')}${a.markedBy ? ' by ' + qzEsc(a.markedBy) : ''}</span>` : ''}` : ''}
       </div>
@@ -15714,6 +15793,8 @@ function saveSchoolProfile(){
     academicYear, timezone: tzSelect.value, logo: prev.logo || "", watermark: prev.watermark || "",
     shortName: document.getElementById('sp_shortName').value.trim(),
     address: document.getElementById('sp_address').value.trim(),
+    postalCode: (document.getElementById('sp_postalCode') ? document.getElementById('sp_postalCode').value.trim() : (prev.postalCode || "")),
+    town: (document.getElementById('sp_town') ? document.getElementById('sp_town').value.trim() : (prev.town || "")),
     phone: document.getElementById('sp_phone').value.trim(),
     whatsapp: (document.getElementById('sp_whatsapp') ? document.getElementById('sp_whatsapp').value.trim() : (prev.whatsapp || "")),
     email: document.getElementById('sp_email').value.trim(),
@@ -16515,7 +16596,7 @@ function renderNav(){
 function renderAppFooter(){
   const f = document.getElementById('appFooter'); if(!f) return;
   const school = isSalesAgentRole() ? 'MASMS Sales' : (currentSchool || 'MASMS');
-  f.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${dpEsc(school)}. All rights reserved.</span><span>${canAccessModule('legal') ? `<a onclick="go('legal')">Terms &amp; Privacy</a>` : ''}<a onclick="window.open('privacy.html','_blank')">Privacy</a><span style="margin-left:14px;opacity:.7;">MASMS v1.0</span></span>`;
+  f.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${dpEsc(school)}. All rights reserved.</span><span>${canAccessModule('legal') ? `<a onclick="go('legal')">Terms &amp; Privacy</a>` : ''}<span style="margin-left:14px;opacity:.7;">MASMS v1.0</span></span>`;
 }
 // hamburger: icons-only sidebar, remembered on this device
 function toggleNavCollapse(){
@@ -16789,7 +16870,7 @@ function renderTeacherHomeDashboard(){
 
   const viewModeBadge = previewingAsTeacher ? `
     <div class="dash2-topline-right" style="justify-content:flex-end;margin-bottom:14px;">
-      <div class="dash2-date" title="Click to preview as the other role" onclick="setViewMode(previewingAsTeacher?'admin':'teacher')"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
+      <div class="dash2-date" title="Click to switch back to Administrator" onclick="setViewMode(previewingAsTeacher?'admin':'teacher');try{window.scrollTo(0,0)}catch(e){}"><i class="fa-solid ${previewingAsTeacher?'fa-chalkboard-user':'fa-user-shield'}"></i>${previewingAsTeacher?'Teacher':'Administrator'}</div>
     </div>
   ` : '';
   // Opening one section hides the other section cards; a back button returns to the dashboard.
@@ -18423,7 +18504,7 @@ function renderAdminOverviewDashboard(showFee, showTopline, showFeatures){
   const recentCard = `<div class="hm-card" style="margin-bottom:14px;"><div class="hm-card-head"><h3>${recentTitle}</h3><button class="hm-link" onclick="${recentGo}">View All &rarr;</button></div>
     <div class="hm-table-wrap">${recentRows ? `<table class="hm-table" data-pdf-btn="1"><thead><tr>${recentHead.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${recentRows}</tbody></table>` : '<div class="hm-empty">Nothing to show yet.</div>'}</div></div>`;
 
-  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><span class="hm-link" style="cursor:default;"><i class="fa-solid fa-user-shield"></i>&nbsp;Administrator</span></div>` : '';
+  const roleChip = showTopline ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 10px;"><button type="button" class="hm-link" id="roleChipAdmin" style="cursor:pointer;" title="Click to switch to Teacher and open the teacher dashboard" aria-label="Administrator: click to switch to Teacher" onclick="setViewMode('teacher');try{window.scrollTo(0,0)}catch(e){}"><i class="fa-solid fa-user-shield"></i>&nbsp;Administrator</button></div>` : '';
   const hasMore = dCfg.events || dCfg.ann || showFee;
 
   return `
@@ -59517,6 +59598,12 @@ function renderSettingsProfileTab(){
           <label class="icon-field"><span>Postal Address&nbsp;<span class="req">*</span></span>
             <div class="icon-input"><i class="fa-solid fa-location-dot"></i><input id="sp_address" type="text" inputmode="numeric" pattern="[0-9]*" value="${profile.address||''}"></div>
           </label>
+          <label class="icon-field"><span>Postal Code</span>
+            <div class="icon-input"><i class="fa-solid fa-hashtag"></i><input id="sp_postalCode" type="text" inputmode="numeric" pattern="[0-9]*" value="${profile.postalCode||''}"></div>
+          </label>
+          <label class="icon-field"><span>Town</span>
+            <div class="icon-input"><i class="fa-solid fa-city"></i><input id="sp_town" type="text" oninput="nameOnly(this)" value="${profile.town||''}"></div>
+          </label>
           <label class="icon-field"><span>Website</span>
             <div class="icon-input"><i class="fa-solid fa-globe"></i><input id="sp_website" type="text" value="${profile.website||''}"></div>
           </label>
@@ -63829,12 +63916,14 @@ if(isLoggedIn){
    Android app, installed from an APK file:   asks GET /api/app-version and shows an "Update available" banner that opens the download link.
    Website / installed web app / live-URL app: the service worker is re-checked; when a new build has loaded the app saves and
                                               reloads into it by itself as soon as nobody is typing (no banner).
-   When it checks: shortly after start, every time the app comes back to the foreground (at most once an hour), and every 6 hours while open.
+   When it checks: shortly after start, every time the app comes back to the foreground, and every 5 minutes while open (website / live-URL app:
+   a tiny /version.json request compared with the build the page was loaded from); the Android Play / APK-file checks run at most hourly / every 6 hours.
    Failures (offline, server down) are silent and retried on the next trigger. "Later" hides a banner for 24 hours; a release
    below the server's minimum version cannot be dismissed. Data is saved to the device first, so nothing is lost by updating. */
 (function () {
   if (window.MASMS_UPDATE) return;
   var START_DELAY = 4000, MIN_GAP = 3600e3, EVERY = 6 * 3600e3, SNOOZE = 24 * 3600e3, KEY = 'masmsUpdateSnooze';
+  var WEB_GAP = 120e3, WEB_EVERY = 300e3;   // the web/live-site build check is a tiny request, so it runs often
   var lastCheck = 0, running = false, bannerEl = null, flexListener = false;
 
   function cap() { return window.Capacitor; }
@@ -63999,27 +64088,49 @@ if(isLoggedIn){
       applyWhenIdle();
     });
   }
+  // The live site publishes /version.json (its build id, never cached). If it differs from the build this page was loaded from, a newer
+  // version is live: ask the service worker to fetch it and apply it by itself when nobody is typing. This works with or without a
+  // service worker, and the tiny file means the check costs almost no data.
+  function checkVersion() {
+    if (typeof fetch !== 'function' || !window.MASMS_BUILD) return Promise.resolve(false);
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var t = ctl && setTimeout(function () { ctl.abort(); }, 8000);
+    return fetch('/version.json?t=' + now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (t) clearTimeout(t); return r.ok ? r.json() : null; })
+      .then(function (v) { return !!(v && v.build && v.build !== window.MASMS_BUILD); })
+      .catch(function () { if (t) clearTimeout(t); return false; });
+  }
   function checkWeb() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve();
-    armSW();
-    return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.update(); }).catch(function () {});
+    var hasSW = 'serviceWorker' in navigator;
+    if (hasSW) armSW();
+    return checkVersion().then(function (newer) {
+      var upd = hasSW ? navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.update(); }).catch(function () {}) : Promise.resolve();
+      return upd.then(function () { if (newer) applyWhenIdle(); });
+    });
   }
 
   // ---- scheduling ----
+  var lastWeb = 0;
+  function checkWebThrottled(force) {
+    if (!force && now() - lastWeb < WEB_GAP) return Promise.resolve();
+    lastWeb = now();
+    return Promise.resolve(checkWeb()).catch(function () {});
+  }
   function check(force) {
-    if (running || (!force && now() - lastCheck < MIN_GAP)) return Promise.resolve();
+    if (running || (!force && now() - lastCheck < (isNative() ? MIN_GAP : WEB_GAP))) return Promise.resolve();
     if (navigator.onLine === false) return Promise.resolve();
     running = true; lastCheck = now();
     var p;
-    try { p = isNative() ? checkAndroid() : checkWeb(); } catch (e) { p = Promise.resolve(); }
-    if (isNative()) checkWeb();   // live-URL Android app also has a service worker
+    try { p = isNative() ? checkAndroid() : checkWebThrottled(true); } catch (e) { p = Promise.resolve(); }
+    if (isNative()) checkWebThrottled(false);   // live-URL Android app is the website: it also checks the live build id
     return Promise.resolve(p).catch(function () {}).then(function () { running = false; });
   }
 
   window.MASMS_UPDATE = { check: function () { return check(true); }, version: 1 };
   armSW();
   setTimeout(function () { check(true); }, START_DELAY);
-  setInterval(function () { check(true); }, EVERY);
+  setInterval(function () { check(true); }, isNative() ? EVERY : WEB_EVERY);
+  if (isNative()) setInterval(function () { checkWebThrottled(true); }, WEB_EVERY);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) check(false); });
   window.addEventListener('online', function () { check(false); });
   // Android: "resume" fires when the app returns from the background (visibilitychange covers most devices, this is the safety net)
