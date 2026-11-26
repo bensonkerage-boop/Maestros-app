@@ -23,11 +23,10 @@ jobs:
       - run: npm run build:android
         env:
           API_BASE: ${{ vars.API_BASE }}
-          # The APK is built INSIDE the app (self-contained): the start-up wheel appears at once, with no wait for the network.
-          # It talks to API_BASE for sign-in and data, and changes to the app reach phones with a new APK.
-          # Set repository variable LIVE_UPDATES=1 to make the APK load the live site instead (updates with every deploy, but the
-          # start-up screen waits for the network before the wheel can show).
-          LIVE_URL: ${{ vars.LIVE_UPDATES == '1' && vars.API_BASE || '' }}
+          # ONLINE-FIRST (default): the APK is a thin shell that loads your live site (API_BASE), so every Vercel deploy reaches installed
+          # phones by itself with no new APK. With no signal it shows a local "waiting for connection" page and reconnects automatically.
+          # Set repository variable LIVE_UPDATES=0 to bundle the whole app inside the APK instead (works offline, updates only via a new APK).
+          LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}
       - name: Pre-download Gradle (tries gradle.org, then mirrors)
         run: |
           V=8.14.3

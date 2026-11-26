@@ -11,7 +11,12 @@ const RUNTIME = `(function(){
   if(!f) return;
   // Android app (Capacitor): no landing page at all, go straight to the sign-in card. window.MASMS_LANDING stays undefined, so the
   // sign-in card shows no Home/close buttons either.
-  try{var C0=window.Capacitor;if(C0&&C0.isNativePlatform&&C0.isNativePlatform()){f.parentNode.removeChild(f);return}}catch(e){}
+  // Detected two ways, so it can never depend on timing: the Capacitor bridge, or the "MASMSApp" tag the Android app adds to its user agent
+  // (capacitor.config.js android.appendUserAgent). The browser version has neither and keeps the landing page, its Log in button and Home arrow.
+  var isApp=false;
+  try{var C0=window.Capacitor;isApp=!!(C0&&C0.isNativePlatform&&C0.isNativePlatform())}catch(e){}
+  if(!isApp){try{isApp=/MASMSApp/.test(navigator.userAgent)}catch(e){}}
+  if(isApp){f.parentNode.removeChild(f);return}
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}
   function ls(){try{return window.localStorage}catch(e){return null}}

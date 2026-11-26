@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#152c58">
+<title>MASMS: waiting for connection</title>
+<style>
+  html,body{margin:0;height:100%;background:#152c58;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+  img{width:84px;height:84px;border-radius:20px}
+  h1{margin:0;font-size:20px}
+  p{margin:0;max-width:340px;font-size:14px;line-height:1.5;opacity:.88}
+  button{background:#f5b400;color:#152c58;border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:800}
+  .dot{width:10px;height:10px;border-radius:50%;background:#f5b400;animation:p 1.2s infinite ease-in-out}
+  @keyframes p{0%,100%{opacity:.25}50%{opacity:1}}
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="" onerror="this.style.display='none'">
+  <h1>No internet connection</h1>
+  <p>MASMS runs on your school's live server. Anything you already entered is saved on this phone and uploads by itself once you are back online.</p>
+  <div class="dot" aria-hidden="true"></div>
+  <p id="s">Reconnecting automatically…</p>
+  <button id="b" type="button">Try again now</button>
+</main>
+<script>
+(function () {
+  var LIVE = __LIVE_URL__, busy = false;
+  function go() { location.replace(LIVE); }
+  // A no-cors request resolves (opaque) when the server answers and rejects when the network is down.
+  function probe() {
+    if (busy) return; busy = true;
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    fetch(LIVE.replace(/\/$/, '') + '/version.json?t=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function () { clearTimeout(t); go(); }, function () { clearTimeout(t); busy = false; document.getElementById('s').textContent = 'Still offline. Retrying…'; });
+  }
+  document.getElementById('b').onclick = probe;
+  addEventListener('online', probe);
+  setInterval(probe, 5000);
+})();
+</script>
+</body>
+</html>

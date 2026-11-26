@@ -16,8 +16,8 @@ jobs:
       - run: npm run build:android
         env:
           API_BASE: ${{ vars.API_BASE }}
-          # Optional: set repository variable LIVE_UPDATES=1 to make the app load from your Vercel site (updates without Play Store releases)
-          LIVE_URL: ${{ vars.LIVE_UPDATES == '1' && vars.API_BASE || '' }}
+          # Online-first by default: the app loads your Vercel site, so deploys update it without Play Store releases. Set repository variable LIVE_UPDATES=0 to bundle the app inside instead.
+          LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}
       - name: Restore signing key
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/masms-upload.jks"
       - name: Pre-download Gradle (tries gradle.org, then mirrors)

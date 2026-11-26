@@ -9,8 +9,17 @@
   try{ token=localStorage.getItem(TOKEN_KEY); }catch(e){}
 
   function hash(s){ var h=5381,i=s.length; while(i) h=(h*33)^s.charCodeAt(--i); return String(h>>>0)+':'+s.length; }
+  // Large uploads (the school's whole data) are sent gzip-compressed when the browser can: several times fewer bytes on a mobile
+  // connection. The server inflates the body before its normal size check. Any failure falls back to the plain JSON upload.
+  function gzipText(str){
+    if(typeof CompressionStream!=='function'||typeof Response!=='function'||typeof Blob!=='function') return Promise.resolve(null);
+    try{ return new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer().then(function(b){ return b; },function(){ return null; }); }catch(e){ return Promise.resolve(null); }
+  }
   function api(method,path,body){
-    return fetch(API+path,{method:method,headers:Object.assign({'Content-Type':'application/json'},token?{Authorization:'Bearer '+token}:{}),body:body?JSON.stringify(body):undefined})
+    var headers=Object.assign({'Content-Type':'application/json'},token?{Authorization:'Bearer '+token}:{});
+    var text=body?JSON.stringify(body):undefined;
+    var prep=(text&&text.length>20000)?gzipText(text).then(function(z){ if(z&&z.byteLength<text.length*0.9){ headers['Content-Encoding']='gzip'; return z; } return text; }):Promise.resolve(text);
+    return prep.then(function(payload){ return fetch(API+path,{method:method,headers:headers,body:payload}); })
       .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ if(!r.ok){ var e=new Error(j.error||('HTTP '+r.status)); e.status=r.status; throw e; } return j; }); });
   }
   function apply(data){

@@ -234,3 +234,18 @@ describe('several schools on one server', () => {
     expect((await call('PUT', '/api/web-page', { content: { hero: {}, contacts: {}, gallery: [] } }, greenAdmin)).s).toBe(403);
   });
 });
+
+// Speed: the browser sends big uploads gzip-compressed (Content-Encoding: gzip); the server inflates them before its size check.
+describe('gzip-compressed upload', () => {
+  test('PUT /api/data accepts a gzip body and stores the same data', async () => {
+    const zlib = require('zlib');
+    const data = { schools: ['S'], currentSchool: 'S', schoolData: { S: { students: Array.from({ length: 400 }, (_, i) => ({ id: i, name: 'Learner ' + i, note: 'x'.repeat(50) })) } } };
+    const cur = await call('GET', '/api/data/version', null, admin);
+    const raw = JSON.stringify({ data, baseVersion: cur.j.version || 0 });
+    const gz = zlib.gzipSync(raw); expect(gz.length).toBeLessThan(raw.length / 3);
+    const r = await fetch(base + '/api/data', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', Authorization: 'Bearer ' + admin }, body: gz });
+    expect(r.status).toBe(200);
+    const get = await call('GET', '/api/data', null, admin);
+    expect(get.j.data.schoolData.S.students.length).toBe(400);
+  });
+});

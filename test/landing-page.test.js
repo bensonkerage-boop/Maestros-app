@@ -30,7 +30,7 @@ test('the landing page is for the web browser only: the Android app goes straigh
   expect(out).toContain('id="masms-landing"');
   const build = fs.readFileSync(path.join(root, 'scripts', 'build.js'), 'utf8'), land = fs.readFileSync(path.join(root, 'scripts', 'landing.js'), 'utf8');
   expect(build).toMatch(/if \(!androidBuild\) html = injectLanding/);   // the bundled Android build has no landing page
-  expect(land).toMatch(/isNativePlatform\(\)\)\{f\.parentNode\.removeChild\(f\);return\}/);   // a live-URL Android app drops it at run time
+  expect(land).toMatch(/isApp=!!\(C0&&C0\.isNativePlatform&&C0\.isNativePlatform\(\)\)/); expect(land).toMatch(/\/MASMSApp\/\.test\(navigator\.userAgent\)/); expect(land).toMatch(/if\(isApp\)\{f\.parentNode\.removeChild\(f\);return\}/);   // a live-URL Android app drops it at run time
 });
 test('every card can be edited from the Web Page tab and carries a true-blue View more link', () => {
   for (const k of ['hero1', 'hero2', 'academics', 'nemis', 'timetable', 'fees', 'portal', 'communication']) expect(page).toContain('data-card="' + k + '"');

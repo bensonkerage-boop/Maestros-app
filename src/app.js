@@ -851,7 +851,7 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // Static site (local/Node hosting). On Vercel, files in /public are served by the CDN instead.
 const pub = path.join(__dirname, '..', 'public');
-app.use(express.static(pub, { maxAge: '30d', immutable: true, setHeaders: (res, p) => { if (/\.html$|sw\.js$|manifest\.webmanifest$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
+app.use(express.static(pub, { maxAge: '30d', immutable: true, setHeaders: (res, p) => { if (/version\.json$/.test(p)) res.setHeader('Cache-Control', 'no-store'); else if (/\.html$|sw\.js$|manifest\.webmanifest$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
 
 app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Data too large for one upload (4MB limit)' });

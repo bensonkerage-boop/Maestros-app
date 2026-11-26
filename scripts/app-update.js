@@ -4,12 +4,14 @@
    Android app, installed from an APK file:   asks GET /api/app-version and shows an "Update available" banner that opens the download link.
    Website / installed web app / live-URL app: the service worker is re-checked; when a new build has loaded the app saves and
                                               reloads into it by itself as soon as nobody is typing (no banner).
-   When it checks: shortly after start, every time the app comes back to the foreground (at most once an hour), and every 6 hours while open.
+   When it checks: shortly after start, every time the app comes back to the foreground, and every 5 minutes while open (website / live-URL app:
+   a tiny /version.json request compared with the build the page was loaded from); the Android Play / APK-file checks run at most hourly / every 6 hours.
    Failures (offline, server down) are silent and retried on the next trigger. "Later" hides a banner for 24 hours; a release
    below the server's minimum version cannot be dismissed. Data is saved to the device first, so nothing is lost by updating. */
 (function () {
   if (window.MASMS_UPDATE) return;
   var START_DELAY = 4000, MIN_GAP = 3600e3, EVERY = 6 * 3600e3, SNOOZE = 24 * 3600e3, KEY = 'masmsUpdateSnooze';
+  var WEB_GAP = 120e3, WEB_EVERY = 300e3;   // the web/live-site build check is a tiny request, so it runs often
   var lastCheck = 0, running = false, bannerEl = null, flexListener = false;
 
   function cap() { return window.Capacitor; }
@@ -174,27 +176,49 @@
       applyWhenIdle();
     });
   }
+  // The live site publishes /version.json (its build id, never cached). If it differs from the build this page was loaded from, a newer
+  // version is live: ask the service worker to fetch it and apply it by itself when nobody is typing. This works with or without a
+  // service worker, and the tiny file means the check costs almost no data.
+  function checkVersion() {
+    if (typeof fetch !== 'function' || !window.MASMS_BUILD) return Promise.resolve(false);
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var t = ctl && setTimeout(function () { ctl.abort(); }, 8000);
+    return fetch('/version.json?t=' + now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (t) clearTimeout(t); return r.ok ? r.json() : null; })
+      .then(function (v) { return !!(v && v.build && v.build !== window.MASMS_BUILD); })
+      .catch(function () { if (t) clearTimeout(t); return false; });
+  }
   function checkWeb() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve();
-    armSW();
-    return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.update(); }).catch(function () {});
+    var hasSW = 'serviceWorker' in navigator;
+    if (hasSW) armSW();
+    return checkVersion().then(function (newer) {
+      var upd = hasSW ? navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.update(); }).catch(function () {}) : Promise.resolve();
+      return upd.then(function () { if (newer) applyWhenIdle(); });
+    });
   }
 
   // ---- scheduling ----
+  var lastWeb = 0;
+  function checkWebThrottled(force) {
+    if (!force && now() - lastWeb < WEB_GAP) return Promise.resolve();
+    lastWeb = now();
+    return Promise.resolve(checkWeb()).catch(function () {});
+  }
   function check(force) {
-    if (running || (!force && now() - lastCheck < MIN_GAP)) return Promise.resolve();
+    if (running || (!force && now() - lastCheck < (isNative() ? MIN_GAP : WEB_GAP))) return Promise.resolve();
     if (navigator.onLine === false) return Promise.resolve();
     running = true; lastCheck = now();
     var p;
-    try { p = isNative() ? checkAndroid() : checkWeb(); } catch (e) { p = Promise.resolve(); }
-    if (isNative()) checkWeb();   // live-URL Android app also has a service worker
+    try { p = isNative() ? checkAndroid() : checkWebThrottled(true); } catch (e) { p = Promise.resolve(); }
+    if (isNative()) checkWebThrottled(false);   // live-URL Android app is the website: it also checks the live build id
     return Promise.resolve(p).catch(function () {}).then(function () { running = false; });
   }
 
   window.MASMS_UPDATE = { check: function () { return check(true); }, version: 1 };
   armSW();
   setTimeout(function () { check(true); }, START_DELAY);
-  setInterval(function () { check(true); }, EVERY);
+  setInterval(function () { check(true); }, isNative() ? EVERY : WEB_EVERY);
+  if (isNative()) setInterval(function () { checkWebThrottled(true); }, WEB_EVERY);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) check(false); });
   window.addEventListener('online', function () { check(false); });
   // Android: "resume" fires when the app returns from the background (visibilitychange covers most devices, this is the safety net)

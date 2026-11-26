@@ -112,7 +112,6 @@ if (require.main !== module) return;
   cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
   if (!androidBuild) fs.writeFileSync(path.join(pub, 'landing.html'), landingHtml(root));   // landing page; its Log in link goes to /#app
   else fs.rmSync(path.join(pub, 'landing.html'), { force: true });
-  fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
   const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
   if (process.env.NATIVE_APP === '1' && !apiBase) throw new Error('Android build needs API_BASE (your site address, e.g. https://your-project.vercel.app). Without it the app has no server to sign in to. Set it as a repository variable (Settings > Secrets and variables > Actions > Variables).');
   // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.
@@ -122,6 +121,48 @@ if (require.main !== module) return;
     '<script>window.MASMS_API_BASE=' + JSON.stringify(apiBase) + ';window.MASMS_ONLINE_ONLY=true;</script>\n' +
     (native ? '' : '<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})</script>\n');
   { const i = html.indexOf('</head>'); html = html.slice(0, i) + head + html.slice(i); }
+
+  // 4) SPEED: move every big inline <script>/<style> out of index.html into content-hashed files under /assets/.
+  //    Before, the page was one 3.7MB document that every phone re-downloaded on every visit. Now index.html is a small shell that is
+  //    revalidated each time (so a new deploy is seen at once) while the heavy code is fetched once and then served from the browser /
+  //    service-worker cache (vercel.json: /assets/* is immutable). Execution order is unchanged: external classic scripts run in
+  //    document order exactly like the inline ones did, and top-level declarations stay global.
+  const BIG = 20000, shell = [];
+  const putAsset = (prefix, ext, text) => {
+    const buf = Buffer.from(text, 'utf8');
+    const name = 'assets/' + prefix + '-' + crypto.createHash('md5').update(buf).digest('hex').slice(0, 10) + '.' + ext;
+    fs.mkdirSync(path.join(pub, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(pub, name), buf);
+    shell.push('/' + name);
+    return '/' + name;
+  };
+  let nScripts = 0, nStyles = 0;
+  html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/g, (m, attrs, body) => {
+    if (body.length < BIG || /\bsrc\s*=/.test(attrs) || /\btype\s*=\s*["']?(?!text\/javascript|application\/javascript)/i.test(attrs)) return m;
+    nScripts++;
+    return '<script' + attrs + ' src="' + putAsset('js', 'js', body) + '"></script>';
+  });
+  html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/g, (m, attrs, body) => {
+    if (body.length < BIG || /\bmedia\s*=|\bid\s*=/.test(attrs) || /url\(\s*(?!['"]?(?:data:|https?:|#|\/))/.test(body)) return m;   // keep ones whose relative url() would resolve differently from /assets/
+    nStyles++;
+    return '<link rel="stylesheet" href="' + putAsset('css', 'css', body) + '">';
+  });
+
+  // 5) Build id = hash of everything that ships in the page, so an unchanged redeploy never triggers a reload on phones and a changed one always does.
+  const assetsDir = path.join(pub, 'assets');
+  fs.mkdirSync(assetsDir, { recursive: true });
+  const idHash = crypto.createHash('md5').update(html);
+  for (const f of fs.readdirSync(assetsDir).sort()) idHash.update(f).update(fs.readFileSync(path.join(assetsDir, f)));
+  const buildId = idHash.digest('hex').slice(0, 12);
+  { const i = html.indexOf('<script>window.MASMS_API_BASE='); html = html.slice(0, i) + '<script>window.MASMS_BUILD="' + buildId + '";</script>\n' + html.slice(i); }
   fs.writeFileSync(path.join(pub, 'index.html'), html);
-  console.log(`index.html ${(before / 1048576).toFixed(2)}MB -> ${(Buffer.byteLength(html) / 1048576).toFixed(2)}MB; ${seen.size} images extracted`);
+  fs.writeFileSync(path.join(pub, 'version.json'), JSON.stringify({ build: buildId, builtAt: new Date().toISOString() }));
+
+  // 6) Service worker and the offline page (also the Android app's fallback when the live site cannot be reached)
+  const liveBase = (process.env.LIVE_URL || apiBase || '').replace(/\/$/, '');
+  const precache = ['/', '/offline.html', '/manifest.webmanifest', '/icons/icon-192.png', '/vendor/fa/all.min.css', '/vendor/fonts.css', '/vendor/fa/webfonts/fa-solid-900.woff2']
+    .concat(shell, [...html.matchAll(/src="(\/assets\/[^"]+)"/g)].map(m => m[1])).filter((u, i, a) => a.indexOf(u) === i);
+  fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', buildId).replace('__PRECACHE__', JSON.stringify(precache)));
+  fs.writeFileSync(path.join(pub, 'offline.html'), fs.readFileSync(path.join(root, 'pwa', 'offline.html'), 'utf8').replace('__LIVE_URL__', JSON.stringify(liveBase || '/')));
+  console.log(`index.html ${(before / 1048576).toFixed(2)}MB -> ${(Buffer.byteLength(html) / 1024).toFixed(0)}KB shell + ${nScripts} scripts + ${nStyles} styles in /assets (build ${buildId}); ${seen.size} images extracted`);
 })().catch(e => { console.error(e); process.exit(1); });
