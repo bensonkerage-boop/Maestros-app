@@ -16,6 +16,8 @@ const RUNTIME = `(function(){
   var isApp=false;
   try{var C0=window.Capacitor;isApp=!!(C0&&C0.isNativePlatform&&C0.isNativePlatform())}catch(e){}
   if(!isApp){try{isApp=/MASMSApp/.test(navigator.userAgent)}catch(e){}}
+  // Browser-installed app (Chrome/Edge "Install app" / "Add to Home screen"): it runs in its own window (display-mode standalone, iOS navigator.standalone), so it behaves like the APK: no landing page, straight to sign-in.
+  if(!isApp){try{isApp=!!(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: minimal-ui)').matches))||navigator.standalone===true||/android-app:\/\//.test(document.referrer)}catch(e){}}
   if(isApp){f.parentNode.removeChild(f);return}
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}
@@ -92,13 +94,24 @@ function heroPhoto(base) {
   }
   return '';
 }
+// Address of the APK the GitHub workflow publishes (releases/download/android-latest/MASMS.apk). Order: APK_URL variable, "apkUrl" in
+// server.config.json, then the GitHub repository this build came from (Vercel: VERCEL_GIT_REPO_OWNER/SLUG, Actions: GITHUB_REPOSITORY).
+// Empty when none is known: the landing page then shows no download button.
+function apkUrl(base) {
+  let cfg = ''; try { cfg = String(JSON.parse(fs.readFileSync(path.join(base, 'server.config.json'), 'utf8')).apkUrl || ''); } catch (e) {}
+  const e = process.env;
+  const repo = e.GITHUB_REPOSITORY || (e.VERCEL_GIT_REPO_OWNER && e.VERCEL_GIT_REPO_SLUG ? e.VERCEL_GIT_REPO_OWNER + '/' + e.VERCEL_GIT_REPO_SLUG : '');
+  const u = (e.APK_URL || cfg || (repo ? 'https://github.com/' + repo + '/releases/download/android-latest/MASMS.apk' : '')).trim();
+  return /^https:\/\//.test(u) ? u : '';
+}
 // landing page HTML with the gallery photos filled in (also written to public/landing.html by build.js)
 function landingHtml(root) {
   const base = root || path.join(__dirname, '..');
   const html = fs.readFileSync(path.join(base, 'pwa', 'landing.html'), 'utf8');
   return html
     .replace('/*__GALLERY__*/[]', () => JSON.stringify(galleryItems(base)).replace(/<\//g, '<\\/'))
-    .replace('/*__HERO__*/""', () => JSON.stringify(heroPhoto(base)));
+    .replace('/*__HERO__*/""', () => JSON.stringify(heroPhoto(base)))
+    .replace('/*__APK_URL__*/""', () => JSON.stringify(apkUrl(base)));
 }
 // JSON string safe to sit inside an inline <script>
 const js = s => JSON.stringify(s).replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--').replace(/[\u2028\u2029]/g, c => '\\u' + c.charCodeAt(0).toString(16));

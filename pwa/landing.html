@@ -97,6 +97,7 @@
                     <a href="#faq" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">FAQ</a>
                     <a href="#contacts" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Contacts</a>
                     <a href="#" onclick="openDemoShow();return false" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Demo</a>
+                    <a data-apk hidden href="#" download style="display:none;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:2px solid #152c58;color:#152c58;font-weight:600;font-size:14px;text-decoration:none">Get the Android app</a>
                     <button onclick="openLoginModal()" class="ml-1 px-5 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark text-white font-semibold text-sm shadow-sm transition-all active:scale-95">
                         Log in
                     </button>
@@ -105,6 +106,7 @@
                 <!-- Android Mobile Compact Action Pill -->
                 <div class="flex items-center gap-2 md:hidden">
                     <button type="button" onclick="openDemoShow()" class="h-9 px-4 rounded-full bg-slate-100 text-slate-700 text-xs font-bold tracking-wide">Demo</button>
+                    <a data-apk hidden href="#" download style="display:none;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:2px solid #152c58;color:#152c58;font-weight:700;font-size:12px;text-decoration:none">Get app</a>
                     <button onclick="openLoginModal()" class="h-9 px-4 rounded-full bg-royalBlue active:bg-royalBlueDark text-white text-xs font-bold tracking-wide shadow-xs flex items-center gap-1.5 transition-transform active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -809,6 +811,15 @@
             location.href = (location.protocol === 'file:') ? 'index.html#app' : '/#app';
         }
         function closeLoginModal() {}
+
+        // "Get the Android app": links to the same APK the GitHub release publishes (build.js fills in the address; no address = no button).
+        // Shown on Android phones only, and not inside the installed app itself.
+        (function () {
+            var url = /*__APK_URL__*/"";
+            if (!url || !/Android/i.test(navigator.userAgent) || /MASMSApp/.test(navigator.userAgent)) return;
+            var links = document.querySelectorAll('a[data-apk]');
+            for (var i = 0; i < links.length; i++) { links[i].href = url; links[i].hidden = false; links[i].style.display = 'inline-flex'; }
+        })();
 
         function switchRole(key) {
             const r = roles[key];
