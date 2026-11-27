@@ -112,13 +112,19 @@ if (require.main !== module) return;
   cp(path.join(root, 'pwa', 'privacy.html'), path.join(pub, 'privacy.html'));   // public privacy policy (Play Store requires a URL)
   if (!androidBuild) fs.writeFileSync(path.join(pub, 'landing.html'), landingHtml(root));   // landing page; its Log in link goes to /#app
   else fs.rmSync(path.join(pub, 'landing.html'), { force: true });
-  const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
-  if (process.env.NATIVE_APP === '1' && !apiBase) throw new Error('Android build needs API_BASE (your site address, e.g. https://your-project.vercel.app). Without it the app has no server to sign in to. Set it as a repository variable (Settings > Secrets and variables > Actions > Variables).');
+  // The server address is set once in server.config.json ({"apiBase":"https://your-site.vercel.app"}) and every build (web, Android) uses it;
+  // the API_BASE environment variable, when present, wins. This is how the Android app is linked to the server with no sign-in step.
+  let cfgBase = ''; try{ cfgBase = String(JSON.parse(fs.readFileSync(path.join(root, 'server.config.json'), 'utf8')).apiBase || ''); }catch(e){}
+  const apiBase = (process.env.API_BASE || cfgBase).trim().replace(/\/$/, '');
+  // online-first Android app (default): it loads the live site, unless LIVE_UPDATES=0
+  const LIVE = process.env.LIVE_URL || (process.env.NATIVE_APP === '1' && process.env.LIVE_UPDATES !== '0' ? apiBase : '');
+  if (process.env.NATIVE_APP === '1' && !apiBase) throw new Error('Android build needs the server address: set "apiBase" in server.config.json or the API_BASE variable (your site address, e.g. https://your-project.vercel.app). Without it the app has no server to sign in to. Set it as a repository variable (Settings > Secrets and variables > Actions > Variables).');
   // Bundled Android app: no service worker. Live-URL Android app (LIVE_URL set): it is the website, so keep the service worker for offline use.
-  const native = process.env.NATIVE_APP === '1' && !process.env.LIVE_URL;
+  const native = process.env.NATIVE_APP === '1' && !LIVE;
   const head = '<link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/fa/webfonts/fa-solid-900.woff2">\n' +
     '<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#152c58">\n<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">\n' +
     '<script>window.MASMS_API_BASE=' + JSON.stringify(apiBase) + ';window.MASMS_ONLINE_ONLY=true;</script>\n' +
+    '<script>' + fs.readFileSync(path.join(__dirname, 'server-link.js'), 'utf8') + '</script>\n' +
     (native ? '' : '<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})</script>\n');
   { const i = html.indexOf('</head>'); html = html.slice(0, i) + head + html.slice(i); }
 
@@ -159,7 +165,7 @@ if (require.main !== module) return;
   fs.writeFileSync(path.join(pub, 'version.json'), JSON.stringify({ build: buildId, builtAt: new Date().toISOString() }));
 
   // 6) Service worker and the offline page (also the Android app's fallback when the live site cannot be reached)
-  const liveBase = (process.env.LIVE_URL || apiBase || '').replace(/\/$/, '');
+  const liveBase = (LIVE || apiBase || '').replace(/\/$/, '');
   const precache = ['/', '/offline.html', '/manifest.webmanifest', '/icons/icon-192.png', '/vendor/fa/all.min.css', '/vendor/fonts.css', '/vendor/fa/webfonts/fa-solid-900.woff2']
     .concat(shell, [...html.matchAll(/src="(\/assets\/[^"]+)"/g)].map(m => m[1])).filter((u, i, a) => a.indexOf(u) === i);
   fs.writeFileSync(path.join(pub, 'sw.js'), fs.readFileSync(path.join(root, 'pwa', 'sw.js'), 'utf8').replace('__BUILD_ID__', buildId).replace('__PRECACHE__', JSON.stringify(precache)));

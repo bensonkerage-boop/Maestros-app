@@ -6,6 +6,7 @@ const compression = require('compression');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { saveDirectory, getDirectory } = require('./directory');
+const saveDir = async (...a) => { forget(); return saveDirectory(...a); };   // a saved directory may carry a new registry list
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { findStaffLogin } = require('./staff');
@@ -49,13 +50,45 @@ const sign = u => signClaims({ sub: u.id, username: u.username, role: u.role, te
 // exists and that its school has not been suspended. Removing a user or suspending a school therefore bites within seconds.
 const live = new Map();
 const LIVE_MS = 15000;
-const forget = () => live.clear();
+const forget = () => { live.clear(); registryCache = null; };
+// The School Registry (the System Developer's list of registered schools, each Active or Inactive) lives in the platform owner's working copy.
+// Its small sign-in directory carries that list, so it is read from there (cheap) rather than from the big snapshot. Returns Map(name -> status),
+// or null when the list is not on the server yet (then nothing is judged against it, and nothing can be deleted for "not being registered").
+let registryCache = null;
+async function registry(s) {
+  if (registryCache && Date.now() - registryCache.at < LIVE_MS) return registryCache.v;
+  const names = new Map(); let found = false;
+  const owners = new Set((await s.listUsers()).filter(u => u.platform).map(u => u.tenant));
+  for (const code of owners) {
+    const d = await getDirectory(s, code).catch(() => null);
+    const list = d && d.platform && Array.isArray(d.platform.sdSchools) ? d.platform.sdSchools : null;
+    if (!list || !list.length) continue;   // an empty or missing list means the registry has not been set up here, never "nobody is registered" (that would lock every school out)
+    found = true;
+    for (const r of list) if (r && typeof r.name === 'string' && r.name.trim()) names.set(r.name.trim(), r.status === 'Inactive' ? 'Inactive' : 'Active');
+  }
+  const v = found ? names : null;
+  registryCache = { v, at: Date.now() };
+  return v;
+}
+// Why a school may not be used right now: 'suspended' (switched off on the server), 'inactive' (marked Inactive in the registry) or
+// 'unregistered' (not in the registry at all), else null. Only a registered, Active, not-suspended school lets anyone in. The registry
+// can only be judged once it has reached the server; until then nothing is blocked for being absent from it.
+async function schoolBlock(s, t) {
+  if (!t) return null;
+  if (t.active === false) return 'suspended';
+  const reg = t.code === DEFAULT_TENANT ? null : await registry(s);
+  if (!reg) return null;
+  const st = reg.get(t.name);
+  return st === undefined ? 'unregistered' : st === 'Inactive' ? 'inactive' : null;
+}
+const openTenants = async s => { const out = []; for (const t of await s.listTenants()) if (!(await schoolBlock(s, t))) out.push(t); return out; };
+const BLOCK_MSG = { suspended: 'This school account is suspended. Contact the platform administrator.', inactive: 'This school is marked Inactive on the MASMS server. Contact the platform administrator.', unregistered: 'This school is not registered on the MASMS server. Contact the platform administrator.' };
 async function stillValid(claims) {
   if (claims.staff) {   // a school-scoped token from the staff sign-in (POST /api/staff/login): there is no cloud account behind it, only the school
     const key = 'staff|' + claims.tenant, hit = live.get(key);
     if (hit && Date.now() - hit.at < LIVE_MS) return hit.v;
-    const t = await (await getStore()).getTenant(claims.tenant);
-    const v = !t ? 'gone' : t.active === false ? 'suspended' : 'ok';
+    const s0 = await getStore(), t = await s0.getTenant(claims.tenant);
+    const v = !t ? 'gone' : (await schoolBlock(s0, t)) || 'ok';
     live.set(key, { v, at: Date.now() });
     return v;
   }
@@ -67,7 +100,7 @@ async function stillValid(claims) {
   if (!u) v = 'gone';
   else {
     const t = await s.getTenant(tenantOf(u));
-    if (t && t.active === false && !platformOf(u)) v = 'suspended';
+    if (!platformOf(u)) v = (await schoolBlock(s, t)) || 'ok';
   }
   live.set(key, { v, at: Date.now() });
   return v;
@@ -80,7 +113,7 @@ const auth = async (req, res, next) => {
   try {
     const v = await stillValid(claims);
     if (v === 'gone') return res.status(401).json({ error: 'Not signed in' });
-    if (v === 'suspended') return res.status(403).json({ error: 'This school account is suspended. Contact the platform administrator.' });
+    if (BLOCK_MSG[v]) return res.status(403).json({ error: BLOCK_MSG[v] });
   } catch (e) { return next(e); }
   req.user = { ...claims, tenant: claims.tenant || DEFAULT_TENANT, platform: !!claims.platform };
   next();
@@ -141,7 +174,8 @@ app.post('/api/auth/login', loginLimiter, wrap(async (req, res) => {
   const ok = await bcrypt.compare(String(password || ''), u ? u.passwordHash : '$2a$11$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidi');
   if (!u || !ok) return res.status(401).json({ error: 'Invalid username or password' });
   const t = await s.getTenant(tenantOf(u));
-  if (t && t.active === false && !platformOf(u)) return res.status(403).json({ error: 'This school account is suspended. Contact the platform administrator.' });
+  const blk = platformOf(u) ? null : await schoolBlock(s, t);
+  if (blk) return res.status(403).json({ error: BLOCK_MSG[blk] });
   res.json({ token: sign(u), user: await userInfo(u, s) });
 }));
 
@@ -195,9 +229,12 @@ app.put('/api/users/:username/password', auth, adminOnly, wrap(async (req, res) 
 // ---- schools: platform owner only ------------------------------------------------------------------------------------
 app.get('/api/schools', auth, platformOnly, wrap(async (req, res) => {
   const s = await getStore(), users = await s.listUsers(), out = [];
+  const reg = await registry(s), owners = new Set(users.filter(u => u.platform).map(u => u.tenant));
   for (const t of await s.listTenants()) {
     const m = await s.getSnapshotMeta(snapKey(t.code));
-    out.push({ code: t.code, name: t.name, active: t.active, users: users.filter(u => u.tenant === t.code).length, lastSaved: m ? m.updatedAt : null, lastSavedBy: m ? m.updatedBy : null });
+    const registered = reg ? reg.has(t.name) : null, regStatus = registered ? reg.get(t.name) : null;
+    const status = t.active === false ? 'Suspended' : registered === false || regStatus === 'Inactive' ? 'Inactive' : 'Active';   // not in the registry = cannot sign in = shown Inactive
+    out.push({ code: t.code, name: t.name, active: t.active, registered, status, deletable: registered === false && t.code !== DEFAULT_TENANT && !owners.has(t.code) && t.code !== req.user.tenant, users: users.filter(u => u.tenant === t.code).length, lastSaved: m ? m.updatedAt : null, lastSavedBy: m ? m.updatedBy : null });
   }
   res.set('Cache-Control', 'no-store');
   res.json({ schools: out });
@@ -232,7 +269,7 @@ async function linkSchool(s, nm, seed, by) {
   const data = { _meta: { app: 'MASMS', version: 2 }, schools: [nm], currentSchool: nm, schoolProfiles: obj(sd.schoolProfile) ? { [nm]: sd.schoolProfile } : {},
     schoolData: { [nm]: obj(sd.schoolData) || {} }, platform: { sdSchools: obj(sd.sdRecord) ? [sd.sdRecord] : [] } };
   await s.saveSnapshot(snapKey(c), data, 0, 'linked by ' + by);
-  await saveDirectory(s, c, data).catch(() => {});
+  await saveDir(s, c, data).catch(() => {});
   forget();
   return { code: c, created: true };
 }
@@ -300,7 +337,7 @@ app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
   if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password.trim()) return res.status(400).json({ error: 'Enter your username and password.' });
   const s = await getStore(), found = [];
   const dirOnly = new Set();   // schools that matched only through their sign-in directory (no usable saved data on the server)
-  for (const t of (await s.listTenants()).filter(x => x.active !== false)) {
+  for (const t of await openTenants(s)) {
     const src = await signInSources(s, t), hit = src.find(x => findStaffLogin(x.data, username, password));
     if (hit) { found.push(t); if (!hit.snap) dirOnly.add(t.code); }
   }
@@ -313,6 +350,82 @@ app.post('/api/staff/login', staffLimiter, wrap(async (req, res) => {
   const t = found[0], uname = 'staff@' + t.code;
   res.json({ token: signClaims({ sub: 'staff:' + t.code, username: uname, role: 'staff', tenant: t.code, platform: false, staff: true }),
     user: { username: uname, role: 'staff', tenant: t.code, tenantName: t.name, platform: false }, dataOnServer: !dirOnly.has(t.code) });
+}));
+// System Developer device link with no cloud sign-in: the System Developer types the normal app sign-in and this device is connected to the
+// platform account by itself. The server never trusts the browser (the app's own copy of these details is public): it checks them against
+// SYSDEV_USERNAME + SYSDEV_PASSWORD_HASH (bcrypt) or SYSDEV_PASSWORD, set on the server. On a brand-new server with no accounts yet, the
+// first such sign-in also creates the platform owner account. Without that setting the route says so and nothing is connected.
+const sysdevLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: Number(process.env.SYSDEV_LOGIN_RATE_LIMIT) || 10, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts, try again later' } });
+const safeEq = (a, b) => { const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest(); return crypto.timingSafeEqual(x, y); };
+app.post('/api/sysdev/connect', sysdevLimiter, wrap(async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password) return res.status(400).json({ error: 'Enter your username and password.' });
+  const s = await getStore(), first = (await s.countUsers()) === 0;
+  const cfgUser = (process.env.SYSDEV_USERNAME || '').trim(), cfgHash = process.env.SYSDEV_PASSWORD_HASH || '', cfgPlain = process.env.SYSDEV_PASSWORD || '';
+  let ok = false;
+  if (cfgUser && (cfgHash || cfgPlain)) {
+    const userOk = safeEq(username.trim().toLowerCase(), cfgUser.toLowerCase());
+    const passOk = cfgHash ? await bcrypt.compare(password, cfgHash) : safeEq(password, cfgPlain);
+    ok = userOk && passOk;
+  } else if (first) {
+    // nothing configured and nobody registered yet: the first sign-in on a new server becomes the platform owner (same as the cloud dialog's first-time setup)
+    ok = password.length >= 8 && USERNAME_OK.test(username.trim().toLowerCase());
+  } else {
+    return res.status(501).json({ code: 'sysdev_not_configured', error: 'Automatic System Developer connection is not set up on the server (set SYSDEV_USERNAME and SYSDEV_PASSWORD_HASH).' });
+  }
+  if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
+  const uname = username.trim().toLowerCase();
+  let u = await s.findUser(uname);
+  if (u && !platformOf(u)) return res.status(409).json({ error: 'That username belongs to a school account, not the platform owner.' });
+  if (!u) {
+    if (first) await s.createTenant({ code: DEFAULT_TENANT, name: 'Main school' });
+    u = await s.createUser({ username: uname, passwordHash: await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 11), role: 'admin', tenant: DEFAULT_TENANT, platform: true });
+  }
+  res.json({ token: sign(u), user: await userInfo(u, s) });
+}));
+// Academic term calendar: set once by the System Developer (platform owner) and read by every school, so the current term advances
+// automatically everywhere. { "2026": { "Term 1": { start, end }, ... } }
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+function cleanTerms(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  const out = {};
+  for (const [y, terms] of Object.entries(t)) {
+    if (!/^\d{4}$/.test(y) || !terms || typeof terms !== 'object') return null;
+    out[y] = {};
+    for (const k of ['Term 1', 'Term 2', 'Term 3']) {
+      const r = terms[k]; if (!r) continue;
+      const st = typeof r.start === 'string' ? r.start : '', en = typeof r.end === 'string' ? r.end : '';
+      if ((st && !ISO_DAY.test(st)) || (en && !ISO_DAY.test(en)) || (st && en && en < st)) return null;
+      out[y][k] = { start: st, end: en };
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+app.get('/api/platform/terms', auth, wrap(async (req, res) => {
+  const d = await (await getStore()).getTx('platform:terms');
+  res.json({ termDates: (d && d.termDates) || null, updatedAt: (d && d.updatedAt) || null });
+}));
+app.put('/api/platform/terms', auth, platformOnly, wrap(async (req, res) => {
+  const termDates = cleanTerms((req.body || {}).termDates);
+  if (!termDates) return res.status(400).json({ error: 'Term dates are not valid (use yyyy-mm-dd, and an end date on or after the start date).' });
+  const rec = { termDates, updatedAt: new Date().toISOString(), updatedBy: req.user.username };
+  await (await getStore()).saveTx('platform:terms', rec);
+  res.json(rec);
+}));
+// Removes a school space that is NOT in the registry (a leftover or a mistake): its users, saved data and sign-in directory. A registered school
+// is never deleted here (remove it from the registry or suspend it instead), and nothing is deleted while the registry cannot be read.
+app.delete('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
+  const s = await getStore(), code = String(req.params.code).toLowerCase();
+  const t = await s.getTenant(code);
+  if (!t) return res.status(404).json({ error: 'School not found' });
+  if (code === DEFAULT_TENANT || code === req.user.tenant || (await s.listUsers(code)).some(u => u.platform)) return res.status(400).json({ error: 'This is the System Developer\'s own space and cannot be deleted' });
+  const reg = await registry(s);
+  if (!reg) return res.status(409).json({ error: 'The list of registered schools is not on the server yet. Open the System Developer app online so it syncs, then try again.' });
+  if (reg.has(t.name)) return res.status(409).json({ error: 'This school is in the registered list, so it cannot be deleted here. Suspend it instead, or remove it from the registry first.' });
+  const users = await s.deleteUsersOfTenant(code);
+  await s.deleteSnapshot(snapKey(code)); await s.deleteTx('dir:' + code);
+  await s.deleteTenant(code); forget();
+  res.json({ ok: true, deleted: { code, name: t.name, users } });
 }));
 app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
   const s = await getStore(), code = String(req.params.code).toLowerCase(), patch = {};
@@ -331,7 +444,7 @@ app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
 // the sign-in details (small) here; the server also refreshes them itself on every full save and when a school is linked.
 app.put('/api/directory', auth, wrap(async (req, res) => {
   const { data } = req.body || {};
-  if (!(await saveDirectory(await getStore(), req.user.tenant, data))) return res.status(400).json({ error: 'Body must be { data: { schoolData } }' });
+  if (!(await saveDir(await getStore(), req.user.tenant, data))) return res.status(400).json({ error: 'Body must be { data: { schoolData } }' });
   res.json({ ok: true });
 }));
 // What to look in when someone signs in: the school's saved data when it has one, otherwise its sign-in directory.
@@ -363,14 +476,14 @@ app.put('/api/data', auth, wrap(async (req, res) => {
     return res.status(400).json({ error: 'Body must be { data: <MASMS backup object>, baseVersion }' });
   const st = await getStore(), key = snapKey(req.user.tenant), base = Number(baseVersion) || 0;
   const r = await st.saveSnapshot(key, data, base, req.user.username);
-  if (r.ok) { await saveDirectory(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r.version, updatedAt: r.updatedAt }); }
+  if (r.ok) { await saveDir(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r.version, updatedAt: r.updatedAt }); }
   // Learners saving quiz attempts move the version too. If every save since this device last synced came from learners,
   // keep this device's changes AND the learners' attempts instead of making the teacher choose between them.
   const cur = base > 0 ? await st.getSnapshot(key) : null;
   if (cur && typeof cur.staffVersion === 'number' && cur.staffVersion <= base && cur.version > base) {
     mergeAttempts(data, cur.data);
     const r2 = await st.saveSnapshot(key, data, cur.version, req.user.username);
-    if (r2.ok) { await saveDirectory(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r2.version, updatedAt: r2.updatedAt, merged: true }); }
+    if (r2.ok) { await saveDir(st, req.user.tenant, data).catch(() => {}); return res.json({ version: r2.version, updatedAt: r2.updatedAt, merged: true }); }
   }
   return res.status(409).json({ error: 'Data changed elsewhere — reload before saving' });
 }));
@@ -581,7 +694,7 @@ const portalAuth = async (req, res, next) => {
   let c;
   try { c = jwt.verify(bearer(req), SECRET); } catch { return res.status(401).json({ error: 'Not signed in' }); }
   if (!c.portal || !c.adm) return res.status(401).json({ error: 'Not signed in' });
-  try { const t = await (await getStore()).getTenant(c.tenant); if (t && t.active === false) return res.status(403).json({ error: 'This school account is suspended.' }); } catch (e) { return next(e); }
+  try { const s0 = await getStore(), t = await s0.getTenant(c.tenant), blk = await schoolBlock(s0, t); if (blk) return res.status(403).json({ error: BLOCK_MSG[blk] }); } catch (e) { return next(e); }
   req.portal = c; next();
 };
 
@@ -593,7 +706,7 @@ app.post('/api/portal/login', portalLimiter, wrap(async (req, res) => {
   if (!raw || !pass || raw.length > 80 || pass.length > 80) return res.status(401).json({ error: 'Incorrect username or password.' });
   // "4501@schoolcode" picks the school when the same admission number exists in more than one school
   const at = raw.indexOf('@'), userRaw = at > 0 ? raw.slice(0, at) : raw, hint = at > 0 ? slug(raw.slice(at + 1)) : '';
-  let tenants = (await s.listTenants()).filter(t => t.active !== false);
+  let tenants = await openTenants(s);
   if (hint) { const m = tenants.filter(t => slug(t.code) === hint || slug(t.name) === hint || slug(t.name).replace(/-?(school|schools)$/, '') === hint); if (m.length) tenants = m; }
   const hits = [];
   for (const t of tenants) {
@@ -643,7 +756,7 @@ app.post('/api/portal/password', portalAuth, portalLimiter, wrap(async (req, res
   const dir = await getDirectory(s, tenant).catch(() => null);
   if (dir) {
     const dst = apply(dir);
-    if (dst) { if (!done) { const bad = portalPasswordProblems(pw, dst, who); if (bad.length) return res.status(400).json({ error: 'Password needs: ' + bad.join('; ') + '.' }); } await saveDirectory(s, tenant, dir); done = true; }
+    if (dst) { if (!done) { const bad = portalPasswordProblems(pw, dst, who); if (bad.length) return res.status(400).json({ error: 'Password needs: ' + bad.join('; ') + '.' }); } await saveDir(s, tenant, dir); done = true; }
   }
   if (!done) return res.status(409).json({ error: 'Busy, try again' });
   res.json({ ok: true });
@@ -824,7 +937,7 @@ function cleanWebPage(c) {
   for (const g of (Array.isArray(c.gallery) ? c.gallery : []).slice(0, 24)) {
     const src = typeof g.src === 'string' ? g.src : '';
     if (!/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(src) || src.length > 700 * 1024) continue;
-    gallery.push({ id: WP_STR(g.id, 40), title: WP_STR(g.title, 80), caption: WP_STR(g.caption, 240), src });
+    gallery.push({ id: WP_STR(g.id, 40), title: WP_STR(g.title, 80), caption: WP_STR(g.caption, 240), link: WP_LINK(g.link), src });
   }
   return {
     hero: { heading: WP_STR(hero.heading, 80), text: WP_STR(hero.text, 600) },

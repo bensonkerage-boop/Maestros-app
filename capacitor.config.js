@@ -2,7 +2,8 @@
 // so every Vercel deploy updates installed apps with no new Play Store release.
 // Leave it unset to bundle the app inside the APK (works fully offline, updates only via Play Store).
 // With LIVE_URL set, offline.html (bundled in the APK) is shown when the site cannot be reached and reconnects by itself.
-const liveUrl = (process.env.LIVE_URL || '').replace(/\/$/, '');
+let cfgBase = ''; try{ cfgBase = String(require('./server.config.json').apiBase || ''); }catch(e){}
+const liveUrl = (process.env.LIVE_URL || (process.env.LIVE_UPDATES === '0' ? '' : cfgBase)).replace(/\/$/, '');
 module.exports = {
   appId: 'com.maestro.masms',
   appName: 'MASMS',

@@ -44,6 +44,10 @@ class MongoStore {
   async getTenant(code) { const t = await this.Tenant.findOne({ code: String(code).toLowerCase() }).lean(); return t && { code: t.code, name: t.name, active: t.active !== false, createdAt: t.createdAt }; }
   async listTenants() { return (await this.Tenant.find({}).sort({ name: 1 }).lean()).map(t => ({ code: t.code, name: t.name, active: t.active !== false, createdAt: t.createdAt })); }
   async updateTenant(code, patch) { const t = await this.Tenant.findOneAndUpdate({ code: String(code).toLowerCase() }, { $set: patch }, { new: true }).lean(); return t && { code: t.code, name: t.name, active: t.active !== false }; }
+  async deleteTenant(code) { return (await this.Tenant.deleteOne({ code: String(code).toLowerCase() })).deletedCount > 0; }
+  async deleteUsersOfTenant(code) { return (await this.User.deleteMany({ tenant: String(code).toLowerCase(), platform: { $ne: true } })).deletedCount; }
+  async deleteSnapshot(key) { return (await this.Snapshot.deleteOne({ key })).deletedCount > 0; }
+  async deleteTx(id) { return (await this.Tx.deleteOne({ id })).deletedCount > 0; }
   async getSnapshot(key) { const s = await this.Snapshot.findOne({ key }).lean(); return s && { data: s.data, version: s.version, staffVersion: s.staffVersion, updatedAt: s.updatedAt, updatedBy: s.updatedBy }; }
   async getSnapshotMeta(key) { const s = await this.Snapshot.findOne({ key }).select('version updatedAt updatedBy').lean(); return s && { version: s.version, updatedAt: s.updatedAt, updatedBy: s.updatedBy }; }
   // portal=true marks a save made by a learner's quiz attempt, so staff devices can tell their own saves from those.
@@ -77,6 +81,10 @@ class MemoryStore {
   async getTenant(code) { const t = this.tenants.get(String(code).toLowerCase()); return t ? { ...t } : null; }
   async listTenants() { return [...this.tenants.values()].sort((a, b) => a.name.localeCompare(b.name)).map(t => ({ ...t })); }
   async updateTenant(code, patch) { const t = this.tenants.get(String(code).toLowerCase()); if (!t) return null; Object.assign(t, patch); return { code: t.code, name: t.name, active: t.active }; }
+  async deleteTenant(code) { return this.tenants.delete(String(code).toLowerCase()); }
+  async deleteUsersOfTenant(code) { let n = 0; for (const [k, u] of [...this.users]) if ((u.tenant || 'default') === String(code).toLowerCase() && !u.platform) { this.users.delete(k); n++; } return n; }
+  async deleteSnapshot(key) { return this.snaps.delete(key); }
+  async deleteTx(id) { return this.txs.delete(id); }
   async getSnapshot(key) { return this.snaps.get(key) || null; }
   async getSnapshotMeta(key) { const s = this.snaps.get(key); return s && { version: s.version, updatedAt: s.updatedAt, updatedBy: s.updatedBy }; }
   async saveSnapshot(key, data, baseVersion, by, portal) {

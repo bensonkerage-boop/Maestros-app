@@ -5,6 +5,7 @@ test('the APK workflows load the live site unless LIVE_UPDATES is 0', () => {
   for (const f of ['android.yml', 'android-release.yml']) {
     const wf = read('.github', 'workflows', f);
     expect(wf).toContain("LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}");
+    expect(wf).toContain('LIVE_UPDATES: ${{ vars.LIVE_UPDATES }}');   // the build falls back to server.config.json when API_BASE is empty
     expect(wf).not.toContain("LIVE_UPDATES == '1'");
   }
 });

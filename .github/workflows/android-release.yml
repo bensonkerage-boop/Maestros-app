@@ -15,7 +15,8 @@ jobs:
       - run: npm ci
       - run: npm run build:android
         env:
-          API_BASE: ${{ vars.API_BASE }}
+          API_BASE: ${{ vars.API_BASE }}   # optional: server.config.json (apiBase) is used when this is empty
+          LIVE_UPDATES: ${{ vars.LIVE_UPDATES }}
           # Online-first by default: the app loads your Vercel site, so deploys update it without Play Store releases. Set repository variable LIVE_UPDATES=0 to bundle the app inside instead.
           LIVE_URL: ${{ vars.LIVE_UPDATES != '0' && vars.API_BASE || '' }}
       - name: Restore signing key

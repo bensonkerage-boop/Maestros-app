@@ -90,20 +90,35 @@ test('details no school holds are refused with the usual message, and no cloud s
   expect(document.querySelector('form')).toBeNull();
 });
 
-test('the System Developer is offered the cloud sign-in once, then continues into the app and the device stays connected', async () => {
+test('the System Developer device links itself: no cloud username/password is asked for, and it carries straight into the app', async () => {
   setup();
+  const base = window.fetch;
+  window.fetch = jest.fn((url, opt) => /\/sysdev\/connect$/.test(url)
+    ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ token: 'PLATFORM-TOKEN', user: { username: 'oimeke', platform: true } }) })
+    : base(url, opt));
+  window.eval('var SYSDEV_USERNAME = "Oimeke", SYSDEV_PASSWORD = "Aiden@2023";');
+  await jest.advanceTimersByTimeAsync(10); await flush();
+  type('Oimeke', 'Aiden@2023');
+  await submit();
+  await jest.advanceTimersByTimeAsync(200); await flush(200);
+  expect(document.querySelector('form')).toBeNull();                 // no cloud sign-in dialog
+  expect(localStorage.getItem('masmsCloudToken')).toBe('PLATFORM-TOKEN');
+  expect(entered()).toEqual(['Oimeke']);
+});
+
+test('when the server is not set up for automatic System Developer linking the sign-in stops with its message, no dialog', async () => {
+  setup();
+  const base = window.fetch;
+  window.fetch = jest.fn((url, opt) => /\/sysdev\/connect$/.test(url)
+    ? Promise.resolve({ ok: false, status: 501, json: () => Promise.resolve({ error: 'Automatic System Developer connection is not set up on the server' }) })
+    : base(url, opt));
   window.eval('var SYSDEV_USERNAME = "Oimeke", SYSDEV_PASSWORD = "Aiden@2023";');
   await jest.advanceTimersByTimeAsync(10); await flush();
   type('Oimeke', 'Aiden@2023');
   await submit();
   expect(entered()).toEqual([]);
-  const form = document.querySelector('form');
-  expect(form).not.toBeNull(); expect(form.textContent).toMatch(/System Developer/);
-  form.u.value = 'school-a'; form.p.value = 'password123';
-  form.onsubmit({ preventDefault() {} });
-  await jest.advanceTimersByTimeAsync(200); await flush(200);
-  expect(localStorage.getItem('masmsCloudToken')).toBe('DEVICE-TOKEN');
-  expect(entered()).toEqual(['Oimeke']);                         // carried straight on into the System Developer sign-in
+  expect(document.querySelector('form')).toBeNull();
+  expect(error()).toMatch(/not set up/);
 });
 
 test('empty fields are stopped without asking the server', async () => {

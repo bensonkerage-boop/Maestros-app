@@ -22,6 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- masms://link?server=https://your-site : opened from the live web page, the app keeps the server address by itself -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="masms" android:host="link" />
+            </intent-filter>
+
         </activity>
 
         <provider

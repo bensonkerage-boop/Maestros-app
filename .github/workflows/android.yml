@@ -22,7 +22,8 @@ jobs:
       # e.g. https://your-project.vercel.app
       - run: npm run build:android
         env:
-          API_BASE: ${{ vars.API_BASE }}
+          API_BASE: ${{ vars.API_BASE }}   # optional: server.config.json (apiBase) is used when this is empty
+          LIVE_UPDATES: ${{ vars.LIVE_UPDATES }}
           # ONLINE-FIRST (default): the APK is a thin shell that loads your live site (API_BASE), so every Vercel deploy reaches installed
           # phones by itself with no new APK. With no signal it shows a local "waiting for connection" page and reconnects automatically.
           # Set repository variable LIVE_UPDATES=0 to bundle the whole app inside the APK instead (works offline, updates only via a new APK).

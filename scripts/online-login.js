@@ -1,8 +1,7 @@
 /* MASMS online-only sign-in ("lenient" mode).
    - Signing in (password or fingerprint) needs a working internet connection and a connection to the person's school. Nobody is
      asked to sign in to the cloud: the first time on a device the server finds the school that holds the typed staff details and
-     connects the device to it by itself (POST /api/staff/login); the device then stays connected. (Only the System Developer makes
-     the one-time platform connection.) So the
+     connects the device to it by itself (POST /api/staff/login); the device then stays connected. (The System Developer's device is linked the same way, by the server, via POST /api/sysdev/connect.) So the
      user list is current (removed/suspended people can't get in) and this device is set up to upload its work.
    - Once signed in, the person keeps working even if the signal drops. Marks and everything else are saved on the
      phone and uploaded automatically (cloud-sync.js) when the connection returns, so a DOS elsewhere sees them.
@@ -87,6 +86,17 @@
       });
   }
 
+  // System Developer: the server checks the typed details and connects this device to the platform account by itself (POST /api/sysdev/connect).
+  function sysdevConnect(user, pass){
+    return fetch(API + '/sysdev/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) })
+      .then(function(r){
+        return r.json().then(function(j){
+          j = (j && typeof j === 'object') ? j : {};
+          return { status: r.status, token: (r.status === 200 && typeof j.token === 'string') ? j.token : null, error: typeof j.error === 'string' ? j.error : '' };
+        }, function(){ return { status: r.status }; });
+      });
+  }
+
   function typedSysDev(){
     try{
       var u = document.getElementById('login_username'), p = document.getElementById('login_password');
@@ -101,23 +111,28 @@
     if(checking) return;
     checking = true;
     ping().then(function(st){
-      if(st === 'offline'){ checking = false; say(unlinked() ? 'This app is not linked to the MASMS server. Install the latest version of the app.' : 'No internet connection. Connect to the internet to sign in.'); return; }
+      if(st === 'offline'){ checking = false; say(unlinked() ? 'This app is not linked to the MASMS server yet. Open the MASMS website on this phone and tap "Open it and connect to this school server", or install the latest app.' : 'No internet connection. Connect to the internet to sign in.'); return; }
       var c = window.MASMS_CLOUD;
       if(st === 'rejected' || !c.signedIn()){
         // This device is not connected to a school yet. Nobody is asked to sign in to the cloud: the server finds the school that
         // holds the typed staff details and connects the device to it by itself, then the normal sign-in carries on. (The System
         // Developer, whose details are not in any school, makes the one-time platform connection instead.)
         var fail = function(msg){ checking = false; say(msg); };
-        if(typedSysDev() && c.setup){
+        if(typedSysDev() && c.connect){
           var u0 = document.getElementById('login_username'), p0 = document.getElementById('login_password'), tu0 = u0.value, tp0 = p0.value;
-          say('System Developer: sign in with the platform owner account to connect this device.');
-          checking = false;
-          c.setup(function(){   // the page redraws after the data loads: put the typed details back, then sign in
-            var u1 = document.getElementById('login_username'), p1 = document.getElementById('login_password');
-            if(u1) u1.value = tu0; if(p1) p1.value = tp0;
-            stamp(); go();
-          });
-          return;
+          // The System Developer's device links itself: the server checks the typed details (no cloud username/password is asked for).
+          return sysdevConnect(tu0.trim(), tp0.trim()).then(function(r){
+            if(r.token){
+              return c.connect(r.token).then(function(){
+                var u1 = document.getElementById('login_username'), p1 = document.getElementById('login_password');
+                if(u1) u1.value = tu0; if(p1) p1.value = tp0;
+                checking = false; stamp(); go();
+              });
+            }
+            if(r.status === 429) return fail('Too many sign-in attempts from this network. Wait about 15 minutes and try again.');
+            if(r.status === 501) return fail(r.error || 'This server is not set up to connect the System Developer automatically.');
+            return fail(r.error || 'Could not connect this device to the MASMS server. Check the connection and try again.');
+          }, function(){ fail('No internet connection. Connect to the internet to sign in.'); });
         }
         staffConnect().then(function(r){
           if(r.token && c.connect){

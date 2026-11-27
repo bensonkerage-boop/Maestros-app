@@ -8,7 +8,35 @@
     <title>MAESTRO — Advanced School Management System</title>
     <link rel="stylesheet" href="/vendor/fonts.css">
     <style id="tw">/*__TAILWIND__*/</style>
-    <style id="cardx">.more-link{color:#0000FF;font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;min-height:32px;padding:0 4px}.more-link:hover{color:#0000CC}.more-link:after{content:" \2192";margin-left:4px}</style>
+    <style id="cardx">.more-link{color:#0000FF;font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;min-height:32px;padding:0 4px}.more-link:hover{color:#0000CC}.more-link:after{content:" \2192";margin-left:4px}.ne-item{display:flex;gap:14px;align-items:flex-start;padding:14px 4px;border-bottom:1px solid #e2e8f0;text-decoration:none;color:inherit;cursor:pointer}
+.ne-item:last-child{border-bottom:0}
+.ne-item:hover .ne-t{color:#1E88E5}
+.ne-badge{flex:0 0 auto;min-width:64px;text-align:center;padding:6px 8px;border-radius:8px;background:#E3F2FD;color:#1E88E5;font-weight:800;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.ne-t{font-weight:700;font-size:14.5px;color:#1E2D3D;transition:color .15s}
+.ne-s{margin-top:3px;font-size:12.5px;color:#64748b;line-height:1.5}
+.ne-go{margin-left:auto;align-self:center;color:#1E88E5;font-weight:700;font-size:13px;white-space:nowrap}
+.ne-go:after{content:" \2192"}.hs{position:relative;width:100%;height:clamp(230px,44vw,500px);background:#1E2D3D;overflow:hidden;touch-action:pan-y}
+.hs-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .8s ease,visibility .8s}
+.hs-slide.on{opacity:1;visibility:visible}
+.hs-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.hs-slide.zoom img{animation:hsZoom 7s ease-out both}
+@keyframes hsZoom{from{transform:scale(1)}to{transform:scale(1.06)}}
+.hs-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(15,25,38,.82) 0,rgba(15,25,38,.35) 45%,rgba(15,25,38,0) 75%)}
+.hs-cap{position:absolute;left:0;right:0;bottom:0;max-width:1280px;margin:0 auto;padding:0 56px 44px;color:#fff}
+.hs-cap h2{margin:0;font-weight:800;font-size:clamp(17px,3vw,34px);line-height:1.15;letter-spacing:.02em;text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.hs-cap p{margin:8px 0 0;max-width:640px;font-size:clamp(12.5px,1.5vw,16px);color:#e2e8f0;line-height:1.45}
+.hs-btn{display:inline-block;margin-top:14px;padding:9px 22px;border-radius:4px;background:#1E88E5;color:#fff!important;font-weight:700;font-size:13.5px;text-decoration:none;letter-spacing:.02em;transition:background .2s}
+.hs-btn:hover{background:#1565C0}
+.hs-btn:after{content:" \2192"}
+.hs-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;border-radius:50%;background:rgba(15,25,38,.45);color:#fff;font-size:26px;line-height:1;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.hs-nav:hover,.hs-nav:focus-visible{background:rgba(30,136,229,.9);outline:none}
+.hs-prev{left:12px}.hs-next{right:12px}
+.hs-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:9px;z-index:3}
+.hs-dot{width:11px;height:11px;border-radius:50%;border:2px solid #fff;background:transparent;padding:0;cursor:pointer;transition:background .2s,transform .2s}
+.hs-dot.on{background:#fff;transform:scale(1.15)}
+.hs-bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:#1E88E5;z-index:3}
+@media(max-width:640px){.hs-cap{padding:0 16px 38px}.hs-nav{width:34px;height:34px;font-size:21px}.hs-prev{left:6px}.hs-next{right:6px}.hs-cap p{display:none}}
+@media(prefers-reduced-motion:reduce){.hs-slide{transition:none}.hs-slide.zoom img{animation:none}}</style>
     <style>
         /* Android native tap feedback & safe area spacing */
         * {
@@ -64,6 +92,7 @@
                 <nav class="hidden md:flex items-center gap-7">
                     <a href="#home" class="text-sm font-semibold text-royalBlue transition-colors">Home</a>
                     <a href="#features" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Features</a>
+                    <a href="#news" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">News &amp; Events</a>
                     <a href="#who-its-for" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Who it’s For</a>
                     <a href="#faq" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">FAQ</a>
                     <a href="#contacts" class="text-sm font-semibold text-slate-600 hover:text-royalBlue transition-colors">Contacts</a>
@@ -87,6 +116,15 @@
             </div>
         </div>
     </header>
+
+    <!-- ===== HERO SLIDESHOW (right under the header; photos + links come from the Web Page tab, built-in slides until then) ===== -->
+    <section id="heroSlider" class="hs" aria-roledescription="carousel" aria-label="Featured highlights" tabindex="0">
+        <div id="hsSlides"></div>
+        <button type="button" class="hs-nav hs-prev" id="hsPrev" aria-label="Previous slide">&#8249;</button>
+        <button type="button" class="hs-nav hs-next" id="hsNext" aria-label="Next slide">&#8250;</button>
+        <div class="hs-dots" id="hsDots" role="tablist" aria-label="Choose a slide"></div>
+    </section>
+
 
     <!-- ===================================================================== -->
     <!-- MAIN CONTENT CONTAINER                                                -->
@@ -195,11 +233,6 @@
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
                     </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openModuleModal('academics')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Explore Module
-                        </button>
-                    </div>
                 </article>
 
                 <!-- CARD 2 (Row 1, Col 2): NEMIS & KEMIS Student Registry -->
@@ -222,11 +255,6 @@
                             </p>
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
-                    </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openModuleModal('nemis')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Explore Module
-                        </button>
                     </div>
                 </article>
 
@@ -251,11 +279,6 @@
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
                     </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openModuleModal('timetable')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Explore Module
-                        </button>
-                    </div>
                 </article>
 
                 <!-- CARD 4 (Row 2, Col 1): Fee & Bursary Accounting -->
@@ -278,11 +301,6 @@
                             </p>
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
-                    </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openModuleModal('fees')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Explore Module
-                        </button>
                     </div>
                 </article>
 
@@ -312,11 +330,6 @@
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
                     </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openLoginModal()" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Launch Portal
-                        </button>
-                    </div>
                 </article>
 
                 <!-- CARD 6 (Row 2, Col 3): Parent & Bulk SMS Communication -->
@@ -340,11 +353,6 @@
                             <div class="mt-2.5"><a data-f="more" href="#" class="more-link">View more</a></div>
                         </div>
                     </div>
-                    <div class="bg-footerStrip px-4 py-3.5 text-center border-t border-slate-200/70">
-                        <button onclick="openModuleModal('communication')" class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg bg-royalBlue hover:bg-royalBlueDark active:scale-98 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all">
-                            Explore Module
-                        </button>
-                    </div>
                 </article>
 
             </div>
@@ -353,6 +361,33 @@
         <!-- ================================================================= -->
         <!-- SECTION 3: "WHO IT'S FOR" STAKEHOLDER WORKSPACES (Android Chips)  -->
         <!-- ================================================================= -->
+        <section id="news" class="bg-white rounded-xl shadow-card border border-slate-100 p-4 sm:p-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-royalBlue">
+                        Stay Informed
+                    </span>
+                    <h2 class="text-lg sm:text-2xl font-extrabold text-slateNavy mt-0.5">
+                        News and Events
+                    </h2>
+                </div>
+
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist">
+                    <button onclick="switchNews('news')" id="news-btn-news" role="tab" class="news-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-royalBlue text-white text-xs sm:text-sm font-semibold transition-all">
+                        LATEST NEWS
+                    </button>
+                    <button onclick="switchNews('events')" id="news-btn-events" role="tab" class="news-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all">
+                        UPCOMING EVENTS
+                    </button>
+                    <button onclick="switchNews('notices')" id="news-btn-notices" role="tab" class="news-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all">
+                        NOTICES &amp; CIRCULARS
+                    </button>
+                </div>
+            </div>
+
+            <div id="news-list" role="tabpanel" aria-live="polite" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
+        </section>
+
         <section id="who-its-for" class="bg-white rounded-xl shadow-card border border-slate-100 p-4 sm:p-8">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
                 <div>
@@ -795,6 +830,53 @@
             document.getElementById('role-kpi2-lbl').textContent = r.kpi2Lbl;
         }
 
+        // ---- News and Events: three link tabs (Latest News / Upcoming Events / Notices & Circulars) with a short list under each.
+        // act: 'demo' opens the demo request, 'login' the sign-in page, a module key opens that module's popup.
+        const NEWS_DATA = {
+            news: [
+                { tag: 'New', img: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80', title: 'Offline-first Android app', text: 'Work without a signal; everything saves on the phone and uploads when you are back online.', act: 'login' },
+                { tag: 'New', img: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80', title: 'Parent SMS alerts', text: 'Send personalised exam scores and fee reminders straight to parents.', act: 'communication' },
+                { tag: 'Update', img: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80', title: 'CBE rubrics & merit lists', text: 'Automated EE/ME/AE/BE rubrics, merit lists and batch PDF report forms.', act: 'academics' }
+            ],
+            events: [
+                { tag: 'Demo', img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80', title: 'Book a live walkthrough', text: 'See every module in action and send us your request in a few taps.', act: 'demo' },
+                { tag: 'Setup', img: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80', title: 'Free data migration', text: 'Import your existing NEMIS/KEMIS Excel sheets with our one-click importer.', act: 'nemis' },
+                { tag: 'Training', img: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80', title: 'Staff onboarding sessions', text: 'Get principals, teachers and bursars confident on their dashboards from day one.', act: 'demo' }
+            ],
+            notices: [
+                { tag: 'Notice', img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80', title: 'Academic term dates', text: 'Term dates are set centrally by the System Developer and update in every school automatically.', act: 'login' },
+                { tag: 'Circular', img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80', title: 'Back up your data regularly', text: 'Download a backup from Settings after major updates and keep a copy somewhere safe.', act: 'login' },
+                { tag: 'Notice', img: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80', title: 'Fee statements & receipts', text: 'Issue branded receipts and balance statements to parents straight from the Fee ledger.', act: 'fees' }
+            ]
+        };
+        function newsAct(a) { if (a === 'demo') openDemoShow(); else if (a === 'login') openLoginModal(); else openModuleModal(a); }
+        function switchNews(key) {
+            const list = NEWS_DATA[key], box = document.getElementById('news-list');
+            if (!list || !box) return;
+            document.querySelectorAll('.news-chip').forEach(b => { b.className = 'news-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm font-semibold transition-all'; b.setAttribute('aria-selected', 'false'); });
+            const on = document.getElementById('news-btn-' + key);
+            on.className = 'news-chip shrink-0 min-h-[40px] px-4 py-2 rounded-full bg-royalBlue text-white text-xs sm:text-sm font-semibold transition-all'; on.setAttribute('aria-selected', 'true');
+            box.textContent = '';
+            list.forEach(it => {
+                const c = document.createElement('article');
+                c.className = 'bg-white rounded-xl overflow-hidden shadow-card hover:shadow-cardHover transition-all duration-300 flex flex-col border border-slate-100';
+                const w = document.createElement('div'); w.className = 'relative h-44 sm:h-48 w-full overflow-hidden bg-slate-100';
+                const im = document.createElement('img'); im.loading = 'lazy'; im.alt = it.title; im.src = it.img; im.className = 'w-full h-full object-cover hover:scale-105 transition-transform duration-500';
+                im.onerror = () => imgFb(im, 'E3F2FD', '1E2D3D', it.title);
+                const tg = document.createElement('span'); tg.className = 'absolute top-3 left-3 px-2.5 py-1 rounded-md bg-royalBlue text-white text-[11px] font-bold shadow-xs'; tg.textContent = it.tag;
+                w.appendChild(im); w.appendChild(tg);
+                const b = document.createElement('div'); b.className = 'p-4 sm:p-6 text-center';
+                const h = document.createElement('h3'); h.className = 'text-base sm:text-lg font-bold text-slateNavy'; h.textContent = it.title;
+                const p = document.createElement('p'); p.className = 'text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed'; p.textContent = it.text;
+                const m = document.createElement('div'); m.className = 'mt-2.5';
+                const a = document.createElement('a'); a.href = '#'; a.className = 'more-link'; a.textContent = 'View more'; a.addEventListener('click', ev => { ev.preventDefault(); newsAct(it.act); });
+                m.appendChild(a); b.appendChild(h); b.appendChild(p); b.appendChild(m);
+                c.appendChild(w); c.appendChild(b); box.appendChild(c);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => switchNews('news'));
+        if (document.readyState !== 'loading') switchNews('news');
+
         function toggleFaq(id) {
             const body = document.getElementById(`faq-body-${id}`);
             const plus = document.getElementById(`faq-plus-${id}`);
@@ -880,6 +962,77 @@
         }
         applyCards({});
 
+        // ---- Hero slideshow under the header (like a university home page): photo, caption, "View more" link, arrows, dots, auto-play.
+        // Uses the photos from the app's Web Page > Photo gallery (title, caption, link); until some are added the built-in slides show.
+        (function () {
+            const IMG = 'auto=format&fit=crop&w=1600&q=80&ixlib=rb-4.0.3';
+            const DEFAULT_SLIDES = [
+                { img: 'https://images.unsplash.com/photo-1562774053-701939374585?' + IMG, title: 'MAESTRO School Management System', text: 'Unified academic grading, NEMIS/KEMIS sync, and digital school administration', action: 'login' },
+                { img: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?' + IMG, title: 'Seamless offline & cloud operations', text: 'Instant exam reports, M-Pesa fee reconciliation, and automated parent SMS alerts', action: 'portal' },
+                { img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?' + IMG, title: 'Academic & CBE exams', text: 'Automated merit lists, CBE competency rubrics, and batch PDF report forms', action: 'academics' },
+                { img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?' + IMG, title: 'Fee & bursary ledger', text: 'Vote-head billing, M-Pesa reconciliation and real-time fee balance statements', action: 'fees' }
+            ];
+            const box = document.getElementById('hsSlides'), dots = document.getElementById('hsDots'), root = document.getElementById('heroSlider');
+            if (!box || !dots || !root) return;
+            let slides = [], idx = 0, timer = null, sig = '', paused = false;
+            const DELAY = 6000;
+            function go(n) {
+                if (!slides.length) return;
+                idx = (n + slides.length) % slides.length;
+                slides.forEach((s, i) => { s.el.classList.toggle('on', i === idx); s.el.classList.toggle('zoom', i === idx); s.el.setAttribute('aria-hidden', i === idx ? 'false' : 'true'); s.dot.classList.toggle('on', i === idx); s.dot.setAttribute('aria-selected', i === idx ? 'true' : 'false'); });
+                play();
+            }
+            function play() {
+                clearTimeout(timer);
+                if (paused || slides.length < 2 || document.hidden) return;
+                if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                timer = setTimeout(() => go(idx + 1), DELAY);
+            }
+            function open(d) {
+                const u = d.link && safeUrl(d.link);
+                if (u) window.open(u, '_blank', 'noopener'); else if (d.action) cardDefault(d.action);
+            }
+            window.hsSet = function (gallery) {
+                const g = (Array.isArray(gallery) ? gallery : []).filter(x => x && typeof x.src === 'string' && /^data:image\//.test(x.src)).map(x => ({ img: x.src, title: x.title || '', text: x.caption || '', link: x.link || '' }));
+                const list = g.length ? g : DEFAULT_SLIDES;
+                const s = JSON.stringify(list.map(x => [x.img.length, x.img.slice(-40), x.title, x.text, x.link || x.action]));
+                if (s === sig) return; sig = s;
+                box.textContent = ''; dots.textContent = '';
+                slides = list.map((d, i) => {
+                    const el = document.createElement('div'); el.className = 'hs-slide'; el.setAttribute('role', 'group'); el.setAttribute('aria-roledescription', 'slide'); el.setAttribute('aria-label', (i + 1) + ' of ' + list.length);
+                    const im = document.createElement('img'); im.alt = d.title || 'Slide ' + (i + 1); im.src = d.img; if (i) im.loading = 'lazy'; im.onerror = () => { im.style.display = 'none'; };
+                    el.appendChild(im);
+                    const sh = document.createElement('div'); sh.className = 'hs-shade'; el.appendChild(sh);
+                    const linked = !!((d.link && safeUrl(d.link)) || d.action);
+                    if (d.title || d.text || linked) {
+                        const cap = document.createElement('div'); cap.className = 'hs-cap';
+                        if (d.title) { const h = document.createElement('h2'); h.textContent = d.title; cap.appendChild(h); }
+                        if (d.text) { const p = document.createElement('p'); p.textContent = d.text; cap.appendChild(p); }
+                        if (linked) { const a = document.createElement('a'); a.href = '#'; a.className = 'hs-btn'; a.textContent = 'View more'; a.addEventListener('click', ev => { ev.preventDefault(); open(d); }); cap.appendChild(a); }
+                        el.appendChild(cap);
+                    }
+                    box.appendChild(el);
+                    const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'hs-dot'; dot.setAttribute('role', 'tab'); dot.setAttribute('aria-label', 'Go to slide ' + (i + 1)); dot.addEventListener('click', () => go(i)); dots.appendChild(dot);
+                    return { el, dot };
+                });
+                const multi = slides.length > 1;
+                document.getElementById('hsPrev').style.display = document.getElementById('hsNext').style.display = dots.style.display = multi ? '' : 'none';
+                idx = 0; go(0);
+            };
+            document.getElementById('hsPrev').addEventListener('click', () => go(idx - 1));
+            document.getElementById('hsNext').addEventListener('click', () => go(idx + 1));
+            root.addEventListener('mouseenter', () => { paused = true; clearTimeout(timer); });
+            root.addEventListener('mouseleave', () => { paused = false; play(); });
+            root.addEventListener('focusin', () => { paused = true; clearTimeout(timer); });
+            root.addEventListener('focusout', () => { paused = false; play(); });
+            root.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') go(idx - 1); else if (e.key === 'ArrowRight') go(idx + 1); });
+            let x0 = null;
+            root.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+            root.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40) go(idx + (dx < 0 ? 1 : -1)); }, { passive: true });
+            document.addEventListener('visibilitychange', play);
+            hsSet(null);
+        })();
+
         // Text and contacts the System Developer sets in the app's "Web Page" tab: saved on this device (maestroWebPage) and the copy
         // published to the server (GET /api/web-page). The app calls MASMS_WEBPAGE_APPLY() after the tab is saved.
         (function () {
@@ -889,6 +1042,7 @@
             function apply(c) {
                 c = c || {}; const hero = c.hero || {}, ct = c.contacts || {}; let e;
                 applyCards(c.cards);
+                if (window.hsSet) hsSet(c.gallery);
                 if (hero.heading && (e = document.getElementById('hero-heading'))) e.textContent = hero.heading;
                 if (hero.text && (e = document.getElementById('hero-text'))) e.textContent = hero.text;
                 if (ct.phone) setRow('contact-phone', ct.phone, 'tel:' + String(ct.phone).replace(/\s+/g, ''));
@@ -915,6 +1069,19 @@
                 const native = !!(p.Capacitor && p.Capacitor.isNativePlatform && p.Capacitor.isNativePlatform());
                 if (d && (native || p.location.protocol === 'file:')) d.style.display = 'none';
                 else if (d && window.parent !== window) d.target = '_blank';
+            } catch (e) {}
+
+            // Android phone on the live site: "Open the app and connect" hands this site's address to the installed app (masms://link?server=...)
+            try {
+                const o = document.getElementById('dlApk'), p = window.parent !== window ? window.parent : window;
+                const native = !!(p.Capacitor && p.Capacitor.isNativePlatform && p.Capacitor.isNativePlatform());
+                if (o && !document.getElementById('openApp') && /Android/i.test(navigator.userAgent) && !native && /^https:$/.test(p.location.protocol)) {
+                    const a = document.createElement('a'); a.id = 'openApp';
+                    a.href = 'intent://link?server=' + encodeURIComponent(p.location.origin) + '#Intent;scheme=masms;package=com.maestro.masms;end';
+                    a.textContent = 'App already installed? Open it and connect to this school server';
+                    a.style.cssText = 'display:block;text-align:center;padding:10px 4px;font-weight:600;font-size:13.5px;color:#1a1aff;';
+                    o.insertAdjacentElement('afterend', a);
+                }
             } catch (e) {}
         })();
 

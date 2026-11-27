@@ -131,7 +131,7 @@
   function start(){
     if(!token) return setState('off');
     setState('sync');
-    return localReady().then(checkSchool).then(function(){ return api('GET','/data'); }).then(function(r){
+    return localReady().then(checkSchool).then(function(){ try{ pullTerms(); }catch(e){} return api('GET','/data'); }).then(function(r){
       version=r.version||0;
       // data restored from this device that the cloud never received (e.g. entered offline): combine marks if that is all that
       // changed, otherwise let the user choose
@@ -294,7 +294,8 @@
     api('GET','/schools').then(function(r){
       var rows=r.schools.map(function(x){
         return '<tr><td style="padding:6px 8px"><b>'+esc(x.name)+'</b><br><span style="color:#6b7a99">code: '+esc(x.code)+'</span></td><td style="padding:6px 8px">'+x.users+' users<br><span style="color:#6b7a99">'+(x.lastSaved?'saved '+esc(new Date(x.lastSaved).toLocaleString()):'no data yet')+'</span></td>'+
-          '<td style="padding:6px 8px;text-align:right;white-space:nowrap"><button type="button" data-u="'+esc(x.code)+'" style="'+BTN+'">Users</button> <button type="button" data-t="'+esc(x.code)+'" data-a="'+(x.active?1:0)+'" style="'+BTN+(x.active?';color:#d63a3a':'')+'">'+(x.active?'Suspend':'Restore')+'</button></td></tr>';
+          '<td style="padding:6px 8px">'+'<span style="color:'+(x.status==='Active'?'#1a8a4a':'#d63a3a')+'"><b>'+esc(x.status||'')+'</b></span></td>'+
+          '<td style="padding:6px 8px;text-align:right;white-space:nowrap"><button type="button" data-u="'+esc(x.code)+'" style="'+BTN+'">Users</button> <button type="button" data-t="'+esc(x.code)+'" data-a="'+(x.active?1:0)+'" style="'+BTN+(x.active?';color:#d63a3a':'')+'">'+(x.active?'Suspend':'Restore')+'</button>'+(x.deletable?' <button type="button" data-del="'+esc(x.code)+'" data-n="'+esc(x.name)+'" style="'+BTN+';color:#d63a3a">Delete</button>':'')+'</td></tr>';
       }).join('');
       var d=modal('<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">Schools on this server</b><button type="button" class="x" style="'+BTN+'">Close</button></div>'+
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'+rows+'</table></div>'+
@@ -304,6 +305,9 @@
       d.querySelector('.add').onsubmit=function(ev){ ev.preventDefault(); var f=ev.target;
         api('POST','/schools',{name:f.n.value,adminUsername:f.u.value,adminPassword:f.p.value}).then(function(){ d.remove(); openSchools(); }).catch(function(e){ msg(d,e.message,true); }); };
       d.querySelectorAll('[data-u]').forEach(function(b){ b.onclick=function(){ d.remove(); openUsers(b.getAttribute('data-u')); }; });
+      d.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var n=b.getAttribute('data-n');
+        if(!confirm('Delete "'+n+'" from the server? It is not in the list of registered schools. Its users, saved data and sign-in details are removed permanently.')) return;
+        api('DELETE','/schools/'+encodeURIComponent(b.getAttribute('data-del'))).then(function(){ d.remove(); openSchools(); }).catch(function(e){ msg(d,e.message,true); }); }; });
       d.querySelectorAll('[data-t]').forEach(function(b){ b.onclick=function(){ var on=b.getAttribute('data-a')==='1';
         if(on&&!confirm('Suspend this school? Nobody there can sign in or sync until you restore it. Their data is kept.')) return;
         api('PATCH','/schools/'+encodeURIComponent(b.getAttribute('data-t')),{active:!on}).then(function(){ d.remove(); openSchools(); }).catch(function(e){ msg(d,e.message,true); }); }; });
@@ -313,6 +317,15 @@
   document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(pill); paint(); start(); });
   setInterval(function(){ if(!document.hidden) save(true); },10000);      // upload this device's changes
   setInterval(function(){ if(!document.hidden) pull(); },15000);          // download other devices' changes
+  // The academic term calendar is set by the System Developer and applies to every school: fetch it now and then, no sign-in needed.
+  function pullTerms(){
+    if(!token) return;
+    api('GET','/platform/terms').then(function(t){ if(t&&t.termDates&&typeof applyPlatformTerms==='function') applyPlatformTerms(t.termDates); }).catch(function(){});
+  }
+  setInterval(function(){ if(!document.hidden) pullTerms(); },60000);
+  window.addEventListener('online',pullTerms);
+  setTimeout(pullTerms,3000);
+  window.MASMS_PULL_TERMS=pullTerms;
   document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); else pull(); });
   window.addEventListener('focus',function(){ pull(); });
   window.addEventListener('online',function(){ pull(true).then(function(){ save(); }); });

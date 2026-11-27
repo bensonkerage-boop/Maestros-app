@@ -6934,6 +6934,8 @@ function studentByAdmissionNumber(adm){
   return students.find(s => (s.admissionNumber || '') === adm);
 }
 // Uppercases string values for class-list table cells; leaves numbers as-is.
+// Short gender mark for printouts and PDFs: Male -> M, Female -> F (anything else is shown as recorded).
+function genderShort(v){ const t = String(v == null ? '' : v).trim(); return /^f/i.test(t) ? 'F' : /^m/i.test(t) ? 'M' : t; }
 function upperStr(v){
   return typeof v === 'string' ? v.toUpperCase() : v;
 }
@@ -9666,7 +9668,7 @@ function renderIssueMemberDetailsHTML(value, type){
         ${field("Staff No. (TSC)", record.tscNumber || "—")}
         ${field("Name", name)}
         ${field("Department", `<span class="dept-name">${dept}</span>`)}
-        ${field("Gender", record.gender || "—")}
+        ${field("Gender", genderShort(record.gender) || "—")}
         ${field("Books Currently Borrowed", `${count} book${count===1?'':'s'}`)}
         <div><span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.03em;">Account Status</span><div style="margin-top:4px;"><span class="pill-status status-paid">Staff</span></div></div>
       </div>
@@ -9683,7 +9685,7 @@ function renderIssueMemberDetailsHTML(value, type){
       ${field("Admission Number", student.admissionNumber || "—")}
       ${field("Student Name", fullName(student))}
       ${field("Class/Stream", [student.grade, student.stream].filter(Boolean).join(' ') || "—")}
-      ${field("Gender", student.gender || "—")}
+      ${field("Gender", genderShort(student.gender) || "—")}
       ${field("Library Card Number", libraryCardNumberFor(student.admissionNumber))}
       ${field("Date", student.dateOfAdmission || "—")}
       <div><span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.03em;">Account Status</span><div style="margin-top:4px;"><span class="pill-status ${statusClass}">${student.admissionStatus || "Active"}</span></div></div>
@@ -14824,7 +14826,7 @@ function swpMerge(c){
   const d = swpClone(SWP_DEFAULT); c = c || {};
   Object.keys(d.hero).forEach(k => { if(c.hero && typeof c.hero[k] === "string" && c.hero[k]) d.hero[k] = c.hero[k]; });
   Object.keys(d.contacts).forEach(k => { if(c.contacts && typeof c.contacts[k] === "string" && c.contacts[k]) d.contacts[k] = c.contacts[k]; });
-  d.gallery = Array.isArray(c.gallery) ? c.gallery.filter(g => g && typeof g.src === "string").map(g => ({ id: g.id || ("p" + Math.random().toString(36).slice(2, 9)), title: g.title || "", caption: g.caption || "", src: g.src })) : [];
+  d.gallery = Array.isArray(c.gallery) ? c.gallery.filter(g => g && typeof g.src === "string").map(g => ({ id: g.id || ("p" + Math.random().toString(36).slice(2, 9)), title: g.title || "", caption: g.caption || "", src: g.src, link: (typeof g.link === "string" ? g.link : "") })) : [];
   d.cards = {};
   SWP_CARDS.forEach(([k]) => {
     const v = c.cards && c.cards[k]; if(!v || typeof v !== "object") return;
@@ -14872,6 +14874,11 @@ function swpFixLink(k, input){
   let v = String(input.value || "").trim();
   if(v && !/^(https?:\/\/|mailto:|tel:)/i.test(v)){ if(/^[\w-]+(\.[\w-]+)+(\/|$|\?)/.test(v)) v = "https://" + v; else { swpFlash("The View more link \"" + v + "\" is not a web address. Use something like https://www.example.com", false); v = ""; } }
   input.value = v; swpSetCard(k, "link", v);
+}
+function swpFixPhotoLink(i, input){
+  let v = String(input.value || "").trim();
+  if(v && !/^(https?:\/\/|mailto:|tel:)/i.test(v)){ if(/^[\w-]+(\.[\w-]+)+(\/|$|\?)/.test(v)) v = "https://" + v; else { swpFlash("The slide link \"" + v + "\" is not a web address. Use something like https://www.example.com", false); v = ""; } }
+  input.value = v; swpSetPhoto(i, "link", v);
 }
 async function swpCardPhoto(k, input){
   const f = input.files && input.files[0]; input.value = ""; if(!f) return;
@@ -14927,7 +14934,7 @@ async function swpAddPhotos(input){
     try{
       const src = await swpPhotoData(f);
       if(swpSize() + src.length > SWP_MAX_CHARS){ skipped.push(f.name + " (gallery is full — remove a photo first)"); continue; }
-      swpDraft.gallery.push({ id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "), caption: "", src });
+      swpDraft.gallery.push({ id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "), caption: "", link: "", src });
       added++;
     }catch(_e){ skipped.push(f.name + " (could not be read)"); }
   }
@@ -15002,6 +15009,7 @@ function renderSdWebPage(){
       <div style="padding:12px;display:grid;gap:8px;">
         <input type="text" value="${swpEsc(g.title)}" placeholder="Photo title" maxlength="80" oninput="swpSetPhoto(${i},'title',this.value)" style="font-weight:700;">
         <textarea rows="2" maxlength="240" placeholder="Caption (optional)" oninput="swpSetPhoto(${i},'caption',this.value)" style="resize:vertical;">${swpEsc(g.caption)}</textarea>
+        <input type="text" value="${swpEsc(g.link || '')}" placeholder="Slide link (View more), e.g. https://www.example.com" maxlength="500" onchange="swpFixPhotoLink(${i},this)" aria-label="Slide link">
         <div style="display:flex;gap:6px;justify-content:space-between;">
           <span style="display:flex;gap:6px;"><button type="button" class="btn-ghost" ${i === 0 ? "disabled" : ""} onclick="swpMove(${i},-1)" title="Move earlier" aria-label="Move earlier"><i class="fa-solid fa-arrow-left"></i></button><button type="button" class="btn-ghost" ${i === d.gallery.length - 1 ? "disabled" : ""} onclick="swpMove(${i},1)" title="Move later" aria-label="Move later"><i class="fa-solid fa-arrow-right"></i></button></span>
           <button type="button" class="btn-ghost" style="color:#c0392b;" onclick="swpRemove(${i})"><i class="fa-solid fa-trash"></i> Remove</button>
@@ -15072,11 +15080,12 @@ function renderSystemDeveloperPage(){
     if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections the schools you registered see, and post a notice on their dashboard</p></div></div>` + aBar + renderSchoolModules() + renderSchoolDashMgmt();
     return `<div class="dash2-topline"><div><h1 class="dash2-title">Registered Schools</h1><p class="dash2-sub">Schools you registered &mdash; register new ones, and generate, download or print their invoices and receipts</p></div></div>` + aBar + renderSystemDeveloperPageSchools();
   }
-  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"],["webpage","Web Page","fa-globe"]];
+  const tabs = [["schools","Registered Schools","fa-school"],["logins","Login Monitor","fa-user-shield"],["dashmgmt","School Dashboard Management","fa-table-columns"],["pricing","Pricing","fa-tags"],["account","Account Information","fa-id-card"],["documents","Documents","fa-folder-open"],["webpage","Web Page","fa-globe"],["terms","Academic Term","fa-calendar-days"]];
   const bar = `<div class="class-tab-row" style="margin-bottom:16px;flex-wrap:wrap;">${tabs.map(([k,l,i]) => `<button class="class-tab-cell ${sdMainTab===k?'active':''}" onclick="sdSetMainTab('${k}')"><i class="fa-solid ${i}"></i>&nbsp;${l}</button>`).join("")}</div>`;
   if(sdMainTab === "logins") return `<div class="dash2-topline"><div><h1 class="dash2-title">Login Monitor</h1><p class="dash2-sub">Who logged in, to which school, when and from where &mdash; for security</p></div></div>` + bar + sdLoginGuideHtml() + renderLoginMonitor();
   if(sdMainTab === "pricing") return `<div class="dash2-topline"><div><h1 class="dash2-title">Pricing</h1><p class="dash2-sub">Fixed and variable cost for each registered school &mdash; total = fixed cost + (variable cost &times; enrollment)</p></div></div>` + bar + renderSdPricing();
   if(sdMainTab === "account") return `<div class="dash2-topline"><div><h1 class="dash2-title">Account Information</h1><p class="dash2-sub">Your platform account and payment details</p></div></div>` + bar + renderSdAccountInfo();
+  if(sdMainTab === "terms") return `<div class="dash2-topline"><div><h1 class="dash2-title">Academic Term</h1><p class="dash2-sub">Set the term dates once &mdash; every school follows them and the current term changes automatically</p></div></div>` + bar + `<div class="panel" style="padding:20px 24px;">${renderSettingsTermDatesTab()}</div>`;
   if(sdMainTab === "webpage") return `<div class="dash2-topline"><div><h1 class="dash2-title">Web Page</h1><p class="dash2-sub">Edit the information, contacts and photos visitors see on the web page before they log in</p></div></div>` + bar + renderSdWebPage();
   if(sdMainTab === "documents") return `<div class="dash2-topline"><div><h1 class="dash2-title">Documents</h1><p class="dash2-sub">Contracts, licences, invoices and other files you keep for the platform</p></div></div>` + bar + renderSdDocuments();
   if(sdMainTab === "dashmgmt") return `<div class="dash2-topline"><div><h1 class="dash2-title">School Dashboard Management</h1><p class="dash2-sub">Choose which dashboard sections each registered school sees, and post a notice on its dashboard</p></div></div>` + bar + renderSchoolModules() + renderSchoolDashMgmt();
@@ -15267,6 +15276,31 @@ let termDates = {
   },
 };
 const TERM_ORDER = ["Term 1", "Term 2", "Term 3"];
+// The academic term calendar is controlled by the System Developer. On the hosted site / Android app every school receives it from the
+// server (scripts/cloud-sync.js), so the current term changes by itself everywhere; school users see the dates but cannot change them.
+let platformTermsLocked = false;
+function termDatesLocked(){ return currentUserRole !== "System Developer"; }
+function applyPlatformTerms(t){
+  if(!t || typeof t !== 'object' || !Object.keys(t).length) return;
+  if(platformTermsLocked && JSON.stringify(t) === JSON.stringify(termDates)) return;
+  termDates = JSON.parse(JSON.stringify(t)); platformTermsLocked = true; termDateDrafts = {};
+  try{ if(window.MASMS_DIRTY) MASMS_DIRTY.bump(); }catch(e){}
+  try{ const a = document.activeElement, n = a && a.tagName; if(!(n === 'INPUT' || n === 'TEXTAREA' || n === 'SELECT')) render(); }catch(e){}
+}
+// System Developer: send the calendar to the server so every school picks it up.
+function sdPublishTerms(){
+  if(currentUserRole !== "System Developer") return;
+  if(!window.MASMS_CLOUD || !MASMS_CLOUD.api){ alert("Connect to the server first (sign in online) to publish the term dates to all schools."); return; }
+  MASMS_CLOUD.api('PUT', '/platform/terms', { termDates }).then(() => { platformTermsLocked = true; alert("Term dates published. Every school receives them automatically."); render(); })
+    .catch(e => alert("Could not publish the term dates: " + (e && e.message ? e.message : "no connection") + "."));
+}
+function sdAddTermYear(){
+  const y = (prompt("Year to add (for example 2027):") || "").trim();
+  if(!/^\d{4}$/.test(y)) { if(y) alert("Enter a 4-digit year."); return; }
+  if(!termDates[y]) termDates[y] = { "Term 1": { start:"", end:"" }, "Term 2": { start:"", end:"" }, "Term 3": { start:"", end:"" } };
+  termYearView = y;
+  render();
+}
 
 function parseISODate(s){
   const [y, m, d] = s.split("-").map(Number);
@@ -15331,6 +15365,7 @@ function setTermDateDraft(year, term, field, value){
 }
 
 function saveTermDates(year, term){
+  if(termDatesLocked()){ alert("The academic term is controlled by the System Developer."); return; }
   const draft = termDateDrafts[year] && termDateDrafts[year][term];
   if(!draft) return;
   const current = (termDates[year] && termDates[year][term]) || { start: "", end: "" };
@@ -15344,6 +15379,7 @@ function saveTermDates(year, term){
   termDates[year][term] = { start, end };
   delete termDateDrafts[year][term];
   render();
+  if(currentUserRole === "System Developer" && window.MASMS_CLOUD) sdPublishTerms();   // the System Developer's change goes to every school
 }
 
 // Number of calendar weeks a term spans, driven entirely by the start/end
@@ -16764,12 +16800,45 @@ function tpResolvedId(){
 function tpWithTimetable(id, fn){
   const entry = savedTimetables.find(t => t.id === id);
   if(!entry) return null;
-  const prevData = timetableData, prevMeta = timetableMeta;
+  const prevData = timetableData, prevMeta = timetableMeta, prevPrint = ttPrintSnapshot();
   timetableData = entry.postedData || entry.data;   // the frozen, posted copy
   timetableMeta = { name: entry.name, type: entry.type, term: entry.term, savedId: entry.id };
-  try{ return fn(); } finally { timetableData = prevData; timetableMeta = prevMeta; }
+  if(entry.postedPrintSetup) ttPrintApply(entry.postedPrintSetup, true);   // ...with the print layout exactly as it was posted
+  try{ return fn(); } finally { timetableData = prevData; timetableMeta = prevMeta; ttPrintApply(prevPrint, true); }
 }
-let tpPreviewUrl = { key:"", url:"" };
+let tpPreviewUrl = { key:"", url:"", buf:null };
+// Phones (Android app/Chrome, iPhone) cannot show a PDF inside a page frame: they show a blank box or nothing. There the PDF is drawn
+// page by page onto the screen with pdf.js instead, so the timetable still appears on the dashboard.
+function tpPdfFrameUnsupported(){
+  try{
+    if(navigator.pdfViewerEnabled === true && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return false;
+    return /Android|iPhone|iPad|iPod|MASMSApp/i.test(navigator.userAgent) || !!window.Capacitor || navigator.pdfViewerEnabled === false;
+  }catch(e){ return false; }
+}
+function tpShowPdfPages(host, buf, key){
+  host.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Preparing timetable…</div>';
+  return qzLoadPdfJs().then(lib => lib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise).then(async pdf => {
+    if(tpPreviewUrl.key !== key) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'overflow:auto;-webkit-overflow-scrolling:touch;max-height:78vh;border:1px solid var(--border);background:#fff;';
+    host.innerHTML = ''; host.appendChild(wrap);
+    for(let n = 1; n <= pdf.numPages; n++){
+      const page = await pdf.getPage(n);
+      const vp0 = page.getViewport({ scale: 1 });
+      // sharp on a phone: render at about 2x the screen width, but show it at the page's own proportions (scroll sideways to zoom in on a wide timetable)
+      const targetW = Math.max(900, Math.min(2200, (host.clientWidth || 360) * 2.4));
+      const vp = page.getViewport({ scale: targetW / vp0.width });
+      const cv = document.createElement('canvas');
+      cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+      cv.style.cssText = 'display:block;width:' + Math.max(host.clientWidth || 360, Math.round(vp0.width * 1.15)) + 'px;max-width:none;height:auto;';
+      wrap.appendChild(cv);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }
+  }).catch(err => {
+    console.error(err);
+    host.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Could not show the timetable on this screen. Tap <b>Download PDF</b> above to open it.</div>';
+  });
+}
 function setTpTimetableTab(k){ tpTimetableTab = k; render(); }
 function setTpStream(k){ tpStreamKey = k; render(); }
 
@@ -16799,7 +16868,8 @@ function tpDownloadPdf(){
 function tpFillPreview(){
   const host = document.getElementById('tpPdfHost');
   if(!host) return;
-  const key = tpTimetableTab + '|' + tpStreamKey + '|' + tpResolvedId() + '|' + currentUserName;
+  const _pe = savedTimetables.find(t => t.id === tpResolvedId()); const key = tpTimetableTab + '|' + tpStreamKey + '|' + tpResolvedId() + '|' + currentUserName + '|' + (_pe ? (_pe.postedOn || '') + (_pe.postedPrintSetup ? JSON.stringify(_pe.postedPrintSetup).length : 0) + JSON.stringify(_pe.postedData || _pe.data || {}).length : '');
+  if(tpPreviewUrl.key === key && tpPreviewUrl.buf && tpPdfFrameUnsupported()){ tpShowPdfPages(host, tpPreviewUrl.buf, key); return; }
   if(tpPreviewUrl.key === key && tpPreviewUrl.url){ host.innerHTML = `<iframe src="${tpPreviewUrl.url}" style="width:100%;height:78vh;border:1px solid var(--border);background:#fff;"></iframe>`; return; }
   host.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Preparing timetable…</div>';
   setTimeout(() => {
@@ -16808,7 +16878,8 @@ function tpFillPreview(){
       const r = tpBuildDoc();
       if(!r){ host.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">No timetable is available for you yet.</div>'; return; }
       if(tpPreviewUrl.url) URL.revokeObjectURL(tpPreviewUrl.url);
-      tpPreviewUrl = { key, url: URL.createObjectURL(r.doc.output('blob')) + '#toolbar=0&navpanes=0' };
+      tpPreviewUrl = { key, url: URL.createObjectURL(r.doc.output('blob')) + '#toolbar=0&navpanes=0', buf: r.doc.output('arraybuffer') };
+      if(tpPdfFrameUnsupported()){ tpShowPdfPages(host, tpPreviewUrl.buf, key); return; }
       host.innerHTML = `<iframe src="${tpPreviewUrl.url}" style="width:100%;height:78vh;border:1px solid var(--border);background:#fff;"></iframe>`;
     }catch(err){ console.error(err); host.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Could not show the timetable. Use Download PDF instead.</div>'; }
   }, 30);
@@ -19172,6 +19243,17 @@ function confirmStudentExit(){
 // the system asks, and on OK opens the registration form with all of the learner's details already filled in,
 // Admission Type showing "Re-admission". Saving makes the learner active again; the admission number and records stay.
 let studentReadmitting = false;
+// Streams a grade/form really has (the classes set up for it). More than one: the learner must be given one. One: the learner joins it automatically. None: there is no Stream field.
+function gradeStreamNames(g){
+  const out = [];
+  (Array.isArray(classesList) ? classesList : []).forEach(c => { if(c && g && c.grade === g && c.stream && !out.includes(c.stream)) out.push(c.stream); });
+  return out;
+}
+function regSyncStream(){
+  const l = gradeStreamNames(regData.formGrade);
+  if(l.length === 1) regData.stream = l[0];
+  else if(!l.length || !l.includes(regData.stream)) regData.stream = "";
+}
 let readmitIndex = null, readmitGrade = "", readmitStream = "";
 function readmitGradeOptions(s){
   const is844 = /^form/i.test(s.grade || "") || s.curriculum === "8-4-4";
@@ -19188,12 +19270,13 @@ function startReadmission(i){
   return true;
 }
 function closeReadmitModal(){ readmitIndex = null; renderReadmitModal(); }
-function setReadmitGrade(v){ readmitGrade = v; }
+function setReadmitGrade(v){ readmitGrade = v; const l = gradeStreamNames(v); readmitStream = l.length === 1 ? l[0] : (l.includes(readmitStream) ? readmitStream : ""); renderReadmitModal(); }
 function setReadmitStream(v){ readmitStream = v; }
 function saveReadmission(){
   const s = students[readmitIndex];
   if(!s) return closeReadmitModal();
-  if(!readmitGrade || !readmitStream){ alert("Please select both Grade/Form and Stream."); return; }
+  if(!readmitGrade){ alert("Please select the Grade/Form."); return; }
+  { const l = gradeStreamNames(readmitGrade); if(l.length > 1 && !readmitStream){ alert("This grade has more than one stream. Please select the Stream."); return; } if(l.length <= 1) readmitStream = l[0] || ""; }
   s.grade = readmitGrade;
   s.stream = readmitStream;
   s.admissionStatus = "Active";
@@ -19225,19 +19308,19 @@ function renderReadmitModal(){
           <button class="link-btn" onclick="closeReadmitModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="preview-modal-body" style="padding:20px 22px;">
-          <p style="margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.6;">Left school${s.admissionStatus && s.admissionStatus !== 'Active' ? ' ('+s.admissionStatus+')' : ''}. Choose the Grade and Stream to readmit into, then save.</p>
+          <p style="margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.6;">Left school${s.admissionStatus && s.admissionStatus !== 'Active' ? ' ('+s.admissionStatus+')' : ''}. Choose the Grade (and the Stream, if the grade has more than one) to readmit into, then save.</p>
           <label class="field"><span>${/^form/i.test(grades[0]||'') ? 'Form' : 'Grade'}&nbsp;<span class="req">*</span></span>
             <select onchange="setReadmitGrade(this.value)">
               <option value="" ${!readmitGrade?'selected':''} disabled>Select...</option>
               ${grades.map(g => `<option value="${g}" ${readmitGrade===g?'selected':''}>${g}</option>`).join('')}
             </select>
           </label>
-          <label class="field"><span>Stream&nbsp;<span class="req">*</span></span>
+          ${gradeStreamNames(readmitGrade).length > 1 ? `<label class="field"><span>Stream&nbsp;<span class="req">*</span></span>
             <select onchange="setReadmitStream(this.value)">
               <option value="" ${!readmitStream?'selected':''} disabled>Select...</option>
-              ${streams.map(g => `<option value="${g}" ${readmitStream===g?'selected':''}>${g}</option>`).join('')}
+              ${gradeStreamNames(readmitGrade).map(g => `<option value="${g}" ${readmitStream===g?'selected':''}>${g}</option>`).join('')}
             </select>
-          </label>
+          </label>` : ''}
         </div>
         <div class="preview-modal-footer">
           <button type="button" class="btn-ghost" style="width:auto;padding:10px 18px;" onclick="closeReadmitModal()">Cancel</button>
@@ -24893,7 +24976,7 @@ const CLASS_LIST_COLUMN_DEFS = [
   { key:'contact', label:'Contact', get:s => phoneList(s.guardianPhones)||phoneList(s.studentPhones)||'' },
   { key:'guardian', label:'Guardian', get:s => upperStr(s.guardian||'') },
   { key:'guardianEmail', label:'Guardian Email', get:s => s.guardianEmail||'' },
-  { key:'gender', label:'Gender', get:s => s.gender||'' },
+  { key:'gender', label:'Gender', get:s => genderShort(s.gender) },
   { key:'dob', label:'DOB', get:s => s.dateOfBirth||'' },
   { key:'age', label:'Age', get:s => { const a = ageFromDmy(s.dateOfBirth); return a !== null ? a : ''; } },
   { key:'boarding', label:'Boarding Status', get:s => s.boardingStatus||'' },
@@ -25238,7 +25321,7 @@ function generateGenderDistributionReport(){
     heading: "Gender Distribution",
     gradeLine: `Total students: ${students.length}`,
     teacherLine: `Generated: ${todayLabel()}`,
-    columns: hasOther ? ["Grade","Male","Female","Other","Total"] : ["Grade","Male","Female","Total"],
+    columns: hasOther ? ["Grade","M","F","Other","Total"] : ["Grade","M","F","Total"],
     rows,
     filenameBase: "gender_distribution",
   });
@@ -25269,7 +25352,7 @@ function generateAgeListReport(){
     columns: ["S/No","Adm No","Name","Gender","Grade","Stream","Date of Admission","Date of Birth","Age"],
     rows: list.map((s,idx) => {
       const age = ageFromDmy(s.dateOfBirth);
-      return [idx+1, s.admissionNumber||'', upperStr(fullName(s)), s.gender||'', s.grade||'', s.stream||'', s.dateOfAdmission||'', s.dateOfBirth||'', age !== null ? age : '—'];
+      return [idx+1, s.admissionNumber||'', upperStr(fullName(s)), genderShort(s.gender), s.grade||'', s.stream||'', s.dateOfAdmission||'', s.dateOfBirth||'', age !== null ? age : '—'];
     }),
     filenameBase: "age_list",
   });
@@ -25307,14 +25390,14 @@ function generateAgeAnalysisReport(){
     orderedGenders.forEach(gender => {
       const subset = students.filter(s => s.grade === grade && s.gender === gender);
       if(!subset.length) return;
-      rows.push([grade, gender, ...bandRow(grade, subset)]);
+      rows.push([grade, genderShort(gender), ...bandRow(grade, subset)]);
     });
   });
   orderedGenders.forEach(gender => {
     const subset = students.filter(s => s.gender === gender);
-    rows.push(["All Grades", gender, ...bandRow("All Grades", subset)]);
+    rows.push(["All Grades", genderShort(gender), ...bandRow("All Grades", subset)]);
   });
-  rows.push(["All Grades", "Male + Female", ...bandRow("All Grades", students)]);
+  rows.push(["All Grades", "M + F", ...bandRow("All Grades", students)]);
 
   classListPreview = buildClassListPreview({
     heading: "Age Analysis by Gender & Grade",
@@ -26307,7 +26390,7 @@ function renderTeacherProfileCard(t, selfEdit){
         ${line('NAME', esc(teacherFullName(t)))}
         ${line('ID NO', esc(t.nationalId || '—'))}
         ${line('TSC NO', esc(t.tscNumber || '—'))}
-        ${line('GENDER', esc(t.gender || '—'))}
+        ${line('GENDER', esc(genderShort(t.gender) || '—'))}
         ${line('MOB NO', esc(t.phone || '—'))}
         ${line('SUBJ', esc(subj))}
       </div>
@@ -26363,7 +26446,7 @@ function renderManageTeachersPanel(){
           ${line('NAME', esc(teacherFullName(t)))}
           ${line('ID NO', esc(t.nationalId || '—'))}
           ${line('TSC NO', esc(t.tscNumber || '—'))}
-          ${line('GENDER', esc(t.gender || '—'))}
+          ${line('GENDER', esc(genderShort(t.gender) || '—'))}
           ${line('MOB NO', esc(t.phone || '—'))}
           ${line('SUBJ', esc(subj))}
           ${t.profileStatus ? line('PROFILE', teacherProfileStatusLabel(t.profileStatus)) : ''}
@@ -26861,11 +26944,12 @@ function addOptionalSubjectFromPicker(selectEl){
 
 function regSubmitFinal(){
   captureAddStudentFields();
+  regSyncStream();
   { const miss = addStudentMissingFields(); if(miss.length){ addStudentShowMissing(miss); return; } }
   { const unsaved = ADD_STUDENT_SECTIONS.find(x => x.key !== addStudentSection && !addStudentStepsSaved[x.key]);
     if(unsaved){ addStudentShowMessage(`Save "${unsaved.label}" first, then submit the registration.`); return; } }
   // basic validation for required fields — each one now lives in its own section
-  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","curriculum","formGrade","stream",...(schoolHasBoarding() ? ["boardingStatus"] : []),...(regIs844() ? [] : ["pathway"]),"nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
+  const required = ["admissionNumber","firstName","lastName","gender","dateOfBirth","curriculum","formGrade",...(gradeStreamNames(regData.formGrade).length > 1 ? ["stream"] : []),...(schoolHasBoarding() ? ["boardingStatus"] : []),...(regIs844() ? [] : ["pathway"]),"nearestPrimarySchool","villageEstate","nearestStreetRoad","town","birthCounty","constituency","ward"];
   if(schoolHasBoarding() && regData.boardingStatus === "Boarder") required.push("house");
   const missing = required.filter(k => !regData[k]);
   if(missing.length){
@@ -27232,7 +27316,7 @@ function stepSelect(label, id, options, required, onchange){
 // Adds the red * to each field label that does not have one yet (those two are left alone).
 function addAllRequiredStars(html){
   return html.replace(/(<label class="field"[^>]*>\s*<span>)([^<]+)(<\/span>)/g, (m, open, text, close) =>
-    /^\s*(Upload photo|Enroll Fingerprint)\s*$/i.test(text) ? m : open + text + '&nbsp;<span class="req">*</span>' + close);
+    /^\s*(Upload photo|Enroll Fingerprint|Stream\s*\(optional\))\s*$/i.test(text.replace(/\u00a0/g,' ')) ? m : open + text + '&nbsp;<span class="req">*</span>' + close);
 }
 function renderAddStudentSection(){ return addAllRequiredStars(renderAddStudentSectionRaw()); }
 function renderAddStudentSectionRaw(){
@@ -27367,8 +27451,8 @@ function renderAddStudentSectionRaw(){
             ${stepCalendarField("Date of Admission","dateOfAdmission",false)}
             ${stepSelect("Admission Type","admissionType",(studentReadmitting || regData.admissionType === 'Re-admission') ? ["New","Transfer","Re-admission"] : ["New","Transfer"],false,"onRegAdmissionTypeChange(this.value)")}
             ${stepSelect("Term","term",["Term 1","Term 2","Term 3"],false)}
-            ${regIs844() ? stepSelect("Form","formGrade",["Form 1","Form 2","Form 3","Form 4"],true,"regKeepTyped('formGrade'); updateRegField('formGrade', this.value); render();") : stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true)}
-            ${stepSelect("Stream","stream",activeStreamNames(),true)}
+            ${regIs844() ? stepSelect("Form","formGrade",["Form 1","Form 2","Form 3","Form 4"],true,"regKeepTyped('formGrade'); updateRegField('formGrade', this.value); render();") : stepSelect("Grade","formGrade",["Grade 10","Grade 11","Grade 12"],true,"regKeepTyped('formGrade'); updateRegField('formGrade', this.value); render();")}
+            ${(regSyncStream(), gradeStreamNames(regData.formGrade).length > 1) ? stepSelect("Stream","stream",gradeStreamNames(regData.formGrade),true) : ''}
             ${regIs844() ? '' : `<label class="field"><span>Pathway</span>
               <select id="pathway" onchange="onRegPathwayChange(this.value)">
                 <option value="" ${!regData.pathway?'selected':''} disabled>Select pathway...</option>
@@ -28153,7 +28237,7 @@ function renderStudentProfilePage(readOnly){
   const residence = [s.villageEstate, s.town].filter(Boolean).join(', ');
   const age = ageFromDmy(s.dateOfBirth);
   const personal = [
-    cell('Name', fullName(s)), cell('Admission Number', s.admissionNumber), cell('Gender', s.gender),
+    cell('Name', fullName(s)), cell('Admission Number', s.admissionNumber), cell('Gender', genderShort(s.gender)),
     cell(is844 ? 'KCPE Index Number' : 'Assessment Number', s.previousIndexNumber), cell('UPI', s.upi),
     schoolHasBoarding() ? cell('Boarding Status', s.boardingStatus) : '',
     cell('Residence', residence), cell('Primary Contact', gPhones[0]), cell('Secondary Contact', gPhones[1] || sPhones[0]),
@@ -33693,6 +33777,7 @@ function viewSavedTimetable(id){
   if(!entry) return;
   timetableData = entry.data;
   timetableMeta = { name: entry.name, type: entry.type, term: entry.term, savedId: entry.id };
+  ttPrintApply(entry.printSetup, false);   // the print-preview choices saved with it (break direction, fonts, ...)
   timetableCellEditor = null;
   timetableSelectedClassKey = null;
   timetableView = "class";
@@ -34945,10 +35030,43 @@ function ttHasLessons(data){
 function ttCurrentEntry(){
   return timetableMeta ? savedTimetables.find(t => t.id === timetableMeta.savedId) : null;
 }
+// Print-preview choices (break direction horizontal/vertical, fonts, lesson-card layout, header, days, bell times...) and the periods/days
+// they apply to. They are kept WITH the timetable when it is saved and posted, so the timetable teachers see is exactly the one the
+// administrator finished in the print preview.
+function ttPrintSnapshot(){
+  return JSON.parse(JSON.stringify({
+    days: ttDaysPrintSetup, cls: ttClassPrintSetup, brk: ttBreakPrintSetup, time: ttTimePrintSetup, header: ttHeaderPrintSetup,
+    lesson: ttLessonPrintSetup, labels: ttLessonFieldLabels, group: ttGroupPrintSetup, wholeStyle: timetableWholeStyle,
+    periods: timetablePeriods, dayNames: TIMETABLE_DAYS, dayMeta: timetableDayMeta, weekend: timetableWeekend
+  }));
+}
+// withLayout=true also swaps the periods/days (used to show a posted copy); false only restores the print choices (re-opening to edit).
+function ttPrintApply(sn, withLayout){
+  if(!sn || typeof sn !== 'object') return;
+  const c = x => JSON.parse(JSON.stringify(x));
+  if(sn.days) ttDaysPrintSetup = c(sn.days);
+  if(sn.cls) ttClassPrintSetup = c(sn.cls);
+  if(sn.brk) ttBreakPrintSetup = c(sn.brk);
+  if(sn.time) ttTimePrintSetup = c(sn.time);
+  if(sn.header) ttHeaderPrintSetup = c(sn.header);
+  if(sn.lesson) ttLessonPrintSetup = c(sn.lesson);
+  if(sn.labels) ttLessonFieldLabels = c(sn.labels);
+  if(sn.group) ttGroupPrintSetup = c(sn.group);
+  if(sn.wholeStyle) timetableWholeStyle = sn.wholeStyle;
+  if(withLayout){
+    if(Array.isArray(sn.periods) && sn.periods.length) timetablePeriods = c(sn.periods);
+    if(Array.isArray(sn.dayNames) && sn.dayNames.length) TIMETABLE_DAYS = c(sn.dayNames);
+    if(sn.dayMeta) timetableDayMeta = c(sn.dayMeta);
+    if(sn.weekend) timetableWeekend = sn.weekend;
+  }
+}
 function ttEntryIsDirty(e){
   try{
     if(e.type === "Duty Roster/Rota") return JSON.stringify(e.duty || {}) !== JSON.stringify(e.postedDuty || {});
-    return JSON.stringify(e.data || {}) !== JSON.stringify(e.postedData || {});
+    if(JSON.stringify(e.data || {}) !== JSON.stringify(e.postedData || {})) return true;
+    // print-preview edits made after posting also need a re-post (only judged for the timetable that is open, whose setup is live)
+    if(e.postedPrintSetup && ttCurrentEntry() === e) return JSON.stringify(ttPrintSnapshot()) !== JSON.stringify(e.postedPrintSetup);
+    return false;
   }catch(err){ return true; }
 }
 // SAVE: files the timetable (creating a saved record if it was generated
@@ -34962,6 +35080,7 @@ function ttSaveCardClick(){
     timetableMeta = { name: e.name, type, term, savedId: e.id };
   }
   if(e.status !== 'posted') e.status = 'saved';
+  if(e.type !== "Duty Roster/Rota") e.printSetup = ttPrintSnapshot();   // keep the print-preview choices with the saved timetable
   e.savedAt = new Date().toISOString();
   ttSaveFlashId = e.id;
   render();
@@ -34994,9 +35113,10 @@ function ttPostCardClick(){
     ? `Re-post "${e.name}"?\n\nThe updated timetable replaces the one currently on teachers' dashboards.`
     : `Post "${e.name}"?\n\nIt becomes the final timetable and is sent to every teacher's dashboard.`)) return;
   savedTimetables.forEach(o => {
-    if(o !== e && o.status === 'posted' && o.type === e.type && o.term === e.term){ o.status = 'saved'; delete o.postedData; }
+    if(o !== e && o.status === 'posted' && o.type === e.type && o.term === e.term){ o.status = 'saved'; delete o.postedData; delete o.postedPrintSetup; }
   });
   e.postedData = JSON.parse(JSON.stringify(e.data || {}));
+  if(!isDuty){ e.printSetup = ttPrintSnapshot(); e.postedPrintSetup = JSON.parse(JSON.stringify(e.printSetup)); }   // teachers get it exactly as set in the print preview
   if(isDuty) e.postedDuty = JSON.parse(JSON.stringify(e.duty || {}));
   e.status = 'posted';
   e.postedOn = todayDDMMYYYY();
@@ -35010,7 +35130,7 @@ function ttDeleteCardClick(){
   render();
 }
 function renderTimetablePostBar(){
-  if(!['class','teacher'].includes(timetableView)) return '';
+  if(!['class','teacher','printouts'].includes(timetableView)) return '';
   if(!ttHasLessons(timetableData)) return '';
   const e = ttCurrentEntry();
   const card = (bg, icon, label, sub, onclick, disabled) => `
@@ -43550,7 +43670,7 @@ function renderMeritStudentRankingTab(data){
             <div class="merit-avatar" style="background:${color};">${meritInitials(r.student)}</div>
             <div>
               <div class="merit-student-name">${fullName(r.student)}</div>
-              <div class="merit-student-adm">${meritListShowUPI && r.student.upi ? r.student.upi : ''}${meritListShowUPI && r.student.upi && meritListShowGender ? ' · ' : ''}${meritListShowGender ? r.student.gender : ''}</div>
+              <div class="merit-student-adm">${meritListShowUPI && r.student.upi ? r.student.upi : ''}${meritListShowUPI && r.student.upi && meritListShowGender ? ' · ' : ''}${meritListShowGender ? genderShort(r.student.gender) : ''}</div>
             </div>
           </div>
         </td>
@@ -43830,7 +43950,7 @@ function meritListRankingSection(data, grade){
     i + 1, r.student.admissionNumber,
     ...(meritListShowUPI ? [r.student.upi || ''] : []),
     upperStr(fullName(r.student)),
-    ...(meritListShowGender ? [r.student.gender] : []),
+    ...(meritListShowGender ? [genderShort(r.student.gender)] : []),
     ...(meritListShowStream ? [r.student.stream] : []),
     ...(showPathway ? [meritPathwayAbbrev(r.student.pathway)] : []),
     ...r.subjectCells.filter(c => displaySubjects.includes(c.subject)).map(c => c.mark === null ? '' : `${c.mark} ${c.grade}`),
@@ -45041,7 +45161,7 @@ function renderReportFormsPreview(){
               <div style="font-weight:700;font-size:12.5px;"><span style="color:var(--blue);">ADMNO:</span> <span style="color:var(--text);">${String(student.admissionNumber).toUpperCase()}</span></div>
               <div style="font-weight:700;font-size:12.5px;"><span style="color:var(--blue);">GRADE:</span> <span style="color:var(--text);">${(`${grade}${student.stream ? ' '+student.stream : ''}`).replace(/^grade\s*/i,'').toUpperCase()}</span></div>
               ${(reportFormsOptions.spPathway && !isEight44Grade(grade)) ? `<div style="font-weight:700;font-size:12.5px;"><span style="color:var(--blue);">PATHWAY:</span> <span style="color:var(--text);">${(student.pathway||'—').toUpperCase()}</span></div>` : ''}
-              ${reportFormsOptions.spGender ? `<div style="font-weight:700;font-size:12.5px;"><span style="color:var(--blue);">GENDER:</span> <span style="color:var(--text);">${(student.gender||'—').toUpperCase()}</span></div>` : ''}
+              ${reportFormsOptions.spGender ? `<div style="font-weight:700;font-size:12.5px;"><span style="color:var(--blue);">GENDER:</span> <span style="color:var(--text);">${genderShort(student.gender)||'—'}</span></div>` : ''}
             </div>
           </div>
           <div style="flex:0 1 240px;min-width:200px;max-width:315px;margin-left:auto;">
@@ -45255,7 +45375,7 @@ function buildReportFormStudentSection(grade, exam, stream, student, list){
     studentName: fullName(student).toUpperCase(),
     studentGradeLine: `${grade}${student.stream ? ' '+student.stream : ''}`.replace(/^grade\s*/i,'').toUpperCase(),
     studentPathwayLine: (student.pathway || '—').toUpperCase(),
-    studentGenderLine: (student.gender || '—').toUpperCase(),
+    studentGenderLine: genderShort(student.gender) || '—',
     // Pathways are a CBC-only concept — never shown on 8-4-4 (Form 1-4) report forms.
     showPathway: !!reportFormsOptions.spPathway && !isEight44Grade(grade),
     showGender: !!reportFormsOptions.spGender,
@@ -56684,7 +56804,7 @@ function downloadOpeningClosingRegisterPdf(){
   const head = [['S/No','ADM NO','Name','Class','Stream','Gender','Pathway',openingClosingType==='Opening'?'Time In':'Time Out','Remarks']];
   const body = list.map((s,i)=>{
     const t=openingClosingTimes[s.admissionNumber]||{};
-    return [String(i+1),s.admissionNumber||'',upperStr(fullName(s)),s.grade||'',s.stream||'',s.gender||'',s.pathway||'',openingClosingType==='Opening'?(t.timeIn||'—'):(t.timeOut||'—'),openingClosingRemarks[s.admissionNumber]||''];
+    return [String(i+1),s.admissionNumber||'',upperStr(fullName(s)),s.grade||'',s.stream||'',genderShort(s.gender),s.pathway||'',openingClosingType==='Opening'?(t.timeIn||'—'):(t.timeOut||'—'),openingClosingRemarks[s.admissionNumber]||''];
   });
   if(typeof doc.autoTable === 'function'){
     doc.autoTable({
@@ -59359,9 +59479,15 @@ function renderSettingsProfileTab(){
   `;
 }
 
+let termYearView = null; // year shown in Settings > Academic Term (chosen from the Year drop-down)
+function setTermYearView(y){ termYearView = y; render(); }
 function renderSettingsTermDatesTab(){
+  const locked = termDatesLocked(), isSD = currentUserRole === "System Developer";
+  const dis = locked ? ' disabled' : '';
   const info = getCurrentTermInfo();
-  const years = Array.from(new Set([...Object.keys(termDates), info.year])).sort();
+  const allYears = Array.from(new Set([...Object.keys(termDates), info.year])).sort();
+  const viewYear = (termYearView && allYears.includes(termYearView)) ? termYearView : info.year;
+  const years = [viewYear];
   const cellB = "border:1px solid var(--border);padding:10px;";
   const rows = years.map(year => TERM_ORDER.map(term => {
     const saved = (termDates[year] && termDates[year][term]) || { start:"", end:"" };
@@ -59373,8 +59499,8 @@ function renderSettingsTermDatesTab(){
       <tr ${isCurrent ? 'style="background:var(--blue-tint);"' : ''}>
         <td style="${cellB}font-weight:700;">${year}</td>
         <td style="${cellB}font-weight:700;">${term}${isCurrent ? ' <span class="pill-status status-paid" style="margin-left:8px;">Current</span>' : ''}</td>
-        <td style="${cellB}"><input type="date" value="${range.start}" onchange="setTermDateDraft('${year}','${term}','start',this.value)"></td>
-        <td style="${cellB}"><input type="date" value="${range.end}" onchange="setTermDateDraft('${year}','${term}','end',this.value)"></td>
+        <td style="${cellB}"><input type="date" value="${range.start}"${dis} onchange="setTermDateDraft('${year}','${term}','start',this.value)"></td>
+        <td style="${cellB}"><input type="date" value="${range.end}"${dis} onchange="setTermDateDraft('${year}','${term}','end',this.value)"></td>
         <td style="${cellB}"><button type="button" id="${termRowId(year, term)}" class="btn-primary" style="width:auto;padding:8px 16px;background:#16a34a;border-color:#16a34a;color:#fff;${dirty ? '' : 'opacity:.5;cursor:not-allowed;'}" ${dirty ? '' : 'disabled'} onclick="saveTermDates('${year}','${term}')"><i class="fa-solid fa-floppy-disk"></i> Save</button></td>
       </tr>
     `;
@@ -59384,10 +59510,18 @@ function renderSettingsTermDatesTab(){
     <div class="panel-header" style="padding:0 0 16px;border:none;">
       <h3 style="font-size:16px;">Academic Term</h3>
     </div>
+    ${locked ? `<div style="background:var(--blue-tint);border:1px solid var(--border);padding:10px 14px;margin-bottom:14px;font-size:13px;"><i class="fa-solid fa-lock"></i>&nbsp;The academic term dates are set by the System Developer and update here automatically.</div>` : ''}
+    ${isSD ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;"><button type="button" class="btn-primary auto" onclick="sdPublishTerms()"><i class="fa-solid fa-cloud-arrow-up"></i>&nbsp;Publish to all schools</button><button type="button" class="btn-ghost" style="width:auto;padding:8px 16px;" onclick="sdAddTermYear()"><i class="fa-solid fa-plus"></i>&nbsp;Add year</button><span style="font-size:12.5px;color:var(--muted);">Dates you save here apply to every school automatically.</span></div>` : ''}
     <div class="panel" style="padding:20px 24px;margin-bottom:20px;">
       <div style="font-size:14px;color:var(--muted);margin-bottom:4px;">Based on today's date${currentTermHasActiveExam() ? " and this term's uploaded exam results" : ""}, the system is currently in:</div>
       <div style="font-size:22px;font-weight:700;color:var(--navy);">${info.term}, ${info.year}</div>
       ${info.start ? `<div style="font-size:13px;color:var(--muted);margin-top:4px;">${info.start} &ndash; ${info.end}</div>` : ''}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <label for="termYearSelect" style="font-size:13.5px;font-weight:700;color:var(--navy);">Year</label>
+      <select id="termYearSelect" class="acct-filter-select" onchange="setTermYearView(this.value)">
+        ${allYears.map(y => `<option value="${y}" ${y===viewYear?'selected':''}>${y}</option>`).join('')}
+      </select>
     </div>
     <div class="panel" style="overflow:hidden;">
       <div class="streams-scroll">
