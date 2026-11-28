@@ -27,7 +27,7 @@ function navigate(e) {
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url), p = url.pathname;
   if (req.method !== 'GET' || url.origin !== location.origin) return;
-  if (p.startsWith('/api/') || p === '/version.json' || p === '/sw.js') return;
+  if (p.startsWith('/api/') || p.startsWith('/downloads/') || p === '/version.json' || p === '/sw.js') return;   // the APK is a plain download: never cached by the app
   if (req.mode === 'navigate') {
     if (p !== '/' && p !== '/index.html') return;   // e.g. /landing.html: leave to the browser
     e.respondWith(navigate(e));

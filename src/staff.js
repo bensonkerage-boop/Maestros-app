@@ -57,4 +57,12 @@ function findStaffLogin(data, typedRaw, passwordRaw) {
   }
   return null;
 }
-module.exports = { findStaffLogin, schoolSuffix, loginName };
+// Sales agents are platform-level accounts (the Sales Agents roster in the System Developer's data, not in any school). Same rules as the app's
+// login page: user name = first two words of the name + @maestro, or the phone number; welcome password until the agent chooses their own.
+const agentLoginName = name => { const w = words(name).slice(0, 2).join(''); return w ? w + '@maestro' : ''; };
+function findAgentLogin(agents, typedRaw, passwordRaw) {
+  const typed = lc(typedRaw), pw = String(passwordRaw == null ? '' : passwordRaw).trim(), key = phoneKey(typedRaw);
+  if (!typed || !pw) return [];
+  return arr(agents).filter(a => a && !a.isDeveloper && a.status !== 'Inactive' && (agentLoginName(a.name) === typed || (key && phoneKey(a.phone) === key)) && passwordOk(a, pw));
+}
+module.exports = { findStaffLogin, schoolSuffix, loginName, findAgentLogin, agentLoginName };

@@ -101,6 +101,12 @@ describe('Download Android app link', () => {
     process.env.APK_URL = 'https://example.test/a.apk';
     expect((await get()).headers.get('location')).toBe('https://example.test/a.apk');
   });
+  test('an APK bundled on this site is given directly from the site itself (same address as the website)', async () => {
+    const f = require('path').join(require('os').tmpdir(), 'masms-test.apk'); require('fs').writeFileSync(f, Buffer.concat([Buffer.from([0x50, 0x4b, 3, 4]), Buffer.alloc(200 * 1024)]));
+    process.env.APK_FILE = f; process.env.GITHUB_REPOSITORY = 'maestro/masms';
+    try { const r = await get(); expect(r.status).toBe(302); expect(r.headers.get('location')).toBe('/downloads/MASMS.apk'); }
+    finally { delete process.env.APK_FILE; require('fs').unlinkSync(f); }
+  });
   test('the update feed offers the same link to sideloaded installs', async () => {
     process.env.GITHUB_REPOSITORY = 'maestro/masms';
     expect((await call('GET', '/api/app-version')).j.downloadUrl).toMatch(/releases\/download\/android-latest\/MASMS\.apk$/);

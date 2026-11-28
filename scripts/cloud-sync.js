@@ -22,14 +22,30 @@
     return prep.then(function(payload){ return fetch(API+path,{method:method,headers:headers,body:payload}); })
       .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ if(!r.ok){ var e=new Error(j.error||('HTTP '+r.status)); e.status=r.status; throw e; } return j; }); });
   }
-  function apply(data){
+  // Exams released (published) on this device: "term||exam||class". A new one appearing in data from another device is announced at once,
+  // and a release made here is uploaded at once (no waiting for the next timer tick), so admins' and teachers' dashboards update in seconds.
+  function pubSet(){
+    var o={};
+    try{ examTerms.forEach(function(t){ (t.groups||[]).forEach(function(g){ (g.rows||[]).forEach(function(r){ if(r&&r.published) o[t.term+'||'+g.exam+'||'+r.class]=1; }); }); }); }catch(e){}
+    return o;
+  }
+  var lastPub=null;
+  function newlyPublished(before,after){ return Object.keys(after).filter(function(k){ return !before[k]; }); }
+  function apply(data,announce){
+    var before=announce?pubSet():null;
     if(Array.isArray(data.schools)) schools=data.schools;
     if(data.schoolProfiles && typeof data.schoolProfiles==='object') schoolProfiles=data.schoolProfiles;
     schoolData=data.schoolData;
     try{ applyPlatformData(data); }catch(e){ console.warn('platform data',e); }
     currentSchool=(typeof data.currentSchool==='string' && schools.indexOf(data.currentSchool)>-1)?data.currentSchool:schools[0];
     loadSchoolData(currentSchool);
+    var after=pubSet(), fresh=before?newlyPublished(before,after):[];
+    lastPub=after;
     try{ render(); }catch(e){ console.warn('render after cloud load',e); }
+    if(fresh.length){
+      var f=fresh[0].split('||'), more=fresh.length>1?(' (+'+(fresh.length-1)+' more)'):'';
+      toast('Exam results released: '+f[1]+' – '+f[2]+more);
+    }
   }
 
   var pill=document.createElement('button');
@@ -51,7 +67,7 @@
   };
 
   // used by the top-bar / mobile menu "cloud" link
-  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: syncing…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; }, setup:function(cb){ if(token){ if(cb) cb(); return; } setupOpen=true; afterSetup=cb||null; openDialog(); }, isSysDev:isSysDev, connect:function(t){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} return Promise.resolve(start()); }, linkSchools:function(){ return linkSchools(); }, setToken:function(t){ if(t&&t!==token){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} } }, syncNow:function(){ return pull(true).then(function(){ save(); }); }, api:function(m,path,body){ return api(m,path,body); } };
+  window.MASMS_CLOUD={ click:function(){ pill.onclick(); }, label:function(){ return {off:'Sign in to cloud',ok:'Cloud: saved',sync:'Cloud: syncing…',err:'Cloud: error – retry'}[state]; }, signedIn:function(){ return !!token; }, setup:function(cb){ if(token){ if(cb) cb(); return; } setupOpen=true; afterSetup=cb||null; openDialog(); }, isSysDev:isSysDev, connect:function(t){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} return Promise.resolve(start()); }, linkSchools:function(){ return linkSchools(); }, removeSchool:removeSchool, pullAgentChanges:pullAgentChanges, setToken:function(t){ if(t&&t!==token){ token=t; try{ localStorage.setItem(TOKEN_KEY,t); }catch(e){} } }, syncNow:function(){ return pull(true).then(function(){ save(); }); }, api:function(m,path,body){ return api(m,path,body); } };
 
   function openDialog(){
     api('GET','/auth/status').catch(function(){return {};}).then(function(st){
@@ -81,7 +97,7 @@
   // Load a merged copy: the screen shows everyone's marks and the next save uploads the combined result.
   function adoptMerged(r,merged){
     var cloudStr=JSON.stringify(r.data,skipExp);
-    apply(merged); version=r.version||version; lastHash=hash(cloudStr); setBase(cloudStr,version); seenEpoch=-1;
+    apply(merged,true); version=r.version||version; lastHash=hash(cloudStr); setBase(cloudStr,version); seenEpoch=-1;
     setState('ok'); toast('Your changes were combined with changes from another device');
     var notes=(window.MASMS_MERGE&&MASMS_MERGE.apply.notes)||[]; if(notes.length){ try{ alert(notes.join('\n')); }catch(e){} }
     setTimeout(save,0);
@@ -107,6 +123,7 @@
     // a school registered while another link is in flight is linked as soon as that one ends (not at the 30s retry)
     if(linking){ relink=true; return Promise.resolve(); }
     if(!token||!me||!me.platform) return Promise.resolve();
+    flushDeletes(); pullAgentChanges();
     var list=[]; try{ list=(typeof sdSchools!=='undefined'?sdSchools:[]).filter(function(r){ return r&&r.name&&!r.cloudCode; }); }catch(e){}
     if(!list.length) return Promise.resolve();
     var snap; try{ snap=collectBackupData(); }catch(e){ return Promise.resolve(); }
@@ -128,10 +145,69 @@
   }
   var linkTimer=null;
 
+  // Sales agents sign in from their own phones (server: /api/agent/*). What they change there (a school they register or edit, the password
+  // they choose) waits on the server as small requests; this System Developer device applies them to the registry and the roster, then
+  // confirms. Runs after start-up, after each save and every 30s while the platform owner's device is in use.
+  var agentBusy=false, agentLast=0;
+  var AG_KEYS=['name','region','county','subCounty','level','enrollment','dor','expiry','principalName','mobile','genderType','boardingStatus','logo'];
+  function pullAgentChanges(force){
+    if(agentBusy||!token||!me||!me.platform||!ready) return Promise.resolve();
+    if(!force&&Date.now()-agentLast<20000) return Promise.resolve();
+    agentLast=Date.now(); agentBusy=true;
+    return api('GET','/agent/changes').then(function(j){
+      var applied=[], dirty=false, linkNeeded=false;
+      (j.schools||[]).forEach(function(q){
+        var r=q.record||{}, agent=null; try{ agent=(saAgents||[]).find(function(a){ return a.id===q.agentId&&a.status!=='Inactive'; }); }catch(e){}
+        if(!agent){ applied.push({ key:q.key, agentId:q.agentId }); return; }   // the agent no longer exists: drop the request
+        if(q.op==='edit'){
+          var sc=sdSchools.find(function(x){ return x.id===q.schoolId&&x.agentId===q.agentId; });
+          if(sc){ AG_KEYS.forEach(function(k){ if(r[k]!==undefined&&k!=='name') sc[k]=r[k]; }); if(r.name&&r.name!==sc.name){ try{ sdRenameInSwitcher(sc.name,r.name); }catch(e){} sc.name=r.name; } dirty=true; }
+          applied.push({ key:q.key, agentId:q.agentId });
+        } else {
+          var id=sdNextId++, rec={ id:id, status:'Active', agentId:q.agentId }; AG_KEYS.forEach(function(k){ if(r[k]!==undefined) rec[k]=r[k]; });
+          sdSchools=sdSchools.concat([rec]); dirty=true; linkNeeded=true; applied.push({ key:q.key, agentId:q.agentId, appliedId:id });
+        }
+      });
+      (j.passwords||[]).forEach(function(p){
+        var a=null; try{ a=(saAgents||[]).find(function(x){ return x.id===p.agentId; }); }catch(e){}
+        if(a&&p.pw&&(a.mustChange===true||!a.pw||!a.pw.h)){ a.pw={ s:p.pw.s, h:p.pw.h }; a.mustChange=false; dirty=true; }
+      });
+      if(dirty){ try{ sdEnsureSchoolsListed(); }catch(e){} try{ if(window.MASMS_DIRTY) MASMS_DIRTY.bump(); }catch(e){} try{ render(); }catch(e){} }
+      var done=applied.length?api('POST','/agent/changes/ack',{ applied:applied }).catch(function(){}):Promise.resolve();
+      return done.then(function(){ if(linkNeeded) setTimeout(linkSchools,0); });
+    }).catch(function(){}).then(function(){ agentBusy=false; });
+  }
+  setInterval(function(){ pullAgentChanges(); },30000);
+
+  // A school deleted in the System Developer dashboard is deleted from the server too (its users, saved data and sign-in directory).
+  // The deletion is kept in a short list on this device and retried until the server confirms, so one made offline still happens later.
+  var DEL_KEY='masmsPendingSchoolDeletes', flushing=false;
+  function pendingDeletes(){ try{ var a=JSON.parse(localStorage.getItem(DEL_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function setPending(a){ try{ localStorage.setItem(DEL_KEY,JSON.stringify(a)); }catch(e){} }
+  function removeSchool(code,name){
+    var a=pendingDeletes(); if(!a.some(function(d){ return d.code===code&&d.name===name; })) a.push({code:code||'',name:name||''}); setPending(a);
+    return flushDeletes();
+  }
+  function flushDeletes(){
+    if(flushing||!token||!me||!me.platform) return Promise.resolve();
+    var list=pendingDeletes(); if(!list.length) return Promise.resolve();
+    flushing=true; var left=[], chain=Promise.resolve();
+    list.forEach(function(d){
+      chain=chain.then(function(){
+        var back=false; try{ back=(typeof sdSchools!=='undefined'?sdSchools:[]).some(function(r){ return r&&((d.code&&r.cloudCode===d.code)||(!d.code&&r.name===d.name)); }); }catch(e){}
+        if(back) return;   // registered again since: never delete a school that is registered
+        var codeP=d.code?Promise.resolve(d.code):api('GET','/schools').then(function(j){ var t=(j.schools||[]).filter(function(x){ return x.name===d.name; })[0]; return t?t.code:null; });
+        return codeP.then(function(code){ if(code) return api('DELETE','/schools/'+encodeURIComponent(code)+'?removed=1'); })
+          .catch(function(e){ if(e.status!==404) left.push(d); });   // 404: already gone. Anything else: tried again later
+      });
+    });
+    return chain.then(function(){ flushing=false; setPending(left); if(left.length) setTimeout(flushDeletes,15000); });
+  }
+
   function start(){
     if(!token) return setState('off');
     setState('sync');
-    return localReady().then(checkSchool).then(function(){ try{ pullTerms(); }catch(e){} return api('GET','/data'); }).then(function(r){
+    return localReady().then(function(){ if(lastPub===null) lastPub=pubSet(); }).then(checkSchool).then(function(){ try{ pullTerms(); }catch(e){} return api('GET','/data'); }).then(function(r){
       version=r.version||0;
       // data restored from this device that the cloud never received (e.g. entered offline): combine marks if that is all that
       // changed, otherwise let the user choose
@@ -144,7 +220,7 @@
           confirm('This device has changes that were never uploaded to the school\'s server.\n\nOK = keep this device\'s data and upload it\nCancel = replace it with the copy on the server');
         if(r.data&&!keepLocal){ apply(r.data); lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); ready=true; setState('ok'); }
         else { ready=true; lastHash=''; save(); }
-        linkSchools();
+        linkSchools(); setTimeout(listen,0);
       });
     }).catch(function(e){ if(e.status===401){ token=null; try{localStorage.removeItem(TOKEN_KEY);}catch(_){} setState('off'); } else if(e.status===403){ setState('err'); alert(e.message); } else setState('err'); });
   }
@@ -191,7 +267,7 @@
       setState('sync');
       return api('GET','/data').then(function(r){
         if(!r.data) return;
-        apply(r.data); version=r.version||m.version; lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); seenEpoch=-1;
+        apply(r.data,true); version=r.version||m.version; lastHash=snapHash(); markSynced(lastHash); setBase(lastSnapStr,version); seenEpoch=-1;
         setState('ok'); toast('Updated with the latest saved data'+(r.updatedBy?' (saved by '+r.updatedBy+')':''));
       });
       });
@@ -208,7 +284,7 @@
     if(typeof v==='string'){ if(v.length<=200) o[k]=v; } else if(typeof v==='number'||typeof v==='boolean') o[k]=v;
     else if(Array.isArray(v)&&v.length<=20&&v.every(function(x){ return (typeof x==='string'&&x.length<=200)||typeof x==='number'; })) o[k]=v; }); return o; }
   function slimList(l){ return (Array.isArray(l)?l:[]).map(slimRec).filter(Boolean); }
-  function signInDirectory(snap){ var out={ schools:snap.schools||[], schoolData:{}, platform:{ sdSchools:slimList(snap.platform&&snap.platform.sdSchools) } };
+  function signInDirectory(snap){ var out={ schools:snap.schools||[], schoolData:{}, platform:{ sdSchools:slimList(snap.platform&&snap.platform.sdSchools), saAgents:slimList(snap.platform&&snap.platform.saAgents) } };
     Object.keys(snap.schoolData||{}).forEach(function(n){ var d=snap.schoolData[n]||{}; out.schoolData[n]={ systemUsers:slimList(d.systemUsers), teachersList:slimList(d.teachersList), staffList:slimList(d.staffList), students:slimList(d.students) }; }); return out; }
   function sendDirectory(snap){ try{ return api('PUT','/directory',{data:signInDirectory(snap)}).catch(function(){}); }catch(_){ return Promise.resolve(); } }
 
@@ -315,8 +391,57 @@
   }
 
   document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(pill); paint(); start(); });
-  setInterval(function(){ if(!document.hidden) save(true); },10000);      // upload this device's changes
-  setInterval(function(){ if(!document.hidden) pull(); },15000);          // download other devices' changes
+  // a release (publish) made on this device is uploaded straight away
+  (function(){
+    var r=window.render;
+    if(typeof r==='function'&&!r.__pubWrapped){
+      var w=function(){
+        var out=r.apply(this,arguments);
+        try{
+          var now=pubSet();
+          if(lastPub===null) lastPub=now;
+          else if(newlyPublished(lastPub,now).length||Object.keys(lastPub).length!==Object.keys(now).length){ lastPub=now; if(ready&&token){ seenEpoch=-1; setTimeout(function(){ save(); },0); } }
+        }catch(e){}
+        return out;
+      };
+      w.__pubWrapped=true; w.__dirtyWrapped=r.__dirtyWrapped; window.render=w;
+    }
+  })();
+  // any other change: upload about 0.7s after the last edit (typing keeps pushing it back)
+  var quickT=null;
+  function quickSave(){ if(quickT) clearTimeout(quickT); quickT=setTimeout(function(){ quickT=null; if(!document.hidden) save(true); },700); }
+  ['input','change','click','keyup'].forEach(function(t){ document.addEventListener(t,quickSave,true); });
+  setInterval(function(){ if(!document.hidden) save(true); },3000);       // upload this device's changes (cheap when nothing changed: see MASMS_DIRTY)
+  setInterval(function(){ if(!document.hidden) pull(); },15000);          // safety net: download other devices' changes
+  // Instant updates: keep one request open to the server (/api/data/wait). The moment the live page, the app or any other device saves,
+  // the answer comes back and this device loads the change at once. If the server has no such route or the connection drops, the
+  // 15s poll above keeps working and this loop backs off and retries.
+  var listening=false, listenFails=0, listenOff=false;
+  function listen(){
+    if(listening||listenOff) return;
+    if(!ready||!token||document.hidden) return;
+    listening=true; var t0=Date.now();
+    var ctl=typeof AbortController==='function'?new AbortController():null, to=ctl&&setTimeout(function(){ ctl.abort(); },20000);
+    fetch(API+'/data/wait?since='+version,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:ctl?ctl.signal:undefined})
+      .then(function(r){
+        if(r.status===404){ listenOff=true; throw new Error('no wait route'); }
+        if(r.status===401){ throw new Error('unauthorised'); }
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.json();
+      })
+      .then(function(m){
+        listenFails=0;
+        if(m&&m.version>version){
+          return pull().then(function(){ return m.version>version?new Promise(function(res){ setTimeout(res,3000); }):0; });   // still behind (someone is typing): wait before asking again
+        }
+        // answered at once with nothing new (a proxy that does not hold requests open): do not spin, ask again in a few seconds
+        if(Date.now()-t0<800) return new Promise(function(res){ setTimeout(res,5000); });
+      })
+      .catch(function(){ listenFails++; return new Promise(function(res){ setTimeout(res,Math.min(30000,2000*listenFails)); }); })
+      .then(function(){ if(to) clearTimeout(to); listening=false; setTimeout(listen,0); });
+  }
+  setInterval(listen,5000);   // (re)starts the loop after sign-in, after the app was hidden, or after a failure
+  window.MASMS_LISTEN=listen;
   // The academic term calendar is set by the System Developer and applies to every school: fetch it now and then, no sign-in needed.
   function pullTerms(){
     if(!token) return;
@@ -326,7 +451,7 @@
   window.addEventListener('online',pullTerms);
   setTimeout(pullTerms,3000);
   window.MASMS_PULL_TERMS=pullTerms;
-  document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); else pull(); });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) save(); else { pull(); listen(); } });
   window.addEventListener('focus',function(){ pull(); });
   window.addEventListener('online',function(){ pull(true).then(function(){ save(); }); });
 })();

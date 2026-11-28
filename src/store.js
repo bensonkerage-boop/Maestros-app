@@ -96,6 +96,13 @@ class MemoryStore {
   }
 }
 
+// Tells waiting devices (GET /api/data/wait) the moment a school's data is saved, so they need not wait for their next database check.
+const bus = new (require('events').EventEmitter)(); bus.setMaxListeners(0);
+function announceSaves(st) {
+  const orig = st.saveSnapshot.bind(st);
+  st.saveSnapshot = async (...a) => { const r = await orig(...a); if (r && r.ok) bus.emit('saved', a[0]); return r; };
+  return st;
+}
 let store;
 async function getStore() {
   if (store) return store;
@@ -103,6 +110,7 @@ async function getStore() {
   if (uri) { store = new MongoStore(); await store.connect(uri); }
   else if (process.env.NODE_ENV === 'production') throw new Error('MONGODB_URI is required in production');
   else { console.warn('[masms] MONGODB_URI not set — using volatile in-memory store (dev only)'); store = new MemoryStore(); }
+  announceSaves(store);
   return store;
 }
-module.exports = { getStore, MemoryStore };
+module.exports = { getStore, MemoryStore, bus };

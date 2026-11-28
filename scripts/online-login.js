@@ -11,7 +11,7 @@
      (user removed / school suspended) signs them out at the next check.
    Only active where cloud-sync.js is present (the hosted site and the Android app), not the single-file offline build. */
 (function(){
-  var OFFLINE_LIMIT_HOURS = 12, CHECK_MS = 60000, PING_TIMEOUT = 6000, STAMP_KEY = 'masmsOnlineAt', TOKEN_KEY = 'masmsCloudToken';
+  var OFFLINE_LIMIT_HOURS = 12, CHECK_MS = 60000, PING_TIMEOUT = 10000, STAMP_KEY = 'masmsOnlineAt', TOKEN_KEY = 'masmsCloudToken';
   var API = (window.MASMS_API_BASE || '') + '/api';
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
@@ -27,7 +27,15 @@
   }
   // 'ok' = the real MASMS server answered (and accepted the cloud sign-in, when one exists); 'offline' = no answer, or an answer
   // that is not the MASMS server's (an HTML page, a captive portal, the app's own files); 'rejected' = server says this sign-in is no longer valid
+  // A server that has been idle (Vercel cold start + database connection) can need 8+ seconds to answer its first request. One slow answer
+  // must not read as "no internet": an 'offline' result is asked once more before it is believed.
   function ping(){
+    return pingOnce().then(function(st){
+      if(st!=='slow') return st;
+      return new Promise(function(res){ setTimeout(res,800); }).then(pingOnce).then(function(s2){ return s2==='slow'?'offline':s2; });
+    });
+  }
+  function pingOnce(){
     if(unlinked()) return Promise.resolve('offline');
     // navigator.onLine is NOT trusted: Firefox and Edge report false on VPNs, some Wi-Fi/proxy set-ups and Windows "limited
     // connectivity" even when the server is reachable, which used to block every sign-in. The real request below decides.
@@ -37,7 +45,7 @@
     if(ctl) opts.signal = ctl.signal;
     return fetch(API + (token ? '/auth/me' : '/auth/status'), opts).then(function(r){
       if(r.status === 401 || r.status === 403){ clearTimeout(timer); return 'rejected'; }
-      if(!r.ok){ clearTimeout(timer); return 'offline'; }
+      if(!r.ok){ clearTimeout(timer); return (r.status===502||r.status===503||r.status===504)?'slow':'offline'; }
       return r.json().then(function(j){
         clearTimeout(timer);
         var real = j && typeof j === 'object' && (token ? typeof j.username === 'string' : typeof j.needsSetup === 'boolean');
@@ -47,7 +55,7 @@
         }
         return real ? 'ok' : 'offline';
       }, function(){ clearTimeout(timer); return 'offline'; });
-    }).catch(function(){ clearTimeout(timer); return 'offline'; });
+    }).catch(function(){ clearTimeout(timer); return 'slow'; });
   }
   function stamp(){ lsSet(STAMP_KEY, String(Date.now())); }
 
@@ -145,11 +153,21 @@
           }
           if(r.status === 400) return fail('Enter your username and password. (A fingerprint works once this device has signed in with a password.)');
           if((r.status === 409 || r.status === 403) && r.error) return fail(r.error);
-          return learnerAccepted().then(function(ok){
+          // A sales agent (kept in the System Developer's roster, not in a school): the server checks the details and sends the agent's own data.
+          var agentP = (window.MASMS_AGENT && MASMS_AGENT.login && r.status !== 429) ? (function(){ var u2 = document.getElementById('login_username'), p2 = document.getElementById('login_password'); return MASMS_AGENT.login(u2 ? u2.value.trim() : '', p2 ? p2.value.trim() : ''); })() : Promise.resolve({ ok: false });
+          return agentP.then(function(ag){
+            if(ag && ag.ok){ checking = false; stamp(); go(); return; }
+            if(ag && ag.status === 409 && ag.error) return fail(ag.error);
+            return learnerAccepted().then(function(ok){
             if(ok){ checking = false; go(); return; }
             if(r.status === 429 || lastLearnerStatus === 429) return fail('Too many sign-in attempts from this network. Wait about 15 minutes and try again.');
             var code = ' [staff ' + (r.status || '?') + ', learner ' + lastLearnerStatus + ']';
+            // Sales agents are kept only in the System Developer's platform data, which a school phone does not hold, so the server cannot
+            // check them. Say that instead of "incorrect password" when the typed name looks like an agent's (name@maestro).
+            try{ var typed = (document.getElementById('login_username').value || '').trim().toLowerCase();
+              if(/@maestro$/.test(typed)) return fail('Incorrect username or password for a sales agent account. Use the phone number or your name followed by @maestro, with your password (the welcome password if you have not chosen one). If it still fails, ask the System Developer to check that your account is Active.' + code); }catch(e){}
             fail('Incorrect username or password. If your details are right, your school\'s records may not have reached the server yet: ask the school to open MASMS online and wait until the cloud shows "saved".' + code); });
+          });
         }, function(){ fail('No internet connection. Connect to the internet to sign in.'); });
         return;
       }

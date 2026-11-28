@@ -1,6 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<style id="masms-fixed-text">/* Same text size in every browser and in the Android app: ignore Chrome/phone text autosizing and font-scale inflation. */html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%}</style>
+<script id="masms-fixed-text-js">
+/* Make the website look exactly like the Android app. The app's WebView draws text at exactly the CSS size; Chrome multiplies it by the
+   phone's font-size / Chrome text-scaling setting (boxes stay the same, text grows, so lines wrap and amounts run under charts).
+   This measures that multiplier (the same text laid out in the page vs. drawn on a canvas, which is never scaled) and cancels it. */
+(function(){
+  function factor(){
+    try{
+      var b=document.body; if(!b) return 1;
+      var t='MASMS Wxyz 0123456789 Collected Outstanding', f='40px Arial, Helvetica, sans-serif';
+      var c=document.createElement('canvas').getContext('2d'); c.font=f; var want=c.measureText(t).width; if(!want) return 1;
+      var p=document.createElement('span');
+      p.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font:'+f+';letter-spacing:0;word-spacing:0';
+      p.textContent=t; b.appendChild(p); var got=p.getBoundingClientRect().width; b.removeChild(p);
+      var r=got/want; return (r>0.5&&r<3)?r:1;
+    }catch(e){ return 1; }
+  }
+  var cur=100;
+  function fix(){
+    try{
+      var de=document.documentElement;
+      for(var i=0;i<3;i++){
+        var r=factor(); if(Math.abs(r-1)<0.02) break;
+        var next=Math.max(40,Math.min(200,Math.round(cur/r)));
+        if(next===cur) break;
+        cur=next; de.style.webkitTextSizeAdjust=cur+'%'; de.style.textSizeAdjust=cur+'%';
+      }
+    }catch(e){}
+  }
+  window.MASMS_FIX_TEXT=fix;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fix); else fix();
+  window.addEventListener('load',fix); window.addEventListener('resize',fix); window.addEventListener('orientationchange',fix);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) fix(); });
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -5094,16 +5129,16 @@ html.force-desktop #mobileViewBtn{display:block;position:fixed;right:14px;bottom
   html.is-mobile .m-bbtn.search{background:#1f72bb;}
   html.is-mobile .m-bbtn.next{background:#7b3f98;}
   html.is-mobile .m-bbtn:active{filter:brightness(.88);}
-  /* "WhatsApp us Now" card: Android app only, sits just above the Home / Back / Search / Next bar */
+  /* "WhatsApp us Now" card: phone website and Android app (identical), sits just above the Home / Back / Search / Next bar */
   .m-wa{display:none;}
-  html.is-mobile.is-android-app .m-wa{display:flex;align-items:center;gap:12px;position:fixed;left:8px;right:8px;bottom:calc(var(--mb-h) + env(safe-area-inset-bottom,0px) + 6px);z-index:649;box-sizing:border-box;padding:9px 14px;background:#fff;border:1px solid #cfe9d9;border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,.16);text-decoration:none;color:#0f172a;}
-  html.is-mobile.is-android-app .m-wa:active{filter:brightness(.95);}
+  html.is-mobile .m-wa{display:flex;align-items:center;gap:12px;position:fixed;left:8px;right:8px;bottom:calc(var(--mb-h) + env(safe-area-inset-bottom,0px) + 6px);z-index:649;box-sizing:border-box;padding:9px 14px;background:#fff;border:1px solid #cfe9d9;border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,.16);text-decoration:none;color:#0f172a;}
+  html.is-mobile .m-wa:active{filter:brightness(.95);}
   .m-wa-ico{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;}
   .m-wa-txt{display:flex;flex-direction:column;line-height:1.2;min-width:0;}
   .m-wa-txt b{font-size:15px;font-weight:800;color:#075e54;}
   .m-wa-txt span{font-size:11.5px;color:#64748b;}
   .m-wa-go{margin-left:auto;color:#25D366;font-size:16px;}
-  html.is-mobile.is-android-app .main{padding-bottom:calc(var(--mb-h) + 74px + env(safe-area-inset-bottom,0px)) !important;}
+  html.is-mobile .main{padding-bottom:calc(var(--mb-h) + 74px + env(safe-area-inset-bottom,0px)) !important;}
   html.is-mobile .m-bbtn:disabled{opacity:.4;cursor:default;}
 }
 @media (max-width:360px){
@@ -5607,11 +5642,12 @@ const ALL_MODULE_KEYS = [...NAV_ITEMS.filter(n => n.key !== "sysdev" && n.key !=
 // System Developer is a platform-level account — it sees everything: every
 // school module plus the System Developer console itself.
 ROLE_MODULE_ACCESS["System Developer"] = [...ALL_MODULE_KEYS, "sysdev"];
-// Sales Agent is a platform-level login: it sees the same dashboard and modules as other staff,
-// plus the System Developer console trimmed to two tabs - Registered Schools and School Dashboard
-// Management - limited to the schools that agent registered (renderSystemDeveloperPage).
-ROLE_MODULE_ACCESS["Sales Agent"] = [...ALL_MODULE_KEYS, "sysdev"];
+// Sales Agent is a platform-level login with only two places to go: the Dashboard (the DEMO SCHOOL's dashboard,
+// the only school data on an agent's device) and "My Schools" (the System Developer console trimmed to the schools
+// that agent registered, renderSystemDeveloperPage). No other school module opens for an agent.
+ROLE_MODULE_ACCESS["Sales Agent"] = ["dashboard", "sysdev"];
 function allowedNavKeysForRole(role){
+  if(role === "Sales Agent") return ROLE_MODULE_ACCESS["Sales Agent"];   // exactly Dashboard + My Schools (no Terms & Privacy link either)
   if(role === "Teacher"){
     try{ return teacherModuleKeys().concat(["legal"]); }catch(e){ return ["dashboard", "legal"]; }
   }
@@ -6222,7 +6258,9 @@ function passwordProblems(pw, user){
 function setUserPassword(u, pw){
   if(u.role === "Sales Agent"){
     const a = saAgents.find(x => x.id === u.agentId);
-    if(a){ const salt0 = pwNewSalt(); a.pw = { s: salt0, h: pwHashWithSalt(salt0, pw) }; a.mustChange = false; return saLoginUser(a); }
+    if(a){ const salt0 = pwNewSalt(); a.pw = { s: salt0, h: pwHashWithSalt(salt0, pw) }; a.mustChange = false;
+      try{ if(window.MASMS_AGENT && MASMS_AGENT.active) MASMS_AGENT.savePassword(pw); }catch(_e){}   // an agent on their own phone: kept on the server for the System Developer's roster
+      return saLoginUser(a); }
   }
   const salt = pwNewSalt();
   const upd = Object.assign({}, u, { pw: { s: salt, h: pwHashWithSalt(salt, pw) }, mustChange: false });
@@ -12271,13 +12309,15 @@ function sdSaveSchool(e){
     if(saved){ if(!sdEditingId) saved.status = 'Active'; try{ sdEnsurePrincipalAccount(saved); }catch(_e){ console.warn('principal account', _e); } } }
   const sdWasNew = !sdEditingId, sdNewName = name;
   sdCloseModal();
+  // a sales agent on their own phone: the change goes to the server as a request; the System Developer's device applies it to the registry
+  try{ if(window.MASMS_AGENT && MASMS_AGENT.active) MASMS_AGENT.pushSchool(sdSchools.find(x => x.name === name), sdWasNew); }catch(_e){}
   // a newly registered school is linked to the cloud (its own private space and server login) straight away, so its staff can
   // sign in from any browser with nothing to connect
   try{ if(window.MASMS_CLOUD && MASMS_CLOUD.linkSchools) MASMS_CLOUD.linkSchools(); }catch(_e){}
   // Only this device (the System Developer's) can link a school. If it is not connected, say so now instead of letting the school's
   // staff find out when they cannot sign in: the school is linked automatically as soon as this device is connected.
   try{
-    if(sdWasNew && window.MASMS_CLOUD && !MASMS_CLOUD.signedIn()) setTimeout(() => alert(`${sdNewName} is registered on this device, but this device is not connected to the server, so its staff cannot sign in from other browsers yet.\n\nSign out and sign in again as System Developer while online (you will be asked once to connect). ${sdNewName} is then linked automatically.`), 50);
+    if(sdWasNew && window.MASMS_CLOUD && !MASMS_CLOUD.signedIn() && !(window.MASMS_AGENT && MASMS_AGENT.active)) setTimeout(() => alert(`${sdNewName} is registered on this device, but this device is not connected to the server, so its staff cannot sign in from other browsers yet.\n\nSign out and sign in again as System Developer while online (you will be asked once to connect). ${sdNewName} is then linked automatically.`), 50);
   }catch(_e){}
 }
 
@@ -12288,6 +12328,8 @@ function sdRemoveSchool(id){
   if(!confirm(`Permanently remove ${s.name} from the registry, including its enrollment and licence history? This can't be undone.`)) return;
   sdSchools = sdSchools.filter(x => x.id !== id);
   if(schools.includes(s.name) && schools.length > 1) removeSchool(s.name);
+  // a school deleted here is deleted from the server too (users, saved data, sign-in directory); retried until the server confirms
+  try{ if(window.MASMS_CLOUD && MASMS_CLOUD.removeSchool) MASMS_CLOUD.removeSchool(s.cloudCode || '', s.name); }catch(_e){}
   render();
 }
 
@@ -12573,6 +12615,7 @@ function saResetPassword(id){
   if(!a) return;
   if(!confirm("Reset " + a.name + "'s password? They will sign in with the welcome password and must choose a new one.")) return;
   delete a.pw; a.mustChange = true;
+  try{ if(window.MASMS_CLOUD && MASMS_CLOUD.api && MASMS_CLOUD.signedIn()) MASMS_CLOUD.api('DELETE', '/agent/override/' + id).catch(() => {}); }catch(_e){}   // the password the agent chose on their own phone is dropped too
   render();
 }
 
@@ -16167,10 +16210,10 @@ function renderTopbarRight(){
   const el = document.getElementById('topbarRight');
   if(!el) return;
   el.innerHTML = `
-    <div class="topbar-cell search-cell tb-search">
+    ${isSalesAgentRole() ? '' : `<div class="topbar-cell search-cell tb-search">
       <i class="fa-solid fa-magnifying-glass" style="cursor:pointer;" onclick="globalSearch()"></i>
       <input id="topbarSearchInput" type="text" placeholder="${t('searchPlaceholder')}" onkeydown="if(event.key==='Enter') globalSearch(event)">
-    </div>
+    </div>`}
     <div class="topbar-cell lang-cell">
       <i class="fa-solid fa-globe"></i>
       <select id="langSelect" onchange="setLang(this.value)" title="Language">
@@ -16806,6 +16849,151 @@ function tpWithTimetable(id, fn){
   if(entry.postedPrintSetup) ttPrintApply(entry.postedPrintSetup, true);   // ...with the print layout exactly as it was posted
   try{ return fn(); } finally { timetableData = prevData; timetableMeta = prevMeta; ttPrintApply(prevPrint, true); }
 }
+// ---------- Timetable shown as live HTML (not a PDF picture) ----------
+// Same data, same print setup, same layout as the PDF builders above, but drawn as a real table so it is sharp on every screen,
+// scrolls sideways on a phone and its text can be selected. The PDF is still available through "Download PDF".
+function tpHtmlBuild(){ return tpWithTimetable(tpResolvedId(), tpHtmlInner); }
+function tpHtmlInner(){
+  const E = tEsc;
+  const periods = ttPrintPeriods(tpTimetableTab === 'stream' ? 'class' : 'teacher');
+  let n = 0;
+  const cols = periods.map(p => p.isBreak ? { brk:true, p } : { brk:false, p, no:++n });
+  const breakCount = cols.filter(c => c.brk).length, lessonCount = cols.length - breakCount;
+  const dayUnits = 34, breakUnits = c => (typeof ttPdfBreakUnits === 'function' ? ttPdfBreakUnits(c.p, 22) : 15), total = dayUnits + cols.reduce((s, c) => s + (c.brk ? breakUnits(c) : 40), 0);
+  const pct = u => (u * 100 / total).toFixed(3) + '%';
+  const minW = Math.max(640, lessonCount * 64 + breakCount * 30 + 70);
+  let subtitle = '', loadHtml = '', rec = null, cls = null;
+  if(tpTimetableTab === 'stream'){
+    cls = timetableClasses().find(c => timetableClassKey(c) === tpStreamKey && tNameEq(c.teacher, currentUserName));
+    if(!cls) return null;
+    subtitle = ttHeaderTitleLabel(cls);
+  } else {
+    rec = currentTeacherRecord();
+    if(!rec) return null;
+    subtitle = ttHeaderTeacherLabel(rec);
+    try{
+      const load = ttTeacherSubjectLoad(rec);
+      const shown = load.rows.length ? load.rows : [null, null, null];
+      loadHtml = `<table class="tp-load"><thead><tr><th>S/NO</th><th>SUBJECTS</th><th>NO OF LESSONS</th></tr></thead><tbody>${shown.map((r, i) => `<tr><td>${i + 1}</td><td style="text-align:left;">${r ? E(r.subject) : ''}</td><td>${r ? r.count : ''}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="2">TOTAL</th><th>${load.total}</th></tr></tfoot></table>`;
+    }catch(e){ loadHtml = ''; }
+  }
+  const name = rec ? teacherFullName(rec) : '';
+  const showTimes = typeof ttPdfShowIntervals === 'function' ? ttPdfShowIntervals() : true;
+  const brkDir = ttBreakEffDir('up'), bs = ttBreakPrintSetup;
+  const brkCss = (brkDir === 'horizontal' ? 'writing-mode:horizontal-tb;' : brkDir === 'down' ? 'writing-mode:vertical-rl;' : 'writing-mode:vertical-rl;transform:rotate(180deg);')
+    + `font-size:${Number(bs.fontSize) > 0 ? Number(bs.fontSize) : 12}px;font-weight:${bs.bold ? 700 : 400};font-style:${bs.italic ? 'italic' : 'normal'};${bs.fontFamily ? `font-family:'${E(bs.fontFamily)}',serif;` : ''}`;
+  const G = ttGroupPrintSetup, L = ttLessonPrintSetup;
+  const head = `<tr><th class="tp-corner"></th>${cols.map(c => c.brk
+    ? `<th class="tp-brk-h">${showTimes ? `<div class="tp-time">${E(ttFormatPeriodTime(c.p.start))}<br>${E(ttFormatPeriodTime(c.p.end))}</div>` : ''}</th>`
+    : `<th><div class="tp-pno">${E(ttPdfPeriodHeaderLabel(c.no, String(c.no)))}</div>${showTimes ? `<div class="tp-time">${E(ttFormatPeriodTime(c.p.start))}<br>${E(ttFormatPeriodTime(c.p.end))}</div>` : ''}</th>`).join('')}</tr>`;
+  const xCell = span => `<td colspan="${span}" class="tp-off"><b>X</b></td>`;
+  const lessonCell = (span, subj, sub2, sub3, lab) => `<td colspan="${span}" class="tp-lsn"><div class="tp-lsn-in">${subj ? `<div class="tp-subj">${E(subj)}</div>` : ''}${sub2 ? `<div class="tp-t2">${E(sub2)}</div>` : ''}${sub3 ? `<div class="tp-t3${lab ? ' tp-lab' : ''}">${E(sub3)}</div>` : ''}</div></td>`;
+  const groupCell = divs => `<td class="tp-lsn tp-grp">${divs.map((d, k) => {
+    const s = d.subject ? String(ttGroupSubjectText(d.subject) || '').toUpperCase() : '';
+    const t = (G.teacher && G.teacher.enabled && d.subject) ? ttGroupTeacherLines(ttTchOrNone(d.teacher, d.subject)).map(x => String(x).toUpperCase()).join(' ') : '';
+    return `<div class="tp-div${k > 0 && G.divider && G.divider.enabled ? ' tp-div-line' : ''}">${s ? `<div class="tp-subj">${E(s)}</div>` : ''}${t ? `<div class="tp-t2">${E(t)}</div>` : ''}</div>`;
+  }).join('')}</td>`;
+  // teacher view: every class this teacher has in a slot
+  const findEntries = (day, period) => {
+    const list = [];
+    for(const key in timetableData){
+      const entry = timetableData[key] && timetableData[key][day] && timetableData[key][day][period.id];
+      if(!entry) continue;
+      if(Array.isArray(entry.divisions) && entry.divisions.length > 1){ entry.divisions.forEach(d => { if(d.teacher === name && d.subject) list.push({ key, subject: d.subject }); }); }
+      else if(entry.teacher === name){ list.push({ key, subject: entry.subject }); }
+    }
+    list.sort((a, b) => timetableClassKeyLabel(a.key).localeCompare(timetableClassKeyLabel(b.key)));
+    return list;
+  };
+  const tSlot = (day, period) => {
+    const entries = findEntries(day, period);
+    let timeOff = timetableTeacherTimeOffAt(day, period.id, name);
+    if(entries.length) timeOff = ttCombineTimeOffStates(timeOff, ...entries.map(e => timetableSubjectTimeOffAt(day, period.id, e.subject)), ...entries.map(e => timetableClassTimeOffAt(day, period.id, e.key)));
+    if(timeOff || !entries.length) return { timeOff, subject:'', classLabel:'' };
+    const uniq = arr => Array.from(new Set(arr.filter(Boolean)));
+    const st = uniq(entries.map(e => { if(!e.subject) return ''; const sn = ttShortSubjectName(e.subject); return sn !== e.subject ? sn : (timetableSubjectCode(e.subject) || sn); }));
+    return { timeOff, subject: st.join('/'), classLabel: uniq(entries.map(e => ttTeacherPdfClassLabel(e.key))).join(' / ') };
+  };
+  const cEntry = (key, day, id) => timetableData[key] && timetableData[key][day] && timetableData[key][day][id];
+  const cInfo = (key, day, period) => {
+    const entry = cEntry(key, day, period.id);
+    const subject = (entry && entry.subject) || '', teacher = (entry && entry.teacher) || '';
+    const divided = !!(entry && Array.isArray(entry.divisions) && entry.divisions.length > 1);
+    const off = subject ? ttCombineTimeOffStates(timetableTeacherTimeOffAt(day, period.id, teacher), timetableSubjectTimeOffAt(day, period.id, subject), timetableClassTimeOffAt(day, period.id, cls)) : null;
+    return { entry, subject, teacher, divided, off };
+  };
+  const key = cls ? timetableClassKey(cls) : '';
+  const body = TIMETABLE_DAYS.map((day, di) => {
+    let tds = `<th class="tp-day">${E(ttPdfDayLabel(day, di))}</th>`, i = 0;
+    while(i < cols.length){
+      const c = cols[i];
+      if(c.brk){ if(di === 0) tds += `<td rowspan="${TIMETABLE_DAYS.length}" class="tp-brk"><span style="${brkCss}">${E(String(ttPdfBreakLabel(c.p) || '').toUpperCase())}</span></td>`; i++; continue; }
+      if(cls){
+        const a = cInfo(key, day, c.p);
+        if(a.divided && !a.off){ tds += groupCell(a.entry.divisions); i++; continue; }
+        let span = 1;
+        if(a.subject && !a.off){
+          for(let j = i + 1; j < cols.length && !cols[j].brk; j++){
+            const b = cInfo(key, day, cols[j].p);
+            if(!b.divided && b.subject === a.subject && b.teacher === a.teacher && !b.off) span++; else break;
+          }
+        }
+        if(a.off){ tds += xCell(1); i++; continue; }
+        if(!a.subject){ tds += `<td colspan="${span}" class="tp-lsn"></td>`; i += span; continue; }
+        const subj = L.subject.enabled ? (ttProgramPrintLabel(a.subject) || (L.subject.fullName ? a.subject : ttShortSubjectName(a.subject))) : '';
+        const tch = (ttTchOrNone(a.teacher, a.subject) && L.teacher.enabled) ? ttTeacherLines(ttTchOrNone(a.teacher, a.subject)).join(' ') : '';
+        const isHome = ttCellClassroomType(a.subject) === 'Home classroom';
+        const lab = span > 1 ? ttDoubleLessonLab(a.subject) : '';
+        const room = (lab ? ttPdfShortLabName(lab) : '') || (L.classroom.enabled && !(isHome && L.classroom.doNotPrintIfHomeClassroom) ? ttCellClassroomLabel(a.subject, cls) : '');
+        tds += lessonCell(span, String(subj).toUpperCase(), tch.toUpperCase(), room, !!lab);
+        i += span;
+      } else {
+        const a = tSlot(day, c.p);
+        if(a.timeOff){ tds += xCell(1); i++; continue; }
+        let span = 1;
+        if(a.subject){
+          for(let j = i + 1; j < cols.length && !cols[j].brk; j++){
+            const b = tSlot(day, cols[j].p);
+            if(!b.timeOff && b.subject === a.subject && b.classLabel === a.classLabel) span++; else break;
+          }
+        }
+        tds += a.subject ? lessonCell(span, a.subject, '', a.classLabel, false) : `<td colspan="${span}" class="tp-lsn"></td>`;
+        i += span;
+      }
+    }
+    return `<tr>${tds}</tr>`;
+  }).join('');
+  const hdrText = String(ttHeaderComputedText() || 'TEACHING TIMETABLE').toUpperCase();
+  const prof = (typeof getSchoolProfile === 'function') ? getSchoolProfile(currentSchool) : null;
+  const logo = prof && prof.logo && /^(data:image\/|\/|https?:)/.test(prof.logo) ? `<img class="tp-logo" src="${E(prof.logo)}" alt="">` : '';
+  const d = new Date(), ds = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  return `<div class="tp-paper">
+    <div class="tp-head"><div class="tp-head-l">${logo}</div><div class="tp-head-c"><div class="tp-h1">${E(hdrText)}</div><div class="tp-h2">${E(String(subtitle).toUpperCase())}</div><div class="tp-h3">${E(String(currentSchool || '').toUpperCase())}</div></div><div class="tp-head-r">${loadHtml}</div></div>
+    <div class="tp-scroll"><table class="tp-grid" style="min-width:${minW}px;"><colgroup><col style="width:${pct(dayUnits)}">${cols.map(c => `<col style="width:${pct(c.brk ? breakUnits(c) : 40)}">`).join('')}</colgroup><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    <div class="tp-foot"><span>Timetable generated: ${ds}</span><span>MAESTRO</span></div></div>`;
+}
+const TP_HTML_CSS = `<style>
+.tp-paper{background:#fff;color:#000;font-family:'Times New Roman',Times,serif;border:1px solid var(--border);padding:12px 12px 8px;border-radius:6px;}
+.tp-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.tp-head-l{flex:0 0 60px;} .tp-logo{max-width:60px;max-height:60px;object-fit:contain;}
+.tp-head-c{flex:1;text-align:center;min-width:0;} .tp-head-r{flex:0 0 auto;}
+.tp-h1{font-weight:700;font-size:clamp(14px,2.6vw,20px);line-height:1.2;} .tp-h2{font-weight:700;font-size:clamp(12px,2vw,15px);margin-top:3px;} .tp-h3{font-size:clamp(10px,1.6vw,12px);margin-top:3px;}
+.tp-load{border-collapse:collapse;font-size:10px;background:#fff;color:#000;} .tp-load th,.tp-load td{border:1px solid #000;padding:2px 5px;text-align:center;}
+.tp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tp-grid{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff;color:#000;}
+.tp-grid th,.tp-grid td{border:1.5px solid #000;padding:2px;text-align:center;vertical-align:middle;overflow:hidden;}
+.tp-grid th,.tp-load th{color:#000 !important;background:#fff !important;font-family:inherit;text-transform:none;letter-spacing:0;} .tp-load th{font-size:10px;} .tp-grid .tp-time{color:#000;}
+.tp-pno{font-weight:700;font-size:12px;} .tp-time{font-size:9.5px;line-height:1.25;font-weight:400;}
+.tp-day{font-weight:700;font-size:clamp(11px,1.6vw,15px);background:#fff;}
+.tp-lsn{height:clamp(46px,8vw,72px);padding:2px;} .tp-lsn-in{display:flex;flex-direction:column;justify-content:space-between;align-items:center;height:100%;min-height:44px;gap:2px;}
+.tp-subj{font-weight:700;font-size:clamp(10px,1.5vw,14px);line-height:1.15;word-break:break-word;} .tp-t2{font-size:clamp(8px,1.1vw,10.5px);line-height:1.15;word-break:break-word;} .tp-t3{font-size:clamp(8px,1.2vw,11px);line-height:1.15;margin-top:auto;word-break:break-word;} .tp-lab{font-weight:700;}
+.tp-grp{padding:0;} .tp-div{padding:2px;} .tp-div-line{border-top:1px dashed #000;}
+.tp-off{background:#f1f2f5;color:#94a3b8;font-size:16px;}
+.tp-brk{background:#fff;text-align:center;} .tp-brk span{display:inline-block;letter-spacing:.5px;}
+.tp-brk-h{background:#fff;padding:2px 0 !important;} .tp-brk-h .tp-time{font-size:6.5px;letter-spacing:-.3px;}
+.tp-foot{display:flex;justify-content:space-between;font-size:10px;margin-top:8px;}
+@media (max-width:640px){.tp-head{flex-wrap:wrap;} .tp-head-r{width:100%;} .tp-load{margin:0 auto;}}
+</style>`;
 let tpPreviewUrl = { key:"", url:"", buf:null };
 // Phones (Android app/Chrome, iPhone) cannot show a PDF inside a page frame: they show a blank box or nothing. There the PDF is drawn
 // page by page onto the screen with pdf.js instead, so the timetable still appears on the dashboard.
@@ -16912,12 +17100,14 @@ function renderTeacherTimetablePortal(){
         ${ttOpts.map(o => `<option value="${tEsc(o.id)}" ${o.id===curId?'selected':''}>${tEsc(o.label)}</option>`).join('')}
       </select></div>` : '';
   picker = ttPicker + picker;
-  setTimeout(tpFillPreview, 0);
-  return `${pageHeader("Timetable", tpTimetableTab === 'stream' ? "Stream timetable for the class you teach" : "Your personal teaching timetable")}
+  let ttHtml = '';
+  try{ ttHtml = tpHtmlBuild() || '<div class="empty" style="padding:40px;text-align:center;">No timetable is available for you yet.</div>'; }
+  catch(err){ console.error(err); ttHtml = '<div class="empty" style="padding:40px;text-align:center;">Could not show the timetable. Use Download PDF instead.</div>'; }
+  return `${TP_HTML_CSS}${pageHeader("Timetable", tpTimetableTab === 'stream' ? "Stream timetable for the class you teach" : "Your personal teaching timetable")}
     ${tabRow}
     <div class="panel"><div class="panel-header"><h3>${tpTimetableTab === 'stream' ? 'Stream Timetable' : 'My Timetable'}</h3>
       <button class="btn-primary auto" onclick="tpDownloadPdf()"><i class="fa-solid fa-file-pdf"></i>&nbsp;Download PDF</button></div>
-      <div style="padding:14px 18px 18px;">${picker}<div id="tpPdfHost"></div></div></div>`;
+      <div style="padding:14px 18px 18px;">${picker}<div id="tpPdfHost">${ttHtml}</div></div></div>`;
 }
 
 // ---------- Examinations: enter marks + view-only analysis ----------
@@ -59941,6 +60131,7 @@ function renderMedicalAlerts(){
 }
 
 function renderPage(){
+  if(currentUserRole === "Sales Agent" && !canAccessModule(active)) active = "dashboard";   // a Sales Agent only ever sees the Dashboard and My Schools
   if(active === "dashboard") return teacherProfileBanner() + renderDashboard();
   let body;
   switch(active){

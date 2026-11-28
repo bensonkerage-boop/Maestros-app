@@ -39,11 +39,11 @@ test('idle upload ticks do not serialize; a change uploads once; a failed upload
 
   window.eval(`students.push({name:'New'}); render();`);
   t.setFail(true);
-  await jest.advanceTimersByTimeAsync(10000); await flush();
+  await jest.advanceTimersByTimeAsync(3000); await flush();
   expect(t.calls.put).toBe(2);                                   // change noticed, upload attempted (and failed)
   t.setFail(false);
-  await jest.advanceTimersByTimeAsync(10000); await flush();
+  await jest.advanceTimersByTimeAsync(3000); await flush();
   expect(t.calls.put).toBe(3);                                   // retried although nothing else changed
-  await jest.advanceTimersByTimeAsync(10000); await flush();
+  await jest.advanceTimersByTimeAsync(3000); await flush();
   expect(t.calls.put).toBe(3);                                   // and then quiet again
 });

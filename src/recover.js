@@ -100,9 +100,9 @@ function passwordProblems(pw, hit) {
   return out;
 }
 // every active school's staff accounts with this phone number: [{ code, hits }]
-async function findEverywhere(s, snapKey, id) {
+async function findEverywhere(s, snapKey, id, open) {
   const out = [];
-  for (const t of (await s.listTenants()).filter(x => x.active !== false)) {
+  for (const t of await (open ? open(s) : s.listTenants().then(l => l.filter(x => x.active !== false)))) {   // only active, registered schools (same rule as sign-in)
     const snap = await s.getSnapshot(snapKey(t.code));
     const hits = snap && snap.data ? findAccounts(snap.data, id) : [];
     if (hits.length) out.push({ code: t.code, hits });
@@ -125,7 +125,7 @@ router.post('/auth/recover/send', sendLimiter, wrap(async (req, res) => {
   if (!configured.sms() && !configured.email() && !configured.whatsapp()) return res.status(503).json({ error: 'A code cannot be sent right now: SMS, WhatsApp and email are not set up on the server. Ask your administrator to reset the password (Settings > Users & Roles).' });
   const s = await getStore(), id = txId(key), cur = await s.getTx(id);
   if (cur && cur.at && Date.now() - cur.at < RESEND_MS) return res.status(429).json({ error: 'A code was just sent. Wait a minute before asking for another.' });
-  let found = await findEverywhere(s, req.app.locals.snapKey, ident);
+  let found = await findEverywhere(s, req.app.locals.snapKey, ident, req.app.locals.openTenants);
   // an admission number can exist in several schools: never guess which one, so nothing is sent (the school's administrator can reset it)
   if (ident.kind === 'adm' && found.length > 1) found = [];
   const all = found.flatMap(f => f.hits);

@@ -6,13 +6,13 @@ const compression = require('compression');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { saveDirectory, getDirectory } = require('./directory');
-const saveDir = async (...a) => { forget(); return saveDirectory(...a); };   // a saved directory may carry a new registry list
+const saveDir = async (...a) => { forget(); const r = await saveDirectory(...a); if (r) sweepAfterSave(a[0], a[1]); return r; };   // a saved directory may carry a new registry list
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { findStaffLogin } = require('./staff');
+const { findStaffLogin, findAgentLogin } = require('./staff');
 const crypto = require('crypto');
 const { pwHash } = require('./recover');
-const { getStore } = require('./store');
+const { getStore, bus } = require('./store');
 
 const app = express();
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-only-secret');
@@ -49,6 +49,11 @@ const sign = u => signClaims({ sub: u.id, username: u.username, role: u.role, te
 // A token stays cryptographically valid for months, so every request also checks (cached for 15s) that the account still
 // exists and that its school has not been suspended. Removing a user or suspending a school therefore bites within seconds.
 const live = new Map();
+let sweepBusy = false;   // a saved directory from a platform owner may carry a changed registry: re-check which schools are still registered
+async function sweepAfterSave(store, code) {
+  if (sweepBusy) return; sweepBusy = true;
+  try { if ((await store.listUsers(code)).some(u => u.platform)) await sweepQuietly(store); } catch (e) { /* never fails a save */ } finally { sweepBusy = false; }
+}
 const LIVE_MS = 15000;
 const forget = () => { live.clear(); registryCache = null; };
 // The School Registry (the System Developer's list of registered schools, each Active or Inactive) lives in the platform owner's working copy.
@@ -57,14 +62,18 @@ const forget = () => { live.clear(); registryCache = null; };
 let registryCache = null;
 async function registry(s) {
   if (registryCache && Date.now() - registryCache.at < LIVE_MS) return registryCache.v;
-  const names = new Map(); let found = false;
+  const names = new Map(); names.codes = new Map(); let found = false;   // names: name -> status; names.codes: cloudCode -> status (a renamed school keeps its code)
   const owners = new Set((await s.listUsers()).filter(u => u.platform).map(u => u.tenant));
   for (const code of owners) {
     const d = await getDirectory(s, code).catch(() => null);
     const list = d && d.platform && Array.isArray(d.platform.sdSchools) ? d.platform.sdSchools : null;
     if (!list || !list.length) continue;   // an empty or missing list means the registry has not been set up here, never "nobody is registered" (that would lock every school out)
     found = true;
-    for (const r of list) if (r && typeof r.name === 'string' && r.name.trim()) names.set(r.name.trim(), r.status === 'Inactive' ? 'Inactive' : 'Active');
+    for (const r of list) if (r && typeof r.name === 'string' && r.name.trim()) {
+      const st = r.status === 'Inactive' ? 'Inactive' : 'Active';
+      names.set(r.name.trim(), st);
+      if (typeof r.cloudCode === 'string' && r.cloudCode) names.codes.set(r.cloudCode.toLowerCase(), st);
+    }
   }
   const v = found ? names : null;
   registryCache = { v, at: Date.now() };
@@ -73,15 +82,17 @@ async function registry(s) {
 // Why a school may not be used right now: 'suspended' (switched off on the server), 'inactive' (marked Inactive in the registry) or
 // 'unregistered' (not in the registry at all), else null. Only a registered, Active, not-suspended school lets anyone in. The registry
 // can only be judged once it has reached the server; until then nothing is blocked for being absent from it.
+const regStatus = (reg, t) => (reg.codes.has(t.code) ? reg.codes.get(t.code) : reg.get(t.name));   // 'Active' | 'Inactive' | undefined (not registered)
 async function schoolBlock(s, t) {
   if (!t) return null;
   if (t.active === false) return 'suspended';
   const reg = t.code === DEFAULT_TENANT ? null : await registry(s);
   if (!reg) return null;
-  const st = reg.get(t.name);
+  const st = regStatus(reg, t);
   return st === undefined ? 'unregistered' : st === 'Inactive' ? 'inactive' : null;
 }
 const openTenants = async s => { const out = []; for (const t of await s.listTenants()) if (!(await schoolBlock(s, t))) out.push(t); return out; };
+app.locals.openTenants = openTenants;   // sign-in routes in other files (forgot password) use the same active-schools-only rule
 const BLOCK_MSG = { suspended: 'This school account is suspended. Contact the platform administrator.', inactive: 'This school is marked Inactive on the MASMS server. Contact the platform administrator.', unregistered: 'This school is not registered on the MASMS server. Contact the platform administrator.' };
 async function stillValid(claims) {
   if (claims.staff) {   // a school-scoped token from the staff sign-in (POST /api/staff/login): there is no cloud account behind it, only the school
@@ -109,7 +120,7 @@ const bearer = req => { const m = /^Bearer (.+)$/.exec(req.headers.authorization
 const auth = async (req, res, next) => {
   let claims;
   try { claims = jwt.verify(bearer(req), SECRET); } catch { return res.status(401).json({ error: 'Not signed in' }); }
-  if (claims.portal) return res.status(401).json({ error: 'Not signed in' });   // student/parent tokens never open staff routes
+  if (claims.portal || claims.agent) return res.status(401).json({ error: 'Not signed in' });   // student/parent tokens never open staff routes
   try {
     const v = await stillValid(claims);
     if (v === 'gone') return res.status(401).json({ error: 'Not signed in' });
@@ -226,14 +237,43 @@ app.put('/api/users/:username/password', auth, adminOnly, wrap(async (req, res) 
   res.json({ ok: true });
 }));
 
+// ---- keeping the server in step with the System Developer's registry -----------------------------------------------------
+// Only schools registered in the System Developer dashboard exist on the server. Deleting one there removes it here: its users, saved
+// data, sign-in directory and space. (Inactive schools are different: their data stays, they just cannot be signed in to.)
+const ORPHAN_GRACE_MS = (process.env.ORPHAN_GRACE_HOURS === undefined || process.env.ORPHAN_GRACE_HOURS === '' ? 24 : Number(process.env.ORPHAN_GRACE_HOURS)) * 3600 * 1000;
+async function purgeTenant(s, t) {
+  const users = await s.deleteUsersOfTenant(t.code);
+  await s.deleteSnapshot(snapKey(t.code)); await s.deleteTx('dir:' + t.code); await s.deleteTx('orphan:' + t.code);
+  await s.deleteTenant(t.code); forget();
+  return users;
+}
+// A school that is missing from the registry is first only marked (the registry on the server can briefly be an older copy from another
+// device, or a school can be mid-rename); once it has stayed unregistered for ORPHAN_GRACE_HOURS (default 24) it is removed. Registering
+// it again before then clears the mark. Never runs while the registry is not on the server, and never touches the System Developer's own space.
+async function sweepUnregistered(s) {
+  const reg = await registry(s);
+  if (!reg) return [];
+  const owners = new Set((await s.listUsers()).filter(u => u.platform).map(u => u.tenant)), removed = [];
+  for (const t of await s.listTenants()) {
+    if (t.code === DEFAULT_TENANT || owners.has(t.code)) continue;
+    const mark = await s.getTx('orphan:' + t.code);
+    if (regStatus(reg, t) !== undefined) { if (mark) await s.deleteTx('orphan:' + t.code); continue; }
+    if (!mark) { await s.saveTx('orphan:' + t.code, { since: Date.now() }); if (ORPHAN_GRACE_MS > 0) continue; }
+    if (Date.now() - ((mark && mark.since) || Date.now()) >= ORPHAN_GRACE_MS) { const users = await purgeTenant(s, t); removed.push({ code: t.code, name: t.name, users }); }
+  }
+  return removed;
+}
+const sweepQuietly = s => sweepUnregistered(s).catch(() => []);
+
 // ---- schools: platform owner only ------------------------------------------------------------------------------------
 app.get('/api/schools', auth, platformOnly, wrap(async (req, res) => {
-  const s = await getStore(), users = await s.listUsers(), out = [];
+  const s = await getStore(); await sweepQuietly(s);
+  const users = await s.listUsers(), out = [];
   const reg = await registry(s), owners = new Set(users.filter(u => u.platform).map(u => u.tenant));
   for (const t of await s.listTenants()) {
     const m = await s.getSnapshotMeta(snapKey(t.code));
-    const registered = reg ? reg.has(t.name) : null, regStatus = registered ? reg.get(t.name) : null;
-    const status = t.active === false ? 'Suspended' : registered === false || regStatus === 'Inactive' ? 'Inactive' : 'Active';   // not in the registry = cannot sign in = shown Inactive
+    const rs = reg ? regStatus(reg, t) : undefined, registered = reg ? rs !== undefined : null;
+    const status = t.active === false ? 'Suspended' : registered === false || rs === 'Inactive' ? 'Inactive' : 'Active';   // not in the registry = cannot sign in = shown Inactive
     out.push({ code: t.code, name: t.name, active: t.active, registered, status, deletable: registered === false && t.code !== DEFAULT_TENANT && !owners.has(t.code) && t.code !== req.user.tenant, users: users.filter(u => u.tenant === t.code).length, lastSaved: m ? m.updatedAt : null, lastSavedBy: m ? m.updatedBy : null });
   }
   res.set('Cache-Control', 'no-store');
@@ -244,6 +284,8 @@ app.post('/api/schools', auth, platformOnly, wrap(async (req, res) => {
   const nm = typeof name === 'string' ? name.trim().slice(0, 120) : '';
   const au = typeof adminUsername === 'string' ? adminUsername.trim().toLowerCase() : '';
   if (nm.length < 2) return res.status(400).json({ error: 'School name required' });
+  const reg0 = await registry(s);
+  if (reg0 && !reg0.has(nm)) return res.status(409).json({ error: 'Register this school in the System Developer dashboard first. Only registered schools are added to the server.' });
   if (!USERNAME_OK.test(au) || typeof adminPassword !== 'string' || adminPassword.length < 8) return res.status(400).json({ error: 'Admin username (3+ chars) and password (8+ chars) required' });
   if (await s.findUser(au)) return res.status(409).json({ error: 'That admin username is already taken' });
   let c = slug(code || nm);
@@ -280,6 +322,10 @@ app.post('/api/schools/link', auth, platformOnly, wrap(async (req, res) => {
   const s = await getStore(), { name, seed } = req.body || {};
   const nm = typeof name === 'string' ? name.trim().slice(0, 120) : '';
   if (nm.length < 2) return res.status(400).json({ error: 'School name required' });
+  const have = (await s.listTenants()).find(t => t.name === nm && t.code !== DEFAULT_TENANT);
+  if (have) return res.status(200).json({ code: have.code, created: false });   // already on the server: simply returned
+  const rec = seed && seed.sdRecord;
+  if (!rec || typeof rec !== 'object' || typeof rec.name !== 'string' || rec.name.trim() !== nm) return res.status(400).json({ error: 'Only a school registered in the System Developer dashboard can be added to the server.' });
   const r = await linkSchool(s, nm, seed, req.user.username);
   if (!r) return res.status(409).json({ error: 'Could not choose a school code' });
   res.status(r.created ? 201 : 200).json(r);
@@ -383,6 +429,134 @@ app.post('/api/sysdev/connect', sysdevLimiter, wrap(async (req, res) => {
   }
   res.json({ token: sign(u), user: await userInfo(u, s) });
 }));
+
+// ---- Sales agents: sign in from any phone or browser -----------------------------------------------------------------------
+// Agents live in the System Developer's roster (platform data), not in a school. The server keeps a small sign-in copy of that roster (the
+// platform owner's sign-in directory) and checks agents against it, then gives the device an AGENT token: it opens only the /api/agent/* routes
+// below (never a school's data, never the platform routes) and it dies within seconds if the agent is made Inactive or removed.
+// The device receives the agent's own record and the schools assigned to that agent, nothing else. Changes an agent makes (a school they
+// register or edit, their own new password) are kept here as small requests; the System Developer's device applies them to the registry.
+const agentLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: Number(process.env.AGENT_LOGIN_RATE_LIMIT) || 30, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts, try again later' } });
+const AGENT_TOKEN = '12h', MAX_AGENT_REQS = 200;
+async function ownerCodes(s) { return new Set((await s.listUsers()).filter(u => u.platform).map(u => u.tenant)); }
+// the platform data that holds the roster: the owner's saved copy first (full records), the small directory second (always fits)
+async function platformSources(s) {
+  const out = [];
+  for (const code of await ownerCodes(s)) {
+    const snap = await s.getSnapshot(snapKey(code)), d = await getDirectory(s, code).catch(() => null);
+    if (snap && snap.data && snap.data.platform) out.push({ p: snap.data.platform, full: true });
+    if (d && d.platform) out.push({ p: d.platform, full: false });
+  }
+  return out;
+}
+const agentPwDoc = id => 'agentpw:' + id, agentReqDoc = (aid, key) => 'agentreq:' + aid + ':' + key;
+const withOverride = async (s, a) => { const ov = await s.getTx(agentPwDoc(a.id)); return ov && ov.pw ? { ...a, pw: ov.pw, mustChange: false } : a; };
+async function agentRoster(s) {   // [{ agent, src }] every roster entry with the password the agent last chose (if it has not reached the roster yet)
+  for (const src of await platformSources(s)) {
+    const list = Array.isArray(src.p.saAgents) ? src.p.saAgents.filter(a => a && typeof a === 'object') : [];
+    if (list.length) { const out = []; for (const a of list) out.push({ agent: await withOverride(s, a), src }); return out; }
+  }
+  return [];
+}
+async function agentById(s, id) { return (await agentRoster(s)).map(x => x.agent).find(a => a.id === id && !a.isDeveloper && a.status !== 'Inactive') || null; }
+async function agentPayload(s, agent) {
+  const srcs = await platformSources(s), full = srcs.find(x => x.full), any = full || srcs[0];
+  const schools = [];
+  const mine = list => (Array.isArray(list) ? list : []).filter(r => r && typeof r === 'object' && r.agentId === agent.id);
+  for (const r of mine((any || { p: {} }).p.sdSchools)) schools.push(r);
+  const reqs = (await s.listTx(5000)).filter(t => t && t._k === 'agentreq' && t.agentId === agent.id);
+  for (const q of reqs) if (q.op === 'new' && !q.done && q.record) schools.push({ ...q.record, id: q.clientId, agentId: agent.id, pending: true });
+  const fp = full ? full.p : {}, num = v => (Number.isFinite(v) ? v : undefined);
+  const { pw, ...safeAgent } = agent;
+  return { agent: { ...safeAgent, ...(pw && pw.h ? { pw } : {}) }, schools, sdAccountInfo: fp.sdAccountInfo && typeof fp.sdAccountInfo === 'object' ? fp.sdAccountInfo : undefined,
+    sdInvoiceNextNo: num(fp.sdInvoiceNextNo), sdReceiptNextNo: num(fp.sdReceiptNextNo), sdNextId: Math.max(...[1e6, ...schools.map(r => Number(r.id) || 0)]) + 1 };
+}
+const agentSign = a => jwt.sign({ agent: true, aid: a.id, sub: 'agent:' + a.id, username: 'agent@maestro', role: 'agent' }, SECRET, { expiresIn: AGENT_TOKEN });
+app.post('/api/agent/login', agentLimiter, wrap(async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password.trim() || username.length > 80 || password.length > 80) return res.status(400).json({ error: 'Enter your username and password.' });
+  const s = await getStore(), roster = (await agentRoster(s)).map(x => x.agent), hits = findAgentLogin(roster, username, password);
+  if (!hits.length) return res.status(401).json({ error: 'Incorrect username or password.' });
+  if (hits.length > 1) return res.status(409).json({ error: 'More than one sales agent has these details. Sign in with your phone number.' });
+  res.set('Cache-Control', 'no-store');
+  res.json({ token: agentSign(hits[0]), ...(await agentPayload(s, hits[0])) });
+}));
+const agentAuth = async (req, res, next) => {
+  let c;
+  try { c = jwt.verify(bearer(req), SECRET); } catch { return res.status(401).json({ error: 'Not signed in' }); }
+  if (!c.agent || c.aid === undefined) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const key = 'agent|' + c.aid, hit = live.get(key);
+    let ok = hit && Date.now() - hit.at < LIVE_MS ? hit.v : null;
+    if (ok === null) { ok = !!(await agentById(await getStore(), c.aid)); live.set(key, { v: ok, at: Date.now() }); }
+    if (!ok) return res.status(401).json({ error: 'Not signed in' });
+  } catch (e) { return next(e); }
+  req.agent = { id: c.aid }; next();
+};
+app.get('/api/agent/session', agentAuth, wrap(async (req, res) => {
+  const s = await getStore(), a = await agentById(s, req.agent.id);
+  res.set('Cache-Control', 'no-store'); res.json(await agentPayload(s, a));
+}));
+// the agent chooses their own password (also the forced change from the welcome password)
+app.post('/api/agent/password', agentAuth, agentLimiter, wrap(async (req, res) => {
+  const pw = req.body && req.body.newPassword, s = await getStore();
+  if (typeof pw !== 'string' || pw.length < 8 || pw.length > 80 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw) || pw.trim().toLowerCase() === 'welcome') return res.status(400).json({ error: 'Password needs: at least 8 characters, letters and numbers, and not the welcome password.' });
+  const salt = crypto.randomBytes(8).toString('hex');
+  await s.saveTx(agentPwDoc(req.agent.id), { _k: 'agentpw', id: agentPwDoc(req.agent.id), agentId: req.agent.id, pw: { s: salt, h: pwHash(salt, pw) }, at: Date.now() });
+  live.delete('agent|' + req.agent.id);
+  res.json({ ok: true });
+}));
+const AGENT_FIELDS = ['name', 'region', 'county', 'subCounty', 'level', 'dor', 'expiry', 'principalName', 'mobile', 'genderType', 'boardingStatus'];
+function cleanAgentSchool(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const out = {};
+  for (const k of AGENT_FIELDS) if (typeof r[k] === 'string') out[k] = r[k].trim().slice(0, 120);
+  if (Number.isFinite(Number(r.enrollment)) && r.enrollment !== '' && r.enrollment !== null) out.enrollment = Math.max(0, Math.min(1e6, Number(r.enrollment)));
+  if (typeof r.logo === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(r.logo) && r.logo.length <= 200000) out.logo = r.logo;
+  return out.name && out.name.length >= 2 ? out : null;
+}
+// an agent registers a school or edits one of theirs: kept as a request until the System Developer's device applies it to the registry
+app.post('/api/agent/schools', agentAuth, wrap(async (req, res) => {
+  const s = await getStore(), aid = req.agent.id, body = req.body || {}, rec = cleanAgentSchool(body.record);
+  if (!rec) return res.status(400).json({ error: 'School name and details are required.' });
+  const reqs = (await s.listTx(5000)).filter(t => t && t._k === 'agentreq' && t.agentId === aid);
+  if (reqs.filter(q => !q.done).length >= MAX_AGENT_REQS) return res.status(429).json({ error: 'Too many changes are waiting for the System Developer.' });
+  const payload = await agentPayload(s, await agentById(s, aid)), owns = id => payload.schools.some(x => x.id === id && !x.pending);
+  let key, op, schoolId = null, clientId = null;
+  if (Number.isInteger(body.schoolId) && owns(body.schoolId)) { op = 'edit'; schoolId = body.schoolId; key = 'e' + schoolId; }
+  else if (Number.isInteger(body.clientId) && body.clientId > 0) {
+    clientId = body.clientId; const prior = reqs.find(q => q.key === 'n' + clientId);
+    if (prior && prior.done && prior.appliedId) { op = 'edit'; schoolId = prior.appliedId; key = 'e' + schoolId; }   // registered by the System Developer since: now an edit of that school
+    else { op = 'new'; key = 'n' + clientId; }
+  } else return res.status(400).json({ error: 'Unknown school.' });
+  const id = agentReqDoc(aid, key);
+  await s.saveTx(id, { _k: 'agentreq', id, agentId: aid, key, op, schoolId, clientId, record: rec, at: Date.now(), done: false });
+  res.status(202).json({ ok: true, key, op });
+}));
+// System Developer's device: collect what agents changed, apply it to the registry, then confirm
+app.get('/api/agent/changes', auth, platformOnly, wrap(async (req, res) => {
+  const s = await getStore(), all = await s.listTx(5000);
+  res.set('Cache-Control', 'no-store');
+  res.json({ schools: all.filter(t => t && t._k === 'agentreq' && !t.done).map(({ key, op, schoolId, clientId, record, agentId }) => ({ key, op, schoolId, clientId, record, agentId })),
+    passwords: all.filter(t => t && t._k === 'agentpw').map(({ agentId, pw }) => ({ agentId, pw })) });
+}));
+app.post('/api/agent/changes/ack', auth, platformOnly, wrap(async (req, res) => {
+  const s = await getStore(), applied = Array.isArray(req.body && req.body.applied) ? req.body.applied.slice(0, 500) : [];
+  for (const a of applied) {
+    if (!a || typeof a.key !== 'string' || !Number.isInteger(a.agentId)) continue;
+    const id = agentReqDoc(a.agentId, a.key), q = await s.getTx(id);
+    if (!q) continue;
+    if (q.op === 'new' && Number.isInteger(a.appliedId)) await s.saveTx(id, { ...q, done: true, appliedId: a.appliedId });   // kept: a later edit by the agent maps to the registered school
+    else await s.deleteTx(id);
+  }
+  forget(); res.json({ ok: true });
+}));
+// the System Developer reset an agent's password: drop the password the agent had chosen
+app.delete('/api/agent/override/:id', auth, platformOnly, wrap(async (req, res) => {
+  const id = Number(req.params.id); if (!Number.isInteger(id)) return res.status(400).json({ error: 'Unknown agent' });
+  await (await getStore()).deleteTx(agentPwDoc(id)); live.delete('agent|' + id); res.json({ ok: true });
+}));
+
 // Academic term calendar: set once by the System Developer (platform owner) and read by every school, so the current term advances
 // automatically everywhere. { "2026": { "Term 1": { start, end }, ... } }
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -419,12 +593,15 @@ app.delete('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
   const t = await s.getTenant(code);
   if (!t) return res.status(404).json({ error: 'School not found' });
   if (code === DEFAULT_TENANT || code === req.user.tenant || (await s.listUsers(code)).some(u => u.platform)) return res.status(400).json({ error: 'This is the System Developer\'s own space and cannot be deleted' });
-  const reg = await registry(s);
-  if (!reg) return res.status(409).json({ error: 'The list of registered schools is not on the server yet. Open the System Developer app online so it syncs, then try again.' });
-  if (reg.has(t.name)) return res.status(409).json({ error: 'This school is in the registered list, so it cannot be deleted here. Suspend it instead, or remove it from the registry first.' });
-  const users = await s.deleteUsersOfTenant(code);
-  await s.deleteSnapshot(snapKey(code)); await s.deleteTx('dir:' + code);
-  await s.deleteTenant(code); forget();
+  // removed=1 is sent by the System Developer dashboard when the school is deleted there: that deletion is the authority, so the school goes
+  // from the server too (even if the registry copy on the server has not caught up yet, or is now empty). Without it only a school that is
+  // not in the registry can be deleted.
+  if (!(req.query.removed === '1' || req.body && req.body.removed === true)) {
+    const reg = await registry(s);
+    if (!reg) return res.status(409).json({ error: 'The list of registered schools is not on the server yet. Open the System Developer app online so it syncs, then try again.' });
+    if (regStatus(reg, t) !== undefined) return res.status(409).json({ error: 'This school is in the registered list, so it cannot be deleted here. Suspend it instead, or remove it from the registry first.' });
+  }
+  const users = await purgeTenant(s, t);
   res.json({ ok: true, deleted: { code, name: t.name, users } });
 }));
 app.patch('/api/schools/:code', auth, platformOnly, wrap(async (req, res) => {
@@ -466,6 +643,29 @@ app.get('/api/data', auth, wrap(async (req, res) => {
 // tiny "has another device saved?" check; devices poll this and only download the data when the version moved
 app.get('/api/data/version', auth, wrap(async (req, res) => {
   const m = await (await getStore()).getSnapshotMeta(snapKey(req.user.tenant));
+  res.set('Cache-Control', 'no-store');
+  res.json(m || { version: 0 });
+}));
+
+// Instant updates: a device holds this request open and gets the answer the moment another device (or the live page) saves, instead of
+// waiting for its next poll. It answers as soon as the version is newer than `since`, or after ~9s with the unchanged version (the client
+// simply asks again). Kept under the 15s function limit so it works on Vercel as well as on a normal server.
+app.get('/api/data/wait', auth, wrap(async (req, res) => {
+  const since = Number(req.query.since) || 0, st = await getStore(), key = snapKey(req.user.tenant);
+  const maxMs = Math.min(Number(process.env.WAIT_MAX_MS) || 9000, 12000), every = Number(process.env.WAIT_POLL_MS) || 1000;
+  let closed = false; req.on('close', () => { closed = true; });
+  const end = Date.now() + maxMs;
+  let m = await st.getSnapshotMeta(key);
+  while (!closed && (!m || !(m.version > since)) && Date.now() < end) {
+    await new Promise(r => {   // wake on the next save in this process, else check the database again after `every` ms
+      const done = () => { clearTimeout(t); bus.off('saved', h); req.off('close', done); r(); };
+      const h = k => { if (k === key) done(); }, t = setTimeout(done, every);
+      bus.on('saved', h); req.on('close', done);
+    });
+    if (closed) return;
+    m = await st.getSnapshotMeta(key);
+  }
+  if (closed) return;
   res.set('Cache-Control', 'no-store');
   res.json(m || { version: 0 });
 }));
@@ -900,6 +1100,13 @@ app.get('/api/app-version', (req, res) => {
 // "Download Android app" button on the website. Always sends the browser to the newest APK, which the "Build Android APK"
 // workflow republishes at the same address on every build. Set APK_URL in Vercel to that address, or just GITHUB_REPOSITORY
 // (owner/repo) and the standard GitHub release address is used.
+// The APK itself can sit on this site: the Vercel build copies the newest one to public/downloads/MASMS.apk (scripts/build.js),
+// and then the button gives that file directly, from the same address as the website, served as a file download.
+const APK_PATH = '/downloads/MASMS.apk';
+function bundledApk() {
+  const f = process.env.APK_FILE || path.join(__dirname, '..', 'public', 'downloads', 'MASMS.apk');
+  try { return require('fs').statSync(f).size > 100 * 1024; } catch (e) { return false; }
+}
 function apkUrl() {
   const e = process.env;
   if (e.APK_URL) return e.APK_URL;
@@ -907,7 +1114,7 @@ function apkUrl() {
   return '';
 }
 app.get('/api/android-apk', (req, res) => {
-  const u = apkUrl();
+  const u = bundledApk() ? APK_PATH : apkUrl();
   res.set('Cache-Control', 'no-store');
   if (!u) return res.status(404).type('text').send('The Android app is not published yet. Ask your administrator.');
   res.redirect(302, u);
@@ -964,7 +1171,7 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // Static site (local/Node hosting). On Vercel, files in /public are served by the CDN instead.
 const pub = path.join(__dirname, '..', 'public');
-app.use(express.static(pub, { maxAge: '30d', immutable: true, setHeaders: (res, p) => { if (/version\.json$/.test(p)) res.setHeader('Cache-Control', 'no-store'); else if (/\.html$|sw\.js$|manifest\.webmanifest$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
+app.use(express.static(pub, { maxAge: '30d', immutable: true, setHeaders: (res, p) => { if (/\.apk$/.test(p)) { res.setHeader('Content-Type', 'application/vnd.android.package-archive'); res.setHeader('Content-Disposition', 'attachment; filename="MASMS.apk"'); res.setHeader('Cache-Control', 'no-cache'); } else if (/version\.json$/.test(p)) res.setHeader('Cache-Control', 'no-store'); else if (/\.html$|sw\.js$|manifest\.webmanifest$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
 
 app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Data too large for one upload (4MB limit)' });

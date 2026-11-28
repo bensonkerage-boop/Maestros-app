@@ -59,8 +59,13 @@ describe('Sales Agent access', () => {
 
 describe('Sales Agent wiring in the source', () => {
   test('role is limited to the registry console and hidden from school admins', () => {
-    expect(src).toMatch(/ROLE_MODULE_ACCESS\["Sales Agent"\] = \[\.\.\.ALL_MODULE_KEYS, "sysdev"\];/);
+    expect(src).toMatch(/ROLE_MODULE_ACCESS\["Sales Agent"\] = \["dashboard", "sysdev"\];/);
     expect(src).toMatch(/u\.role !== "System Developer" && u\.role !== "Sales Agent"\)/);
+  });
+  test('agent sees only the Dashboard and My Schools (no other module, no Terms & Privacy, no learner search)', () => {
+    expect(src).toMatch(/if\(role === "Sales Agent"\) return ROLE_MODULE_ACCESS\["Sales Agent"\];/);
+    expect(src).toMatch(/currentUserRole === "Sales Agent" && !canAccessModule\(active\)\) active = "dashboard"/);
+    expect(src).toMatch(/\$\{isSalesAgentRole\(\) \? '' : `<div class="topbar-cell search-cell tb-search">/);
   });
   test('sales-agent-only restrictions: no delete, no status change, no roster, pricing or switcher', () => {
     expect(fnSrc('sdRemoveSchool')).toMatch(/isSalesAgentRole\(\)\) return;/);

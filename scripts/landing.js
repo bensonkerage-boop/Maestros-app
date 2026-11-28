@@ -17,7 +17,7 @@ const RUNTIME = `(function(){
   try{var C0=window.Capacitor;isApp=!!(C0&&C0.isNativePlatform&&C0.isNativePlatform())}catch(e){}
   if(!isApp){try{isApp=/MASMSApp/.test(navigator.userAgent)}catch(e){}}
   // Browser-installed app (Chrome/Edge "Install app" / "Add to Home screen"): it runs in its own window (display-mode standalone, iOS navigator.standalone), so it behaves like the APK: no landing page, straight to sign-in.
-  if(!isApp){try{isApp=!!(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: minimal-ui)').matches))||navigator.standalone===true||/android-app:\/\//.test(document.referrer)}catch(e){}}
+  if(!isApp){try{isApp=!!(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: minimal-ui)').matches))||navigator.standalone===true||String(document.referrer).indexOf('android-app:')===0}catch(e){}}
   if(isApp){f.parentNode.removeChild(f);return}
   var root=document.documentElement, prev=root.style.overflow, loaded=false;
   function ss(){try{return window.sessionStorage}catch(e){return null}}

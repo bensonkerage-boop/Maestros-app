@@ -11,7 +11,7 @@
 (function () {
   if (window.MASMS_UPDATE) return;
   var START_DELAY = 4000, MIN_GAP = 3600e3, EVERY = 6 * 3600e3, SNOOZE = 24 * 3600e3, KEY = 'masmsUpdateSnooze';
-  var WEB_GAP = 120e3, WEB_EVERY = 300e3;   // the web/live-site build check is a tiny request, so it runs often
+  var WEB_GAP = 30e3, WEB_EVERY = 60e3;   // the web/live-site build check is a tiny request, so it runs often
   var lastCheck = 0, running = false, bannerEl = null, flexListener = false;
 
   function cap() { return window.Capacitor; }
@@ -137,7 +137,7 @@
   // A new build is applied by itself: once it has been loaded, the app saves to the device and reloads into it, but only
   // when nobody is typing (a focused field edited in the last TYPING_MS keeps it waiting). At most one automatic reload
   // per RELOAD_GAP, so a misbehaving server can never cause a reload loop; if that guard trips the new version loads on the next open.
-  var TYPING_MS = 20000, RELOAD_GAP = 120000, RKEY = 'masmsAutoReload', lastInput = 0, pending = false, pollT = null, inputArmed = false;
+  var TYPING_MS = 20000, RELOAD_GAP = 60000, RKEY = 'masmsAutoReload', lastInput = 0, pending = false, pollT = null, inputArmed = false;
   function armInput() {
     if (inputArmed) return; inputArmed = true;
     try { document.addEventListener('input', function () { lastInput = now(); }, true); document.addEventListener('keydown', function () { lastInput = now(); }, true); } catch (e) {}

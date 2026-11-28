@@ -24,7 +24,7 @@ const slimList = (list) => arr(list).slice(0, MAX_RECORDS).map(slim).filter(Bool
 // data: a MASMS backup object ({schools, schoolData, platform}). Returns the directory object, or null if it is not one.
 function buildDirectory(data) {
   if (!isObj(data) || !isObj(data.schoolData)) return null;
-  const out = { schools: arr(data.schools).filter(s => typeof s === 'string').slice(0, 50), schoolData: {}, platform: { sdSchools: slimList(data.platform && data.platform.sdSchools) } };
+  const out = { schools: arr(data.schools).filter(s => typeof s === 'string').slice(0, 50), schoolData: {}, platform: { sdSchools: slimList(data.platform && data.platform.sdSchools), saAgents: slimList(data.platform && data.platform.saAgents) } };
   for (const school of Object.keys(data.schoolData).slice(0, 50)) {
     const ds = isObj(data.schoolData[school]) ? data.schoolData[school] : {};
     out.schoolData[school] = { systemUsers: slimList(ds.systemUsers), teachersList: slimList(ds.teachersList), staffList: slimList(ds.staffList), students: slimList(ds.students) };
